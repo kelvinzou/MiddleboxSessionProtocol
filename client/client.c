@@ -8,12 +8,18 @@
 #include <unistd.h>
 #include <errno.h>
 #include <arpa/inet.h> 
+#include <sys/time.h>
 
 int main(int argc, char *argv[])
 {
-    int sockfd = 0, n = 0;
-    char recvBuff[1024];
+    int sockfd = 0;
+    double n = 0;
+    char recvBuff[4096*4];
     struct sockaddr_in serv_addr; 
+
+    timeval t1, t2;
+    double elapsedTime;
+
 
     if(argc != 2)
     {
@@ -44,15 +50,17 @@ int main(int argc, char *argv[])
        printf("\n Error : Connect Failed \n");
        return 1;
     } 
-
-    while ( (n = read(sockfd, recvBuff, sizeof(recvBuff)-1)) > 0)
+    double count =0;
+    gettimeofday(&t1, NULL);
+    while ( (n = read(sockfd, recvBuff, sizeof(recvBuff))) > 0)
     {
-        recvBuff[n] = 0;
-        if(fputs(recvBuff, stdout) == EOF)
-        {
-            printf("\n Error : Fputs error\n");
-        }
+        count+=n;
     } 
+    gettimeofday(&t2, NULL);
+    elapsedTime =(t2.tv_sec - t1.tv_sec)*1000000.0;
+    elapsedTime +=(t2.tv_usec-t1.tv_usec);
+    double bandwidth = (count * 8.0)/(1.024*1.024*elapsedTime);
+    printf("\ntotal bytes received is %f and bandwidth is %f\n", count, bandwidth);
 
     if(n < 0)
     {
