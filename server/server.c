@@ -14,7 +14,7 @@ int main(int argc, char *argv[])
     int listenfd = 0, connfd = 0;
     struct sockaddr_in serv_addr; 
 
-    char sendBuff[1025];
+    char sendBuff[800];
     time_t ticks; 
 
     listenfd = socket(AF_INET, SOCK_STREAM, 0);
