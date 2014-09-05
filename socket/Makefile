@@ -1,0 +1,3 @@
+all: RAW_SOCKET.cc RECEIVE_RAW.cc
+	g++ -o  RAW_SOCKET  RAW_SOCKET.cc
+	g++ -o  RECEIVE_RAW RECEIVE_RAW.cc
