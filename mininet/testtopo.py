@@ -73,4 +73,33 @@ class TestTopo( Topo ):
         self.addLink( rightSwitch, downSwitch )
 
 
-topos = { 'TestTopo': ( lambda: TestTopo() ) }
+#topos = { 'TestTopo': ( lambda: TestTopo() ) }
+
+def bootMininet():
+    #create mininet with the topology
+    host = custom(CPULimitedHost, cpu=0.2)
+    link = custom(TCLink, bw=10, delay='0ms')
+    topo = TestTopo()
+    net = Mininet(topo=topo, controller= RemoteController,  host=host, link=link, build=True, cleanup=True, autoPinCpus=True, autoSetMacs=True, listenPort = 6633)
+    net.start()
+    print "start the net already"
+    net.pingAll()
+    hosts = [net.hosts[1],net.hosts[2]]
+    net.iperf(hosts, 'TCP', '10M')
+    net.stop()
+
+
+
+
+def main():
+    bootMininet()
+    return
+if __name__ == '__main__':
+    # Tell mininet to print useful information
+    main()
+
+
+
+
+
+
