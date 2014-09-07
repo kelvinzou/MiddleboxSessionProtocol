@@ -80,13 +80,23 @@ def bootMininet():
     host = custom(CPULimitedHost, cpu=0.2)
     link = custom(TCLink, bw=10, delay='0ms')
     topo = TestTopo()
-    net = Mininet(topo=topo, controller= RemoteController,  host=host, link=link, build=True, cleanup=True, autoPinCpus=True, autoSetMacs=True, listenPort = 6633)
+    #OVSSwitch, KernelSwitch
+    net = Mininet(topo=topo, controller= RemoteController,  host=host, link=link, build=True, autoPinCpus=True, autoSetMacs=True, listenPort = 6633)
     net.start()
+    print("Background process!")
+    h1 = net.get('h1')
+    print "Host", h1.name, "has IP address", h1.IP(), "and MAC address", h1.MAC()
+    #host1.cmd("./RECEIVE_RAW >/disk/local/kelvinzou/MiddleboxSessionProtocol/mininet/log1 &")
     print "start the net already"
     net.pingAll()
+    sleep(5)
     hosts = [net.hosts[1],net.hosts[2]]
+    print "Stop testing"
+    #host1.cmd("kill %./RECEIVE_RAW")
+    print"successfully killed demon"
+    #host1.cmd("echo hello")
     net.iperf(hosts, 'TCP', '10M')
-    net.stop()
+    #net.stop()
 
 
 

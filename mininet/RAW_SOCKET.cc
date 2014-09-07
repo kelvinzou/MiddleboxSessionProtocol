@@ -1,7 +1,6 @@
 /*
     Raw TCP packets
     Kelvin Zou
-    Part of the code is from  Silver Moon (m00n.silv3r@gmail.com)
 */
 #include <stdio.h> //for printf
 #include <string.h> //memset
@@ -51,8 +50,12 @@ unsigned short csum(unsigned short *ptr,int nbytes)
     return(answer);
 }
  
-int main (void)
+int main (int argc, char *argv[])
 {
+    if (argc<3){
+        printf("Missing source or dest address!\n");
+        return 0;
+    }
     //Create a raw socket
     int s = socket (PF_INET, SOCK_RAW, IPPROTO_TCP);
      
@@ -82,10 +85,10 @@ int main (void)
     //strcpy(data , "ABCDEFGHIJKLMNOPQRSTUVWXYZ");
     memset(data, 'a', 1024);
     //some address resolution
-    strcpy(source_ip , "140.180.188.36");
+    strcpy(source_ip , argv[1]);
     sin.sin_family = AF_INET;
     //sin.sin_port = htons(5000);
-    sin.sin_addr.s_addr = inet_addr ("127.0.0.1");
+    sin.sin_addr.s_addr = inet_addr (argv[2]);
      
     //Fill in the IP Header
     iph->ihl = 5;
