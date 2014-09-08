@@ -11,6 +11,10 @@
 
 int main(int argc, char *argv[])
 {
+    if (argc<2){
+        printf("Missing argument number of bytes, blah...\n");
+        return 0;
+    }
     int listenfd = 0, connfd = 0, n=0;
     struct sockaddr_in serv_addr; 
     int num;
@@ -39,7 +43,7 @@ int main(int argc, char *argv[])
 
 
     listen(listenfd, 10); 
-    int i=1, roundnumber= num*1000000;
+    int i=1, roundnumber= num*100000;
     while(1)
     {
         connfd = accept(listenfd, (struct sockaddr*)NULL, NULL); 
