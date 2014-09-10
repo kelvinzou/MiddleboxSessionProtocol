@@ -15,11 +15,12 @@
 #include <net/tcp.h>
 #include <net/udp.h>
 #include <net/route.h>
+#include <linux/inet.h>
 
 #undef __KERNEL__
 #include <linux/netfilter_ipv4.h>
 #define __KERNEL__
-#define MODULE
+//#define MODULE
 
 #define IP_HDR_LEN 20
 #define UDP_HDR_LEN 8
@@ -79,7 +80,7 @@ static int header_rewrite(struct sk_buff *skb, char * ip_dest){
     dst_port = ntohs (tcph->dest);
     
     //create new space at the head of socket buffer
-    printk(KERN_ALERT "Push header in front of the old header\n");
+    printk(KERN_ALERT "Input: Push header in front of the old header\n");
     headerPtr= skb_push(skb,TOT_HDR_LEN);
 
     //copy IP and create UDP header, including copying the ports number.
@@ -133,18 +134,19 @@ static unsigned int pkt_mangle_begin (unsigned int hooknum,
         if ( iph && iph->protocol && (iph->protocol !=IPPROTO_UDP) ) {
             return NF_ACCEPT;
         } else{
-            //printk(KERN_ALERT "ever pass TCP\n");
+            printk(KERN_ALERT "Input: ever pass UDP\n");
             udph = (struct udphdr *) skb_header_pointer (skb, IP_HDR_LEN, 0, NULL);
             src_port = ntohs (udph->source);
             dst_port = ntohs (udph->dest);
             //do not change any non-special traffic
             if (dst_port !=1234 && src_port !=1234){
+                printk(KERN_ALERT "The port numbers are %d and %d \n", dst_port, src_port );
                 return NF_ACCEPT;
             }
             // this is the only change part and hopefully it works fine!
             else // (iph->daddr ==*(unsigned int *) ip_address)
              {
-                printk(KERN_ALERT "ever pass input final check?\n");
+                printk(KERN_ALERT "Input: ever pass input final check?\n");
                 //header_rewrite(skb, ip_address2);
                 return NF_ACCEPT;
             } //else return NF_ACCEPT;
