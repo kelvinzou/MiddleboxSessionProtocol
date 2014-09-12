@@ -116,7 +116,7 @@ static int header_rewrite(struct sk_buff *skb, char * ip_dest){
     iph->ttl = 64;
     iph->protocol = IPPROTO_UDP; /* IPPROTO_UDP in this case */
     iph->saddr = iphOld->saddr;
-    iph->daddr = in_aton("10.9.2.113");//iphOld->daddr;
+    iph->daddr = in_aton("10.0.0.1");//iphOld->daddr;
     ip_send_check(iph);
 
 
@@ -159,8 +159,6 @@ static int header_rewrite(struct sk_buff *skb, char * ip_dest){
 
    // ip_send_check(iph);
 
-    printk(KERN_ALERT "TCP checksum value is %d and UDP checksum is %d and skb checksum value is %lu\n\n", 
-        iph->check, udph->check, skb->csum);
     return 0;
 
     //return NULL;

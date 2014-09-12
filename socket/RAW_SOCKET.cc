@@ -9,63 +9,81 @@
 #include <stdlib.h> //for exit(0);
 #include <errno.h> //For errno - the error number
 #include <netinet/tcp.h>   //Provides declarations for tcp header
+#include <netinet/udp.h>   //Provides declarations for tcp header
+
 #include <netinet/ip.h>    //Provides declarations for ip header
 #include <arpa/inet.h>
 #include <time.h> 
 #include <unistd.h>
-/* 
-    96 bit (12 bytes) pseudo header needed for tcp header checksum calculation 
-*/
-struct pseudo_header
-{
-    u_int32_t source_address;
-    u_int32_t dest_address;
-    u_int8_t placeholder;
-    u_int8_t protocol;
-    u_int16_t tcp_length;
-}; 
- 
+
+typedef unsigned short u16;
+typedef unsigned long u32;
 /*
     Generic checksum calculation function
 */
-unsigned short csum(unsigned short *ptr,int nbytes) 
-{
-    register long sum;
-    unsigned short oddbyte;
-    register short answer;
- 
-    sum=0;
-    while(nbytes>1) {
-        sum+=*ptr++;
-        nbytes-=2;
-    }
-    if(nbytes==1) {
-        oddbyte=0;
-        *((u_char*)&oddbyte)=*(u_char*)ptr;
-        sum+=oddbyte;
-    }
- 
-    sum = (sum>>16)+(sum & 0xffff);
-    sum = sum + (sum>>16);
-    answer=(short)~sum; 
-    return(answer);
+unsigned short csum(unsigned short *buf, int nwords)
+{       //
+        unsigned long sum;
+        for(sum=0; nwords>0; nwords--)
+                sum += *buf++;
+        sum = (sum >> 16) + (sum &0xffff);
+        sum += (sum >> 16);
+        return (unsigned short)(~sum);
 }
- 
-int main (void)
+
+
+u16 udp_sum_calc(u16 len_udp, u16 * src_addr,u16 * dest_addr, u16 * buff)
+{
+    u16 prot_udp=17;
+    u16 word16;
+    u32 sum;    
+    int i;
+    //initialize sum to zero
+    sum=0;
+    
+    // make 16 bit words out of every two adjacent 8 bit words and 
+    // calculate the sum of all 16 vit words
+    for (i=0;i<len_udp;i=i+2){
+        word16 =((*(buff+i)<<8)&0xFF00 )+(*(buff+i+1) & 0xFF);
+        sum = sum + (unsigned long)word16;
+    }   
+    // add the UDP pseudo header which contains the IP source and destinationn addresses
+    for (i=0;i<4;i=i+2){
+        word16 =((*(src_addr +i)<<8)&0xFF00)+(*(src_addr+i+1)&0xFF);
+        sum=sum+word16; 
+    }
+    for (i=0;i<4;i=i+2){
+        word16 =((*(dest_addr+i) <<8)&0xFF00)+(*(dest_addr+i+1)&0xFF);
+        sum=sum+word16;     
+    }
+    // the protocol number and the length of the UDP packet
+    sum = sum + prot_udp + len_udp;
+
+    // keep only the last 16 bits of the 32 bit calculated sum and add the carries
+    while (sum>>16)
+        sum = (sum & 0xFFFF)+(sum >> 16);
+        
+    // Take the one's complement of sum
+    sum = ~sum;
+
+return ((u16) sum);
+}
+
+
+int main (int argc, char * argv[])
 {
     //Create a raw socket
-    int s = socket (PF_INET, SOCK_RAW, IPPROTO_TCP);
-     
-    if(s == -1)
+    if(argc != 5)
     {
-        //socket creation failed, may be because of non-root privileges
-        perror("Failed to create socket");
-        exit(1);
+    printf("- Invalid parameters!!!\n");
+    printf("- Usage %s <source hostname/IP> <source port> <target hostname/IP> <target port>\n", argv[0]);
+    exit(-1);
     }
+    
      
     //Datagram to represent the packet
-    char datagram[4096] , source_ip[32] , *data , *pseudogram;
-     
+    char datagram[4096], *data ;
+    struct sockaddr_in sin, din;
     //zero out the packet buffer
     memset (datagram, 0, 4096);
      
@@ -73,67 +91,58 @@ int main (void)
     struct iphdr *iph = (struct iphdr *) datagram;
      
     //TCP header
-    struct tcphdr *tcph = (struct tcphdr *) (datagram + sizeof (struct ip));
-    struct sockaddr_in sin;
+    struct udphdr *udph = (struct udphdr *) (datagram + sizeof (struct iphdr));
+
     //pseudoheader is for checksum
-    struct pseudo_header psh;
      
-    data = datagram + sizeof(struct iphdr) + sizeof(struct tcphdr);
-    //strcpy(data , "ABCDEFGHIJKLMNOPQRSTUVWXYZ");
-    memset(data, 'a', 1024);
+    data = datagram + sizeof(struct iphdr) + sizeof(struct udphdr);
+    memset(data, 'a', 1023);
+    memset(data+1023, '\n', 1);
     //some address resolution
-    strcpy(source_ip , "140.180.188.36");
     sin.sin_family = AF_INET;
-    //sin.sin_port = htons(5000);
-    sin.sin_addr.s_addr = inet_addr ("127.0.0.1");
+    din.sin_family = AF_INET;
+    // Port numbers
+    sin.sin_port = htons(atoi(argv[2]));
+    din.sin_port = htons(atoi(argv[4]));
+    // IP addresses
+    sin.sin_addr.s_addr = inet_addr(argv[1]);
+    din.sin_addr.s_addr = inet_addr(argv[3]);
      
     //Fill in the IP Header
     iph->ihl = 5;
     iph->version = 4;
     iph->tos = 0;
-    iph->tot_len = sizeof (struct iphdr) + sizeof (struct tcphdr) + strlen(data);
+    iph->tot_len = sizeof (struct iphdr) + sizeof (struct udphdr) + strlen(data);
     iph->id = htonl (54321); //Id of this packet
     iph->frag_off = 0;
     iph->ttl = 64;
-    iph->protocol = IPPROTO_TCP;
+    iph->protocol = IPPROTO_UDP;
     iph->check = 0;      //Set to 0 before calculating checksum
-    iph->saddr = inet_addr ( source_ip );    //Spoof the source ip address
-    iph->daddr = sin.sin_addr.s_addr;
+    iph->saddr = inet_addr (argv[1]);   
+    iph->daddr = inet_addr (argv[3]); 
      
+    //UDP header
+    udph->source = htons (atoi(argv[2]));
+    udph->dest = htons (atoi(argv[4]));
+    //udph->check = 0; //leave checksum 0 now, filled later by pseudo header
+    udph->len =  sizeof(struct udphdr) + strlen(data);;
+
     //Ip checksum
-    iph->check = csum ((unsigned short *) datagram, iph->tot_len);
-     
-    //TCP Header
-    tcph->source = htons (1234);
-    tcph->dest = htons (80);
-    tcph->seq = 0;
-    tcph->ack_seq = 0;
-    tcph->doff = 5;  //tcp header size
-    tcph->fin=0;
-    tcph->syn=1;
-    tcph->rst=0;
-    tcph->psh=0;
-    tcph->ack=0;
-    tcph->urg=0;
-    tcph->window = htons (5840); /* maximum allowed window size */
-    tcph->check = 0; //leave checksum 0 now, filled later by pseudo header
-    tcph->urg_ptr = 0;
-     
-    //Now the TCP checksum
-    psh.source_address = inet_addr( source_ip );
-    psh.dest_address = sin.sin_addr.s_addr;
-    psh.placeholder = 0;
-    psh.protocol = IPPROTO_TCP;
-    psh.tcp_length = htons(sizeof(struct tcphdr) + strlen(data) );
-     
-    int psize = sizeof(struct pseudo_header) + sizeof(struct tcphdr) + strlen(data);
-    pseudogram =(char*) malloc(psize);
-     
-    memcpy(pseudogram , (char*) &psh , sizeof (struct pseudo_header));
-    memcpy(pseudogram + sizeof(struct pseudo_header) , tcph , sizeof(struct tcphdr) + strlen(data));
-     
-    tcph->check = csum( (unsigned short*) pseudogram , psize);
-     
+    iph->check = csum ((unsigned short *) datagram, sizeof(struct iphdr));
+   // u16 sourceIP[2], destIP[2];
+
+    //udph->check = udp_sum_calc( sizeof(struct udphdr)+strlen(data), (u16*) &iph->saddr, (u16*)&iph->daddr, (u16*) udph );
+
+
+    int s = socket (PF_INET, SOCK_RAW, IPPROTO_UDP);
+    
+    if(s == -1)
+    {
+        //socket creation failed, may be because of non-root privileges
+        perror("Failed to create socket");
+        exit(1);
+    }
+
     //IP_HDRINCL to tell the kernel that headers are included in the packet
     int one = 1;
     const int *val = &one;

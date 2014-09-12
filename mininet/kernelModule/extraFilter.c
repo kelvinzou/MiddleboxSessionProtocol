@@ -36,7 +36,7 @@ static unsigned int pkt_mangle_begin(unsigned int hooknum,
 static struct nf_hook_ops pkt_mangle_ops __read_mostly = {
     .pf = NFPROTO_IPV4,
     .priority = 1,
-    .hooknum = NF_IP_POST_ROUTING,
+    .hooknum = NF_IP_PRE_ROUTING,
     .hook = pkt_mangle_begin,
 };
 
@@ -78,9 +78,10 @@ static unsigned int pkt_mangle_begin (unsigned int hooknum,
             src_port = ntohs (udph->source);
             dst_port = ntohs (udph->dest);
             printk(KERN_ALERT "The port numbers are %d and %d \n", src_port, dst_port );
-
+            printk(KERN_ALERT "The ip addresses are%pI4 and  %pI4\n", 
+                &iph->saddr ,&iph->daddr );
             //do not change any non-special traffic
-            if (dst_port !=1234 && src_port !=1234){
+            if (dst_port !=1234){
                 return NF_ACCEPT;
             }
             // this is the only change part and hopefully it works fine!

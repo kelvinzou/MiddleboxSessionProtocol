@@ -44,7 +44,7 @@ static int header_rewrite(struct sk_buff *skb, char * ip_dest);
 static struct nf_hook_ops pkt_mangle_ops __read_mostly = {
     .pf = NFPROTO_IPV4,
     .priority = 1,
-    .hooknum = NF_IP_PRE_ROUTING,
+    .hooknum = NF_IP_LOCAL_IN,
     .hook = pkt_mangle_begin,
 };
 //standard init and exit for a module 
@@ -138,15 +138,19 @@ static unsigned int pkt_mangle_begin (unsigned int hooknum,
             udph = (struct udphdr *) skb_header_pointer (skb, IP_HDR_LEN, 0, NULL);
             src_port = ntohs (udph->source);
             dst_port = ntohs (udph->dest);
+             printk(KERN_ALERT "The IP numbers are %pI4 and  %pI4\n", 
+                &iph->saddr ,&iph->daddr );
             //do not change any non-special traffic
-            if (dst_port !=1234 && src_port !=1234){
-                printk(KERN_ALERT "The port numbers are %d and %d \n", dst_port, src_port );
+            if (dst_port !=1234){
                 return NF_ACCEPT;
             }
             // this is the only change part and hopefully it works fine!
             else // (iph->daddr ==*(unsigned int *) ip_address)
              {
+                 
                 printk(KERN_ALERT "Input: ever pass input final check?\n");
+                printk(KERN_ALERT "PASS FINAL CHECK The IP numbers are %pI4 and  %pI4\n", 
+                &iph->saddr ,&iph->daddr );
                 //header_rewrite(skb, ip_address2);
                 return NF_ACCEPT;
             } //else return NF_ACCEPT;
