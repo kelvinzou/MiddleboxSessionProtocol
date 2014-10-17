@@ -74,9 +74,13 @@ static unsigned int pre_routing_begin(unsigned int hooknum,
         iph = (struct iphdr *) skb_header_pointer (skb, 0, 0, NULL);
 
         //do not change any non-UDP traffic
-        if ( iph && iph->protocol && (iph->protocol !=IPPROTO_UDP) ) {
+        if ( iph && iph->protocol && (iph->protocol !=IPPROTO_UDP || iph->protocol !=IPPROTO_TCP) ) {
             return NF_ACCEPT;
-        } else{
+        } else if( iph->protocol ==IPPROTO_TCP){
+        	printk(KERN_ALERT "PRE_ROUTING: ever pass input check?\n");
+        }
+        else
+        {
             udph = (struct udphdr *) skb_header_pointer (skb, sizeof(struct iphdr), 0, NULL);
             src_port = ntohs (udph->source);
             dst_port = ntohs (udph->dest);

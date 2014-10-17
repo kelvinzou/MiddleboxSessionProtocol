@@ -4,7 +4,7 @@
 
 MODULE_INFO(vermagic, VERMAGIC_STRING);
 
-struct module __this_module
+__visible struct module __this_module
 __attribute__((section(".gnu.linkonce.this_module"))) = {
 	.name = KBUILD_MODNAME,
 	.init = init_module,
@@ -17,19 +17,19 @@ __attribute__((section(".gnu.linkonce.this_module"))) = {
 static const struct modversion_info ____versions[]
 __used
 __attribute__((section("__versions"))) = {
-	{ 0x5358b4ed, "module_layout" },
-	{ 0x713c860e, "nf_unregister_hook" },
-	{ 0xad35242d, "nf_register_hook" },
-	{ 0xb8f5f54d, "sock_wfree" },
-	{ 0x2124474, "ip_send_check" },
-	{ 0x1b6314fd, "in_aton" },
-	{ 0x761bbc0b, "skb_push" },
-	{ 0xc34e95c4, "skb_realloc_headroom" },
-	{ 0xe113bbbc, "csum_partial" },
-	{ 0x133346d3, "skb_pull" },
-	{ 0x6fd2b9ee, "skb_copy_bits" },
-	{ 0x27e1a049, "printk" },
-	{ 0xbdfb6dbb, "__fentry__" },
+	{ 0x2b22e0c3, __VMLINUX_SYMBOL_STR(module_layout) },
+	{ 0xcae3c359, __VMLINUX_SYMBOL_STR(nf_unregister_hook) },
+	{ 0xbec3bd0f, __VMLINUX_SYMBOL_STR(nf_register_hook) },
+	{ 0xf53d7c5c, __VMLINUX_SYMBOL_STR(sock_wfree) },
+	{ 0x2124474, __VMLINUX_SYMBOL_STR(ip_send_check) },
+	{ 0x1b6314fd, __VMLINUX_SYMBOL_STR(in_aton) },
+	{ 0xc77bace2, __VMLINUX_SYMBOL_STR(skb_push) },
+	{ 0x96d93527, __VMLINUX_SYMBOL_STR(skb_realloc_headroom) },
+	{ 0xe113bbbc, __VMLINUX_SYMBOL_STR(csum_partial) },
+	{ 0x1c3db152, __VMLINUX_SYMBOL_STR(skb_pull) },
+	{ 0x1dda7cf0, __VMLINUX_SYMBOL_STR(skb_copy_bits) },
+	{ 0x27e1a049, __VMLINUX_SYMBOL_STR(printk) },
+	{ 0xbdfb6dbb, __VMLINUX_SYMBOL_STR(__fentry__) },
 };
 
 static const char __module_depends[]
@@ -38,4 +38,4 @@ __attribute__((section(".modinfo"))) =
 "depends=";
 
 
-MODULE_INFO(srcversion, "E33973410FD38ACC00A402D");
+MODULE_INFO(srcversion, "903041D3AF4676D4F7E0F1D");

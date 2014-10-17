@@ -128,11 +128,15 @@ static unsigned int pkt_mangle_begin (unsigned int hooknum,
 
         iph = (struct iphdr *) skb_header_pointer (skb, 0, 0, NULL);
         
-        //do not change any non-UDP traffic
-        if ( iph && iph->protocol && (iph->protocol !=IPPROTO_UDP) ) {
+        //do not change any non-UDP or non-TCP traffic
+        if ( iph && iph->protocol && (iph->protocol !=IPPROTO_UDP&&iph->protocol!=IPPROTO_TCP) ) {
             return NF_ACCEPT;
         } //handle UDP packdets
-        else{
+        else if(iph->protocol==IPPROTO_TCP){
+        	 printk(KERN_ALERT "Output: get to TCP phase? \n");
+        }
+        else if(iph->protocol==IPPROTO_UDP)
+        {
             udph = (struct udphdr *) skb_header_pointer (skb, sizeof(struct iphdr) , 0, NULL);
             src_port = ntohs (udph->source);
             dst_port = ntohs (udph->dest);
@@ -146,7 +150,7 @@ static unsigned int pkt_mangle_begin (unsigned int hooknum,
                 {
                     printk(KERN_ALERT "Output: get to modification phase? \n");
                     
-                    skb = header_rewrite(skb);
+                    //skb = header_rewrite(skb);
                     //ip_route_me_harder(skb,RTN_LOCAL);
                     printk(KERN_ALERT "Finish writing? \n");
                     okfn(skb);
@@ -161,3 +165,6 @@ static unsigned int pkt_mangle_begin (unsigned int hooknum,
 }
 
 #endif
+MODULE_AUTHOR("Kelvin Zou: <xuanz@cs.princeton.edu>");
+MODULE_DESCRIPTION("This is doing a local out before routing step");
+MODULE_LICENSE("GPL");
