@@ -146,6 +146,24 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     printk(KERN_ALERT "Output: Initial tcp port number is %d and %d \n", ntohs(tcpStore->source), ntohs(tcpStore ->dest)); 
 
 
+    //update the head room if needed
+    if (skb_headroom(skb) < 60- tcphdr_len ) {
+        printk(KERN_ALERT "Output: After skb_push Push header in front of the old header\n");
+        struct sk_buff * skbOld = skb;
+        skb = skb_realloc_headroom(skbOld, 60- tcphdr_len);
+        if (!skb) {
+                printk(KERN_ERR "vlan: failed to realloc headroom\n");
+                return NULL;
+        }
+        if(skbOld->sk){
+            skb_set_owner_w(skb, skbOld->sk);
+        }
+    } 
+
+    skb_push(skb, 60- tcphdr_len - iphdr_len );
+    skb_reset_transport_header(skb);   
+    udph =  udp_hdr(skb);
+
 
 
 
