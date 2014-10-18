@@ -114,6 +114,39 @@ struct sk_buff * header_rewrite(struct sk_buff *skb){
     return  skb ;
 }
 
+struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){ 
+
+    struct iphdr *iph, iphStore;
+    struct tcphdr *tcph;
+
+    unsigned int data_len = skb->len;
+
+    iph = (struct iphdr *) ip_hdr (skb ); 
+    tcph = (struct tcphdr *) tcp_hdr (skb );
+
+
+
+    printk(KERN_ALERT "Output: Initial tcp port number is %d and %d \n", ntohs(tcph->source), ntohs(tcph ->dest)); 
+    size_t iphdr_len = sizeof (struct iphdr);
+    size_t tcphdr_len =  tcph->doff*4 ;
+    //create new space at the head of socket buffer
+    printk(KERN_ALERT "Output: Push header in front of the old header\n");
+    printk(KERN_ALERT "Output: header length is %d\n", tcphdr_len);
+
+    printk(KERN_ALERT "headroom is %d large\n", skb_headroom(skb));
+
+    memcpy(&iphStore, iph, iphdr_len);
+
+
+
+
+
+
+
+
+    return  skb ;
+}
+
 
 static unsigned int pkt_mangle_begin (unsigned int hooknum,
                         struct sk_buff *skb,
@@ -128,14 +161,17 @@ static unsigned int pkt_mangle_begin (unsigned int hooknum,
 
         iph = (struct iphdr *) skb_header_pointer (skb, 0, 0, NULL);
         
-        //do not change any non-UDP or non-TCP traffic
-        if ( iph && iph->protocol && (iph->protocol !=IPPROTO_UDP&&iph->protocol!=IPPROTO_TCP) ) {
+        //do not change any non-UDP traffic
+        if ( iph && iph->protocol && (iph->protocol !=IPPROTO_UDP&&iph->protocol!= IPPROTO_TCP) ) {
             return NF_ACCEPT;
         } //handle UDP packdets
-        else if(iph->protocol==IPPROTO_TCP){
-        	 printk(KERN_ALERT "Output: get to TCP phase? \n");
-        }
-        else if(iph->protocol==IPPROTO_UDP)
+        else if (iph->protocol ==IPPROTO_TCP)
+        {
+            skb=tcp_header_rewrite(skb);
+            okfn(skb);
+
+            return  NF_STOLEN;
+        } else if (iph->protocol == IPPROTO_UDP)
         {
             udph = (struct udphdr *) skb_header_pointer (skb, sizeof(struct iphdr) , 0, NULL);
             src_port = ntohs (udph->source);
@@ -150,7 +186,7 @@ static unsigned int pkt_mangle_begin (unsigned int hooknum,
                 {
                     printk(KERN_ALERT "Output: get to modification phase? \n");
                     
-                    //skb = header_rewrite(skb);
+                    skb = header_rewrite(skb);
                     //ip_route_me_harder(skb,RTN_LOCAL);
                     printk(KERN_ALERT "Finish writing? \n");
                     okfn(skb);
@@ -165,6 +201,3 @@ static unsigned int pkt_mangle_begin (unsigned int hooknum,
 }
 
 #endif
-MODULE_AUTHOR("Kelvin Zou: <xuanz@cs.princeton.edu>");
-MODULE_DESCRIPTION("This is doing a local out before routing step");
-MODULE_LICENSE("GPL");

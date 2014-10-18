@@ -38,4 +38,4 @@ __attribute__((section(".modinfo"))) =
 "depends=";
 
 
-MODULE_INFO(srcversion, "903041D3AF4676D4F7E0F1D");
+MODULE_INFO(srcversion, "1C06294FDE2F4B308B8B154");
