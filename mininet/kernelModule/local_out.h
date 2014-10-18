@@ -145,9 +145,12 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     tcpStore = (struct tcphdr *) &memaddr;
     printk(KERN_ALERT "Output: Initial tcp port number is %d and %d \n", ntohs(tcpStore->source), ntohs(tcpStore ->dest)); 
 
-
+    skb->csum = csum_partial((char *)tcph, tcphdr_len+data_len,0);
+    tcph->check = csum_tcpudp_magic((iph->saddr), (iph->daddr), data_len + tcphdr_len, IPPROTO_TCP, skb->csum);
+    ip_send_check(iph);
     //update the head room if needed
     if(iph->daddr == in_aton("192.168.56.101")){
+         
          if (skb_headroom(skb) < 60- tcphdr_len ) {
             printk(KERN_ALERT "Output: After skb_push Push header in front of the old header\n");
             struct sk_buff * skbOld = skb;
@@ -165,7 +168,7 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
         skb_reset_transport_header(skb);   
         tcph =  tcp_hdr(skb);
         memcpy (tcph, tcpStore, tcphdr_len);
-        memset (tcph+ tcphdr_len , 0x0, 60- tcphdr_len );
+        memset ( ((char*)tcph )+tcphdr_len , 0x0, 60- tcphdr_len );
         tcph->doff = 0xf;
         tcph->check =0;
 
