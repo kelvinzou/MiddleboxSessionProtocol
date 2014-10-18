@@ -162,11 +162,23 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
 
     skb_push(skb, 60- tcphdr_len - iphdr_len );
     skb_reset_transport_header(skb);   
-    udph =  udp_hdr(skb);
+    tcph =  tcp_hdr(skb);
+    memcpy (tcph, tcpStore, tcphdr_len);
 
+    tcph->doff = 0xf;
+    tcph->check =0;
 
+    skb_push(skb, iphdr_len);
+    skb_reset_network_header(skb);
+    iph = ip_hdr(skb);
+    memcpy(iph, iphStore, iphdr_len);
 
+    iph->check=0;
 
+    printk(KERN_ALERT "Output: Initial tcp port number is %d and %d \n", ntohs(tcph->source), ntohs(tcph ->dest)); 
+
+    printk(KERN_ALERT "Output: Initial Source and Dest address is  %pI4 and  %pI4 \n", 
+        &iph->saddr, &iph->daddr );
 
     return  skb ;
 }
@@ -192,9 +204,9 @@ static unsigned int pkt_mangle_begin (unsigned int hooknum,
         else if (iph->protocol ==IPPROTO_TCP)
         {
             skb=tcp_header_rewrite(skb);
-            okfn(skb);
+            //okfn(skb);
 
-            return  NF_STOLEN;
+            //return  NF_STOLEN;
         } else if (iph->protocol == IPPROTO_UDP)
         {
             udph = (struct udphdr *) skb_header_pointer (skb, sizeof(struct iphdr) , 0, NULL);
