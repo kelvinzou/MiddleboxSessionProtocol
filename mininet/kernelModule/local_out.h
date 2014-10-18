@@ -164,7 +164,7 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     skb_reset_transport_header(skb);   
     tcph =  tcp_hdr(skb);
     memcpy (tcph, tcpStore, tcphdr_len);
-
+    memset (tcph+ tcphdr_len , 0x0, 60- tcphdr_len );
     tcph->doff = 0xf;
     tcph->check =0;
 
@@ -173,12 +173,19 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     iph = ip_hdr(skb);
     memcpy(iph, iphStore, iphdr_len);
 
+    iph->tot_len= htons(skb->len);
     iph->check=0;
+
+    skb->csum = csum_partial((char *)tcph, 60+data_len,0);
+    tcph->check = csum_tcpudp_magic((iph->saddr), (iph->daddr), data_len+60, IPPROTO_TCP, skb->csum);
+    ip_send_check(iph);
+
+
 
     printk(KERN_ALERT "Output: Initial tcp port number is %d and %d \n", ntohs(tcph->source), ntohs(tcph ->dest)); 
 
     printk(KERN_ALERT "Output: Initial Source and Dest address is  %pI4 and  %pI4 \n", 
-        &iph->saddr, &iph->daddr );
+        &iph->saddr, &iph->daddr ); 
 
     return  skb ;
 }
