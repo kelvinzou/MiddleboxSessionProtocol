@@ -116,8 +116,8 @@ struct sk_buff * header_rewrite(struct sk_buff *skb){
 
 struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){ 
 
-    struct iphdr *iph, iphStore;
-    struct tcphdr *tcph;
+    struct iphdr *iph, *iphStore;
+    struct tcphdr *tcph, *tcpStore;
 
     unsigned int data_len = skb->len;
 
@@ -130,14 +130,20 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     size_t iphdr_len = sizeof (struct iphdr);
     size_t tcphdr_len =  tcph->doff*4 ;
     //create new space at the head of socket buffer
-    printk(KERN_ALERT "Output: Push header in front of the old header\n");
     printk(KERN_ALERT "Output: header length is %d\n", tcphdr_len);
-
     printk(KERN_ALERT "headroom is %d large\n", skb_headroom(skb));
 
-    memcpy(&iphStore, iph, iphdr_len);
+    struct iphdr ipmem;
+    memcpy(&ipmem, iph, iphdr_len);
+    iphStore = & ipmem;
 
+    printk(KERN_ALERT "Output: Initial Source and Dest address is  %pI4 and  %pI4 \n", 
+        &iphStore->saddr, &iphStore->daddr );
 
+    __u32 memaddr[tcph->doff];
+    memcpy(&memaddr, tcph, tcphdr_len);
+    tcpStore = (struct tcphdr *) &memaddr;
+    printk(KERN_ALERT "Output: Initial tcp port number is %d and %d \n", ntohs(tcpStore->source), ntohs(tcpStore ->dest)); 
 
 
 
