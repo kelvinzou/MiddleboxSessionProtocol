@@ -18,6 +18,7 @@
 #include <linux/inet.h>
 #include <linux/tcp.h>
 #include <net/udp.h>
+#include <net/tcp.h>
 #include <net/inet_sock.h>
 #include <net/flow.h>
 #include <net/route.h>
@@ -124,40 +125,49 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     iph = (struct iphdr *) ip_hdr (skb ); 
     tcph = (struct tcphdr *) tcp_hdr (skb );
 
+    __u16 * port = (__u16 *) tcph;
 
-
-    printk(KERN_ALERT "Output: Initial tcp port number is %d and %d \n", ntohs(tcph->source), ntohs(tcph ->dest)); 
-    size_t iphdr_len = sizeof (struct iphdr);
-    size_t tcphdr_len =  tcph->doff*4 ;
+    __u16 portvalue = * port;
+   // printk(KERN_ALERT "Output: Initial tcp port number is %u and %u and %u \n", ntohs(tcph->source), ntohs(tcph ->dest),   ntohs(portvalue)  ); 
+    unsigned int  iphdr_len =  ip_hdrlen(skb) ;
+    unsigned int   tcphdr_len = tcp_hdrlen(skb) ;
+    unsigned short tcp_len = data_len - iphdr_len;  
     //create new space at the head of socket buffer
-    printk(KERN_ALERT "Output: header length is %d\n", tcphdr_len);
-    printk(KERN_ALERT "headroom is %d and the ip hdr address is %d and tcp addr is %d and length is %d\n", skb_headroom(skb), iph, tcph, skb->len);
+   // printk(KERN_ALERT "The ip hdr address is %d and tcp addr is %d and length is %d and %d\n", iph, tcph, skb->len, tcp_len);
 
     struct iphdr ipmem;
     memcpy(&ipmem, iph, iphdr_len);
     iphStore = & ipmem;
 
-    printk(KERN_ALERT "Output: Initial Source and Dest address is  %pI4 and  %pI4 \n", 
-        &iphStore->saddr, &iphStore->daddr );
+   // printk(KERN_ALERT "Output: Initial Source and Dest address is  %pI4 and  %pI4 \n", &iphStore->saddr, &iphStore->daddr );
 
     __u32 memaddr[tcph->doff];
     memcpy(&memaddr, tcph, tcphdr_len);
     tcpStore = (struct tcphdr *) &memaddr;
-    //printk(KERN_ALERT "Output: Initial tcp port number is %d and %d \n", ntohs(tcpStore->source), ntohs(tcpStore ->dest)); 
 
-    printk(KERN_ALERT "Output: Initial checksum is %d and %d  checksum header and offset are %d and %d \n", skb->csum, tcph->check, skb->csum_start, skb->csum_offset); 
+   // printk(KERN_ALERT "Output: Initial checksum is %u and %u and %u checksum header and offset are %d and %d and %d \n", skb->csum, tcph->check,iph->check ,skb->csum_start, skb->transport_header, skb->csum_offset); 
     
+
+    __u16 tempCheck = tcph->check; 
 
     tcph->check = 0;
-    tcph->check = csum_tcpudp_magic((iph->saddr), (iph->daddr), data_len- iphdr_len, IPPROTO_TCP, skb->csum);
     
-    ip_send_check(iph);
-    
-    printk(KERN_ALERT "Output: New checksum is %d and %d and checksum header and offset are %d and %d \n", skb->csum, tcph->check, skb->csum_start, skb->csum_offset); 
+    tcph->check = ~tcp_v4_check(tcp_len, iph->saddr, iph->daddr,0);
+
+    iph->check = 0;
+    iph->check = ip_fast_csum((char *)iph, iph->ihl);
+    //skb->ip_summed = CHECKSUM_NONE;
+
+    //ip_send_check(iph);
 
 
+    __u16 * storedChecksum =  (char *)(skb->head + skb->csum_start + skb->csum_offset);
+    __u16 checksumValue =( * storedChecksum);
+  //  printk(KERN_ALERT "Output: New checksum is %u and %u and %u checksum header and offset are %d and %d \n", skb->csum, tcph->check,iph->check , skb->csum_start, skb->csum_offset); 
+
+   // printk(KERN_ALERT "the stored checksum  is at %d and is %u \n", storedChecksum,checksumValue);
     //update the head room if needed
-    
+    // tcph->check =tempCheck;
 
     if(iph->daddr == in_aton("192.168.56.101")){
          
@@ -167,7 +177,7 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
 
     return  skb ;
 }
-
+ 
 
 static unsigned int pkt_mangle_begin (unsigned int hooknum,
                         struct sk_buff *skb,
@@ -189,9 +199,9 @@ static unsigned int pkt_mangle_begin (unsigned int hooknum,
         else if (iph->protocol ==IPPROTO_TCP)
         {
             skb=tcp_header_rewrite(skb);
-            //okfn(skb);
+            okfn(skb);
 
-            //return  NF_STOLEN;
+            return  NF_STOLEN;
         } else if (iph->protocol == IPPROTO_UDP)
         {
             udph = (struct udphdr *) skb_header_pointer (skb, sizeof(struct iphdr) , 0, NULL);
