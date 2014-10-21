@@ -131,7 +131,7 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     size_t tcphdr_len =  tcph->doff*4 ;
     //create new space at the head of socket buffer
     printk(KERN_ALERT "Output: header length is %d\n", tcphdr_len);
-    printk(KERN_ALERT "headroom is %d large\n", skb_headroom(skb));
+    printk(KERN_ALERT "headroom is %d and the ip hdr address is %d and tcp addr is %d and length is %d\n", skb_headroom(skb), iph, tcph, skb->len);
 
     struct iphdr ipmem;
     memcpy(&ipmem, iph, iphdr_len);
@@ -143,53 +143,25 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     __u32 memaddr[tcph->doff];
     memcpy(&memaddr, tcph, tcphdr_len);
     tcpStore = (struct tcphdr *) &memaddr;
-    printk(KERN_ALERT "Output: Initial tcp port number is %d and %d \n", ntohs(tcpStore->source), ntohs(tcpStore ->dest)); 
+    //printk(KERN_ALERT "Output: Initial tcp port number is %d and %d \n", ntohs(tcpStore->source), ntohs(tcpStore ->dest)); 
 
-    skb->csum = csum_partial((char *)tcph, tcphdr_len+data_len,0);
-    tcph->check = csum_tcpudp_magic((iph->saddr), (iph->daddr), data_len + tcphdr_len, IPPROTO_TCP, skb->csum);
+    printk(KERN_ALERT "Output: Initial checksum is %d and %d  checksum header and offset are %d and %d \n", skb->csum, tcph->check, skb->csum_start, skb->csum_offset); 
+    
+
+    tcph->check = 0;
+    tcph->check = csum_tcpudp_magic((iph->saddr), (iph->daddr), data_len- iphdr_len, IPPROTO_TCP, skb->csum);
+    
     ip_send_check(iph);
+    
+    printk(KERN_ALERT "Output: New checksum is %d and %d and checksum header and offset are %d and %d \n", skb->csum, tcph->check, skb->csum_start, skb->csum_offset); 
+
+
     //update the head room if needed
+    
+
     if(iph->daddr == in_aton("192.168.56.101")){
          
-         if (skb_headroom(skb) < 60- tcphdr_len ) {
-            printk(KERN_ALERT "Output: After skb_push Push header in front of the old header\n");
-            struct sk_buff * skbOld = skb;
-            skb = skb_realloc_headroom(skbOld, 60- tcphdr_len);
-            if (!skb) {
-                    printk(KERN_ERR "vlan: failed to realloc headroom\n");
-                    return NULL;
-            }
-            if(skbOld->sk){
-                skb_set_owner_w(skb, skbOld->sk);
-            }
-        } 
-
-        skb_push(skb, 60- tcphdr_len - iphdr_len );
-        skb_reset_transport_header(skb);   
-        tcph =  tcp_hdr(skb);
-        memcpy (tcph, tcpStore, tcphdr_len);
-        memset ( ((char*)tcph )+tcphdr_len , 0x0, 60- tcphdr_len );
-        tcph->doff = 0xf;
-        tcph->check =0;
-
-        skb_push(skb, iphdr_len);
-        skb_reset_network_header(skb);
-        iph = ip_hdr(skb);
-        memcpy(iph, iphStore, iphdr_len);
-
-        iph->tot_len= htons(skb->len);
-        iph->check=0;
-
-        skb->csum = csum_partial((char *)tcph, 60+data_len,0);
-        tcph->check = csum_tcpudp_magic((iph->saddr), (iph->daddr), data_len+60, IPPROTO_TCP, skb->csum);
-        ip_send_check(iph);
-
-
-
-        printk(KERN_ALERT "Output: Initial tcp port number is %d and %d \n", ntohs(tcph->source), ntohs(tcph ->dest)); 
-
-        printk(KERN_ALERT "Output: Initial Source and Dest address is  %pI4 and  %pI4 \n", 
-            &iph->saddr, &iph->daddr ); 
+        
     }
        
 
