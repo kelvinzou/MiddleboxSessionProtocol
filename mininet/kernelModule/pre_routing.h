@@ -58,8 +58,60 @@ struct sk_buff * header_rewrite_back(struct sk_buff *skb){
     return  skb ;
 }
 
+struct sk_buff * tcp_header_write_prerouting(struct sk_buff *skb){
+struct iphdr *iph ;
+    struct tcphdr *tcph ;
 
-static unsigned int pre_routing_begin(unsigned int hooknum,
+    unsigned int data_len;
+    data_len = skb->len;
+
+    iph = (struct iphdr *) ip_hdr (skb ); 
+    tcph = (struct tcphdr *) tcp_hdr (skb );
+
+   // printk(KERN_ALERT "Output: Initial tcp port number is %u and %u and %u \n", ntohs(tcph->source), ntohs(tcph ->dest),   ntohs(portvalue)  ); 
+   // printk(KERN_ALERT "Output: Src and Dest address is %pI4 and  %pI4\n",   &iph->saddr ,&iph->daddr );
+    unsigned int  iphdr_len;
+    iphdr_len =  ip_hdrlen(skb) ;
+    unsigned int   tcphdr_len;
+    tcphdr_len = tcp_hdrlen(skb) ;
+    unsigned int tcp_len;
+    tcp_len = data_len - iphdr_len;  
+
+   // printk(KERN_ALERT "The ip hdr address is %d and tcp addr is %d and length is %d and %d\n", iph, tcph, skb->len, tcp_len);
+  printk(KERN_ALERT "Input: Initial checksum is %u and %u and %u checksum header and offset are %d and %d and %d \n", skb->csum, tcph->check,iph->check ,skb->csum_start, skb->transport_header, skb->csum_offset); 
+    
+
+    __u16 tempCheck = tcph->check; 
+
+    tcph->check = 0;
+    
+    //CHECKSUM_UNNECESSARY, HW already checked the packet for you. 
+    //tcph->check = ~csum_tcpudp_magic( iph->saddr, iph->daddr,tcp_len, IPPROTO_TCP, 0);
+
+     printk(KERN_ALERT "Input: New checksum is %u and %u and %u checksum header and offset are %d and %d and %d \n", skb->csum, tcph->check,iph->check ,skb->csum_start, skb->transport_header, skb->csum_offset); 
+
+
+      if(iph->saddr == in_aton("192.168.56.101")){
+        iph->saddr = in_aton("192.168.56.1");
+    }
+    /*
+    switch(skb->ip_summed){
+    	case CHECKSUM_NONE:
+    	printk(KERN_ALERT "CHECKSUM_NONE   \n");
+    	break;
+    	case CHECKSUM_PARTIAL:
+    	printk(KERN_ALERT "CHECKSUM_PARTIAL  \n");
+    	break;
+    	case CHECKSUM_UNNECESSARY:
+    	printk(KERN_ALERT "CHECKSUM_UNNECESSARY  \n");
+    	break;
+    } 
+	*/
+	return skb;
+}
+
+
+static unsigned int pre_routing_begin(unsigned int hooknum, 
                         struct sk_buff *skb,
                         const struct net_device *in,
                         const struct net_device *out,
@@ -74,35 +126,19 @@ static unsigned int pre_routing_begin(unsigned int hooknum,
         iph = (struct iphdr *) skb_header_pointer (skb, 0, 0, NULL);
 
         //do not change any non-UDP traffic
-        if ( iph && iph->protocol && (iph->protocol !=IPPROTO_UDP || iph->protocol !=IPPROTO_TCP) ) {
+        if ( iph && iph->protocol && (iph->protocol !=IPPROTO_UDP && iph->protocol !=IPPROTO_TCP) ) {
             return NF_ACCEPT;
         } else if( iph->protocol ==IPPROTO_TCP){
+        	
+        	tcp_header_write_prerouting(skb);
+
         	printk(KERN_ALERT "PRE_ROUTING: ever pass input check?\n");
         }
-        else
+        else  if( iph->protocol ==IPPROTO_UDP)
         {
             udph = (struct udphdr *) skb_header_pointer (skb, sizeof(struct iphdr), 0, NULL);
             src_port = ntohs (udph->source);
             dst_port = ntohs (udph->dest);
-            //do not change any non-special traffic
-            if (dst_port !=1234 && src_port!=1234){
-                return NF_ACCEPT;
-            } else if (dst_port !=1234 ){
-                printk(KERN_ALERT "PRE_ROUTING: ever pass input check?\n");
-               //retv= header_rewrite_back(skb);
-                //okfn(retv);
-                //return NF_STOLEN;
-                 return NF_ACCEPT;
-            }
-            // this is the only change part and hopefully it works fine!
-            else // (iph->daddr ==*(unsigned int *) ip_address)
-             {
-                printk(KERN_ALERT "PRE_ROUTING: ever pass input final check?\n");
-                printk(KERN_ALERT "PRE_ROUTING: pass check IP numbers are %pI4 and  %pI4\n", 
-                &iph->saddr ,&iph->daddr );
-                retv= header_rewrite_back(skb);
-                return NF_ACCEPT;//okfn(retv);
-            } 
         }
     }
      return NF_ACCEPT;

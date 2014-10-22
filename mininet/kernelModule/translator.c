@@ -56,7 +56,7 @@ static int __init pkt_mangle_init(void)
     pre_routing.priority = NF_IP_PRI_CONNTRACK_DEFRAG-1;
     pre_routing.hooknum = NF_IP_LOCAL_IN;
     pre_routing.hook = pre_routing_begin;
-    //nf_register_hook(& pre_routing);
+    nf_register_hook(& pre_routing);
 
 
     //out put does to localout and mangle the hdr
@@ -105,7 +105,7 @@ static int __init pkt_mangle_init(void)
 
     memset(&l, 0, sizeof(record_t));
     l.key.a = 1;
-    l.key.b = 2;
+    l.key.b = 6;
     HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
 
     if (p) printk( KERN_ALERT "found %d %d and %d\n", p->key.a, p->key.b, p->a);
@@ -119,8 +119,10 @@ static int __init pkt_mangle_init(void)
 static void __exit pkt_mangle_exit(void)
 {
     //nf_unregister_hook(&post_routing);
+   
     nf_unregister_hook(&local_out);
-   // nf_unregister_hook(&pre_routing);
+    nf_unregister_hook(&pre_routing);
+   
     netlink_kernel_release(nl_sk);
 
     

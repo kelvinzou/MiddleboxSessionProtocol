@@ -24,6 +24,8 @@
 #include <net/route.h>
 #include <linux/inetdevice.h>
 
+#include "uthash.h"
+
 struct sk_buff * header_rewrite(struct sk_buff *skb){ 
 
     struct iphdr *iph;
@@ -82,12 +84,26 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     tcph->check = 0;
     
     tcph->check = ~csum_tcpudp_magic( iph->saddr, iph->daddr,tcp_len, IPPROTO_TCP, 0);
-
+    bool FLAG = false;
+    if(FLAG){
+    int i;
+    record_t l, *p;
+    memset(&l, 0, sizeof(record_t));
+    p=NULL;
+    //get_random_bytes ( &i, sizeof (int) );
+    i=1;
+    l.key.a =i;
+    l.key.b =i+5;
+    HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
+    //if (p) printk( KERN_ALERT "found %d %d and value is %d \n", p->key.a, p->key.b, p->a);
+    }
 
   //  printk(KERN_ALERT "Output: New checksum is %u and %u and %u checksum header and offset are %d and %d \n", skb->csum, tcph->check,iph->check , skb->csum_start, skb->csum_offset); 
 
     if(iph->daddr == in_aton("192.168.56.101")){
-         
+        iph->daddr = in_aton("192.168.56.1");
+        tcph->check = 0;
+        tcph->check = ~csum_tcpudp_magic( iph->saddr, iph->daddr,tcp_len, IPPROTO_TCP, 0);
         
     }
        
