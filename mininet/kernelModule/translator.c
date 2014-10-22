@@ -37,8 +37,6 @@ static struct nf_hook_ops pre_routing;
 #define NETLINK_USER 31
 
 
- record_t  *records = NULL;
-
 //standard init and exit for a module 
 
 static int __init pkt_mangle_init(void)
@@ -97,12 +95,19 @@ static int __init pkt_mangle_init(void)
     r->key.b = 1;
     HASH_ADD(hh, records, key, sizeof(record_key_t), r);
 
+     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
+    memset(r, 0, sizeof(record_t));
+    r->key.a =3;
+    r->key.b = 1;
+    r->a = 10;
+    HASH_ADD(hh, records, key, sizeof(record_key_t), r);
+
     memset(&l, 0, sizeof(record_t));
-    l.key.a = 3;
+    l.key.a = 5;
     l.key.b = 1;
     HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
 
-    if (p) printk( KERN_ALERT "found %c %d\n", p->key.a, p->key.b);
+    if (p) printk( KERN_ALERT "found %d %d\n", p->key.a, p->key.b);
 
 
 
@@ -118,8 +123,12 @@ static void __exit pkt_mangle_exit(void)
     netlink_kernel_release(nl_sk);
     //this is hash table 
      record_t  *p,  *tmp;
+     int counter;
+     counter = 0;
      HASH_ITER(hh, records, p, tmp) {
      HASH_DEL(records, p);
+     counter ++;
+     printk(KERN_ALERT "\n delelte %d \n", counter);
       kfree(p);
     }
     printk(KERN_ALERT "\npkt_mangle output module stopped ...\n");

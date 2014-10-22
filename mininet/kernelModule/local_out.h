@@ -26,25 +26,20 @@
 
 struct sk_buff * header_rewrite(struct sk_buff *skb){ 
 
-    struct iphdr *iph, *iphOld;
-    struct udphdr *udph, *udphOld;
-    //whole IP packet now becomes a body
-    unsigned int data_len = skb->len;
-
+    struct iphdr *iph;
+    struct udphdr *udph;
     iph = (struct iphdr *) ip_hdr (skb ); 
     udph = (struct udphdr *) udp_hdr (skb );
-    printk(KERN_ALERT "Output: Initial udp port number is %d and %d \n", 
-        ntohs(udph->source), ntohs(udph ->dest)); 
-    size_t iphdr_len = sizeof (struct iphdr);
-    size_t udphdr_len = sizeof (struct udphdr) ;
+    unsigned int iphdr_len ;
+    iphdr_len= sizeof (struct iphdr);
+    unsigned int  udphdr_len;
+    udphdr_len = sizeof (struct udphdr) ;
     //create new space at the head of socket buffer
     printk(KERN_ALERT "Output: Push header in front of the old header\n");
-
-   // printk(KERN_ALERT "headroom is %d large\n", skb_headroom(skb));
-
     if (skb_headroom(skb) < (iphdr_len+udphdr_len)) {
         printk(KERN_ALERT "Output: After skb_push lalala Push header in front of the old header\n");
-        struct sk_buff * skbOld = skb;
+        struct sk_buff * skbOld;
+        skbOld = skb;
         skb = skb_realloc_headroom(skbOld, iphdr_len+udphdr_len);
         if (!skb) {
                 printk(KERN_ERR "vlan: failed to realloc headroom\n");
@@ -52,66 +47,9 @@ struct sk_buff * header_rewrite(struct sk_buff *skb){
         }
          if(skbOld->sk){
             skb_set_owner_w(skb, skbOld->sk);
-    }
-    } 
-    udphOld = udph ;
-    iphOld =  iph;
-    
-    char * csumpointer= skb_push(skb, udphdr_len);
-    skb_reset_transport_header(skb);   
-    udph =  udp_hdr(skb);
-    
-    udph->source = udphOld->source ;
-    udph->dest  = udphOld->dest;
-    udph->len = htons( data_len + sizeof(struct udphdr));
-    //update UDP header csum
+        }
+    }   
 
-    
-
-    //This is for IP header
-    //skb_push(skb, sizeof(struct iphdr));
-    skb_push(skb, iphdr_len);
-    skb_reset_network_header(skb);  
-    iph =ip_hdr(skb);
-    //bunch of values are copied to new ip header
-    iph->version = iphOld->version;
-    iph->ihl = iphOld->ihl;
-    iph->tos = iphOld->tos;
-    iph->frag_off = iphOld->frag_off;
-    iph->id =iphOld->id;
-    iph->ttl = iphOld->ttl;
-    //change the protocol
-    iph->protocol = IPPROTO_UDP; 
-    //change the length
-    iph->tot_len = htons(skb->len);
-
-    //IP addresses
-    iph->saddr = iphOld->saddr;
-    /*****************************************************
-    ******************************************************
-    this is used for testing, should be dynamic eventually 
-    *****************************************************/
-    iph->daddr = in_aton("192.168.56.102");
-
-   
-    //update UPD checksum after update IP header
-    udph->check = 0;
-    skb->csum = csum_partial((char *)udph,
-                 sizeof(struct udphdr)+data_len,0);
-    udph->check = csum_tcpudp_magic((iph->saddr), (iph->daddr), data_len+sizeof(struct udphdr), IPPROTO_UDP,skb->csum);
-
-
-    ip_send_check(iph);
-
-    //skb->pkt_type = PACKET_OUTGOING;
-    printk(KERN_ALERT "Output: Final udp port number is %d and %d \n", 
-        ntohs(udph->source), ntohs(udph ->dest)); 
-    printk(KERN_ALERT "Output: Packet length is %d\n", data_len);
-    printk(KERN_ALERT "Output: Initial Source and Dest address is  %pI4 and  %pI4 \n", 
-        &iphOld->saddr, &iphOld->daddr );
-    printk(KERN_ALERT "Output: Src and Dest address is %pI4 and  %pI4\n", 
-        &iph->saddr ,&iph->daddr );
-    printk(KERN_ALERT "Output: Final Packet length is %d\n\n", skb->len);
     return  skb ;
 }
 
@@ -120,16 +58,20 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     struct iphdr *iph ;
     struct tcphdr *tcph ;
 
-    unsigned int data_len = skb->len;
+    unsigned int data_len;
+    data_len = skb->len;
 
     iph = (struct iphdr *) ip_hdr (skb ); 
     tcph = (struct tcphdr *) tcp_hdr (skb );
 
    // printk(KERN_ALERT "Output: Initial tcp port number is %u and %u and %u \n", ntohs(tcph->source), ntohs(tcph ->dest),   ntohs(portvalue)  ); 
-   
-    unsigned int  iphdr_len =  ip_hdrlen(skb) ;
-    unsigned int   tcphdr_len = tcp_hdrlen(skb) ;
-    unsigned short tcp_len = data_len - iphdr_len;  
+   // printk(KERN_ALERT "Output: Src and Dest address is %pI4 and  %pI4\n",   &iph->saddr ,&iph->daddr );
+    unsigned int  iphdr_len;
+    iphdr_len =  ip_hdrlen(skb) ;
+    unsigned int   tcphdr_len;
+    tcphdr_len = tcp_hdrlen(skb) ;
+    unsigned int tcp_len;
+    tcp_len = data_len - iphdr_len;  
 
    // printk(KERN_ALERT "The ip hdr address is %d and tcp addr is %d and length is %d and %d\n", iph, tcph, skb->len, tcp_len);
    // printk(KERN_ALERT "Output: Initial checksum is %u and %u and %u checksum header and offset are %d and %d and %d \n", skb->csum, tcph->check,iph->check ,skb->csum_start, skb->transport_header, skb->csum_offset); 
