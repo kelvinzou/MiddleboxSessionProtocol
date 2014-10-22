@@ -36,18 +36,7 @@ static struct nf_hook_ops pre_routing;
 
 #define NETLINK_USER 31
 
-typedef struct {
-  int a;
-  int b;
-  int c;
-  int d;
-} record_key_t;
 
-typedef struct {
-    record_key_t key;
-    /* ... other data ... */
-    UT_hash_handle hh;
-} record_t;
  record_t  *records = NULL;
 
 //standard init and exit for a module 
@@ -100,7 +89,7 @@ static int __init pkt_mangle_init(void)
 
 
     //create a hash table
-    record_t l, *p, *r, *tmp;
+    record_t l, *p, *r;
 
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
     memset(r, 0, sizeof(record_t));
@@ -128,7 +117,7 @@ static void __exit pkt_mangle_exit(void)
    // nf_unregister_hook(&pre_routing);
     netlink_kernel_release(nl_sk);
     //this is hash table 
-     record_t l, *p, *r, *tmp;
+     record_t  *p,  *tmp;
      HASH_ITER(hh, records, p, tmp) {
      HASH_DEL(records, p);
       kfree(p);
