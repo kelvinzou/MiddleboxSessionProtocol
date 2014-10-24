@@ -30,14 +30,13 @@ import signal
 from time import time
 
 '''
-          h2
+          h3(M2)
           |
       /---s2-------\
-h1--s1              s3----h3
-      \----s4------/
-            |
-            h4
-
+h1--s1              s3----h5
+      \		    /
+       \           /
+	h2 M1     (h4) M3
 '''
 
 
@@ -52,25 +51,26 @@ class TestTopo( Topo ):
         Topo.__init__( self )
 
         # Add hosts and switches
-        leftHost = self.addHost( 'h1' )
-        upHost = self.addHost('h2')
-        rightHost = self.addHost( 'h3' )
-        downHost = self.addHost('h4')
+        Host1 = self.addHost( 'h1' )
+        MBox1 = self.addHost('h2')
+        MBox2 = self.addHost( 'h3' )
+	MBox3 = self.addHost('h4')
+	Host2 = self.addHost('h5')
+
         leftSwitch = self.addSwitch( 's1' )
         rightSwitch = self.addSwitch( 's3' )
-        upSwitch = self.addSwitch('s2')
-        downSwitch = self.addSwitch('s4')
+        midSwitch = self.addSwitch('s2')
+
 
         # Add links
-        self.addLink( leftHost, leftSwitch )
-        self.addLink( rightSwitch, rightHost )
-        self.addLink( upSwitch, upHost )
-        self.addLink( downSwitch , downHost )
-
-        self.addLink( leftSwitch, upSwitch )
-        self.addLink( rightSwitch, upSwitch )
-        self.addLink( leftSwitch, downSwitch )
-        self.addLink( rightSwitch, downSwitch )
+        self.addLink( Host1, leftSwitch )
+        self.addLink( Host2, rightSwitch )
+        self.addLink( MBox1, leftSwitch )
+        self.addLink( MBox3 , rightSwitch )
+	self.addLink( MBox2, midSwitch)	
+	
+        self.addLink( leftSwitch, midSwitch )
+        self.addLink( rightSwitch, midSwitch )
 
 
 #topos = { 'TestTopo': ( lambda: TestTopo() ) }
@@ -78,7 +78,7 @@ class TestTopo( Topo ):
 def bootMininet():
     #create mininet with the topology
     host = custom(CPULimitedHost, cpu=0.2)
-    link = custom(TCLink, bw=10, delay='0ms')
+    link = custom(TCLink, bw=100, delay='20ms')
     topo = TestTopo()
     #OVSSwitch, KernelSwitch
     net = Mininet(topo=topo, controller= RemoteController,  host=host, link=link, build=True, autoPinCpus=True, autoSetMacs=True, listenPort = 6633)
