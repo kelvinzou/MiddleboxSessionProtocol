@@ -1,4 +1,5 @@
-all: client.o clientUDP.o server.o serverUDP.o
+all: client clientUDP server serverUDP
+
 client:
 	g++ -o client client.c
 clientUDP:

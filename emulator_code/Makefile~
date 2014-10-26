@@ -1,4 +1,5 @@
 all: client.o clientUDP.o server.o serverUDP.o
+
 client:
 	g++ -o client client.c
 clientUDP:
@@ -11,4 +12,4 @@ serverUDP:
 
 	
 clean:
-	rm -rf  *o client clientUDP
+	rm -rf  *o client clientUDP server serverUDP
