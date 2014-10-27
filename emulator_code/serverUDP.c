@@ -29,7 +29,17 @@ void * handleConnection(void * ptr) {
 
 
 void handleRequest(char * request, char * response, int n){
-	printf("data is %s\0", request);
+	int checkvalue = *( (int *)(request+ (n-4)) );
+	int action = *( (int *) request);
+
+	printf("end of it is %d and action is %d\n", checkvalue, action);
+	int i ;
+	for (i=4; i<n-4 ; i+=4){
+		struct in_addr addr = *(struct in_addr*) (request + i);
+		printf("middlebox address for receive from is %s\n",inet_ntoa(addr));
+	}
+
+	//printf("data is %s\0", request);
 	memcpy(response, request, (size_t) n);
 	*(response +n) = 0;
 }
@@ -89,9 +99,10 @@ int main(int argc, char**argv)
 		
 		if(FD_ISSET(sockfd, &active_fs)){
 			n = recvfrom(sockfd,mesg,1399,0,(struct sockaddr *)&cliaddr,&len);
+			
 			printf("Source address for receive from is %s",inet_ntoa(*(struct in_addr*) &cliaddr.sin_addr.s_addr));
 			printf(" and %s\n",inet_ntoa(*(struct in_addr*) &servaddr.sin_addr.s_addr));
-			mesg[n]=0;;
+			//mesg[n]=0;
 			handleRequest(mesg, response, n);
 			if (drop <8) {
 				drop++;

@@ -13,6 +13,29 @@
 #include <time.h> 
 
 #define INTI_TO 10000
+
+
+
+int sync_packet(int fd, char * writeBuffer, struct sockaddr_in * servaddr ){
+	
+	int ByteStreamCount = 16;
+	*( (int * )writeBuffer) = 1;
+	struct in_addr addr;
+
+	char * MBox1 = "10.0.1.2";
+	char * MBox2 = "10.0.1.3";
+	inet_aton(MBox1, &addr);
+	memcpy(writeBuffer+4, &addr.s_addr, 4);
+	
+	printf("the packet's data is ");
+	inet_aton(MBox2, &addr);
+	memcpy(writeBuffer+8, &addr.s_addr, 4);
+
+	sendto(fd,writeBuffer,ByteStreamCount,0,(struct sockaddr *)servaddr,sizeof(struct sockaddr_in ));
+	return 0;
+}
+
+
 int main(int argc, char**argv)
 {
 	int sockfd,n;
@@ -52,16 +75,16 @@ int main(int argc, char**argv)
 		
 		char sendline[1400];
 		char recvline[1400];
-		memset(sendline, 0x41,1399);
+		memset(sendline, 0,1399);
 
 		printf("Source address for receive from is %s",inet_ntoa(*(struct in_addr*) &cliaddr.sin_addr.s_addr));
 		printf(" and %s\n",inet_ntoa(*(struct in_addr*) &servaddr.sin_addr.s_addr));
 
 		
-
-		sendto(sockfd,sendline,1400,0,(struct sockaddr *)&servaddr,sizeof(servaddr));
+		sync_packet(sockfd, sendline, &servaddr);
+		//sendto(sockfd,sendline,1400,0,(struct sockaddr *)&servaddr,sizeof(servaddr));
 		
-		
+		 
 		active_fs = readfds;
 		select(sockfd+1, &active_fs, NULL, NULL, &tv);
 		if(!FD_ISSET(sockfd, &active_fs)){
@@ -72,7 +95,7 @@ int main(int argc, char**argv)
 		} else {
 			n=recvfrom(sockfd,recvline,1399,0,NULL,NULL);
 			recvline[n]=0;
-			fputs(recvline,stdout);
+			//fputs(recvline,stdout);
 			timeout = INTI_TO;
 			gettimeofday(&t1, NULL);
 		}
