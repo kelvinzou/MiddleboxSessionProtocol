@@ -8,40 +8,95 @@
 #include <string.h>
 #include <sys/types.h>
 #include <time.h> 
-
+#include <asm/types.h>
 #include <pthread.h>
 #include <sys/time.h>
 
 /* Sample UDP server */
+int hashport =1025;
+int sequenceNumber = 0;
 
- typedef struct
-{
-    int id;
-    char* str;
-} threadParameter;
-/*
-void * handleConnection(void * ptr) {
-
-	char * parameter = (char *) ptr;
-	printf("%s\n", parameter);
-}
-*/
+int sockfd;
 
 
-void handleRequest(char * request, char * response, int n){
-	int checkvalue = *( (int *)(request+ (n-4)) );
+
+
+void sendBack(char * request, int n,  struct sockaddr_in * cliAddr){
 	int action = *( (int *) request);
-
-	printf("end of it is %d and action is %d\n", checkvalue, action);
+	int SeqNum = * (int *) (request + 4); 
+	sequenceNumber = SeqNum;
+	printf("The action is %d and %d \n",  action, SeqNum);
 	int i ;
-	for (i=4; i<n-4 ; i+=4){
+	for (i=8; i<n-4 ; i+=4){
 		struct in_addr addr = *(struct in_addr*) (request + i);
 		printf("middlebox address for receive from is %s\n",inet_ntoa(addr));
 	}
 
-	//printf("data is %s\0", request);
-	memcpy(response, request, (size_t) n);
-	*(response +n) = 0;
+	char response[n];
+	memcpy(response+12, request+8, (size_t) n-8);
+	*( (int *) response) = 2;
+	*(int *) (response+4) = sequenceNumber;
+	* (int *)( response+ 8 ) = hashport++;
+	printf("The socket fd is %d \n",  sockfd);
+	sendto(sockfd,response,n,0,(struct sockaddr *)cliAddr,sizeof(struct sockaddr_in ));
+
+}
+
+int sendForward(char * request, int n, int * port_num, struct sockaddr_in * cliAddr){
+	
+	int SendSockfd ;
+   	struct sockaddr_in SendServaddr, SendCliaddr;
+
+	
+
+	char sendmsg [n-4];
+	memcpy(sendmsg+8, request+12, (size_t) n-12);
+
+	//it is a sync packet
+	*( (int *)sendmsg) = 1;
+	printf("The action is %d \n", sequenceNumber);
+	//set sequence number is here
+	* (int *)(sendmsg+4) = sequenceNumber;
+	printf("The action is %d \n", * (int *)(sendmsg+4) );
+	//set sequence number is here
+	//*( (int *) sendmsg+4) = sequenceNumber;
+	SendSockfd=socket(AF_INET,SOCK_DGRAM,0);
+
+	bzero(&SendServaddr,sizeof(SendServaddr));
+	
+	printf("The SendSockfd is %d \n", SendSockfd);
+
+	SendServaddr.sin_family = AF_INET;
+	struct in_addr addr = *(struct in_addr*) (request + 12);
+	char * IPStr = inet_ntoa(addr);
+	SendServaddr.sin_addr.s_addr=inet_addr(IPStr); 
+
+	SendServaddr.sin_port=htons(*port_num);
+
+	sendto(SendSockfd,sendmsg,n-4,0,(struct sockaddr *)&SendServaddr,sizeof(struct sockaddr_in ));
+
+	char recvsendmsg [n-4];
+	
+	int m = recvfrom(SendSockfd,recvsendmsg,1400,0,NULL,NULL);
+	
+	sendto(sockfd,recvsendmsg,n-4,0,(struct sockaddr *) cliAddr,sizeof(struct sockaddr ));
+	int responseSeq = *(int *)(recvsendmsg+4) ;
+	printf("Do we ever get to this line? and SeqNum is  %d %d\n", m, responseSeq);
+
+}
+
+void handleRequest(char * request, int n, int * port_num,  struct sockaddr_in * cliAddr){
+	int action = *( (int *) request);
+	int SeqNum = *(int *)(request + 4); 
+	if ( SeqNum < sequenceNumber)
+	{
+		//Ignore the messge since it is after the current sequence number
+		return;
+	}	
+	sendBack(request, n, cliAddr);
+   	if (n>16){
+		sendForward(request, n, port_num, cliAddr);
+	}
 }
 
 
@@ -66,26 +121,33 @@ int main(int argc, char**argv)
    	struct timeval t1, t2;
     double elapsedTime;
     gettimeofday(&t1, NULL);
-//initialize the socket
+
     struct timeval tv;
     fd_set readfds, active_fs;
     tv.tv_sec = 0;
-    tv.tv_usec = 100000;
+    tv.tv_usec = 1000;
     FD_ZERO(&readfds);
 
 
-   	int port_count = 1025;
-   	int sockfd,n;
-   	struct sockaddr_in servaddr,cliaddr;
+    int n;
+   	
    	socklen_t len;
+	struct sockaddr_in servaddr,cliaddr;
    
 	sockfd=socket(AF_INET,SOCK_DGRAM,0);
+	
 	FD_SET(sockfd, &readfds);
+
+	int intvar, destintVar;
+	if(argc!=3) {printf("Argument list wrong, it should be ./serverUDP port_num \n");return 0;}
+
+	if (sscanf (argv[1], "%i", &intvar)!=1) { printf ("error - not an integer"); exit(-1); }
+	if (sscanf (argv[2], "%i", &destintVar)!=1) { printf ("error - not an integer"); exit(-1); }
 
 	bzero(&servaddr,sizeof(servaddr));
 	servaddr.sin_family = AF_INET;
 	servaddr.sin_addr.s_addr=htonl(INADDR_ANY);
-	servaddr.sin_port=htons(63000);
+	servaddr.sin_port=htons(intvar);
 	bind(sockfd,(struct sockaddr *)&servaddr,sizeof(servaddr));
 	
 	//select(sockfd+1, &readfds, NULL, NULL, &tv);
@@ -93,33 +155,26 @@ int main(int argc, char**argv)
 	while(1){
 		len = sizeof(cliaddr);
 		char mesg[1400];
-		char response[1400];
+		//char response[1400];
 		active_fs = readfds;
 		select(sockfd+1, &active_fs, NULL, NULL, &tv);
 		
 		if(FD_ISSET(sockfd, &active_fs)){
-			n = recvfrom(sockfd,mesg,1399,0,(struct sockaddr *)&cliaddr,&len);
+			n = recvfrom(sockfd,mesg,1400,0,(struct sockaddr *)&cliaddr,&len);
 			
 			printf("Source address for receive from is %s",inet_ntoa(*(struct in_addr*) &cliaddr.sin_addr.s_addr));
 			printf(" and %s\n",inet_ntoa(*(struct in_addr*) &servaddr.sin_addr.s_addr));
-			//mesg[n]=0;
-			handleRequest(mesg, response, n);
-			if (drop <8) {
-				drop++;
-			}
-			else {
-				sendto(sockfd,response,n,0,(struct sockaddr *)&cliaddr,sizeof(cliaddr));
-				drop =0;
-			}
+
+			handleRequest(mesg, n, & destintVar, &cliaddr);
+			break;
 		}
 		
-		//usleep(10000);
+		usleep(1000);
 		gettimeofday(&t2, NULL);
    	 	elapsedTime =(t2.tv_sec - t1.tv_sec);
    	 	if (elapsedTime>600){
    	 		break;
    	 	}
 	}
-
 }
 

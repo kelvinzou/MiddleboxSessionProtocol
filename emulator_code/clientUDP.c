@@ -11,25 +11,26 @@
 #include <string.h>
 #include <sys/types.h>
 #include <time.h> 
+#include <asm/types.h>
 
 #define INTI_TO 10000
 
-
+#define SEQUENCENUM 100
 
 int sync_packet(int fd, char * writeBuffer, struct sockaddr_in * servaddr ){
 	
-	int ByteStreamCount = 16;
+	int ByteStreamCount = 20;
 	*( (int * )writeBuffer) = 1;
+	* (int * )(writeBuffer + 4)  = SEQUENCENUM;
 	struct in_addr addr;
 
-	char * MBox1 = "10.0.1.2";
-	char * MBox2 = "10.0.1.3";
+	char * MBox1 = "127.0.0.1";
+	char * MBox2 = "127.0.0.1";
 	inet_aton(MBox1, &addr);
-	memcpy(writeBuffer+4, &addr.s_addr, 4);
-	
-	printf("the packet's data is ");
-	inet_aton(MBox2, &addr);
 	memcpy(writeBuffer+8, &addr.s_addr, 4);
+	
+	inet_aton(MBox2, &addr);
+	memcpy(writeBuffer+12, &addr.s_addr, 4);
 
 	sendto(fd,writeBuffer,ByteStreamCount,0,(struct sockaddr *)servaddr,sizeof(struct sockaddr_in ));
 	return 0;
@@ -41,18 +42,22 @@ int main(int argc, char**argv)
 	int sockfd,n;
 	struct sockaddr_in servaddr,cliaddr;
 
-	if (argc < 2)
+	if (argc < 3)
 	{
-		printf("usage:  udpcli <IP address>\n");
+		printf("usage:  udpcli <IP address>, udp <port number>\n");
 		exit(1);
 	}
+	int  destintVar;
+
+	if (sscanf (argv[2], "%i", &destintVar)!=1) { printf ("error - not an integer"); exit(-1); }
+
 
 	sockfd=socket(AF_INET,SOCK_DGRAM,0);
 
 	bzero(&servaddr,sizeof(servaddr));
 	servaddr.sin_family = AF_INET;
 	servaddr.sin_addr.s_addr=inet_addr(argv[1]);
-	servaddr.sin_port=htons(63000);
+	servaddr.sin_port=htons(destintVar);
 
 // Here we use file descriptor to avoid I/O block at receive side.
 	int timeout =10000;
@@ -70,6 +75,8 @@ int main(int argc, char**argv)
 	gettimeofday(&t1, NULL);
 
 
+	int flag =0;
+
 	while (1)
 	{
 		
@@ -80,8 +87,10 @@ int main(int argc, char**argv)
 		printf("Source address for receive from is %s",inet_ntoa(*(struct in_addr*) &cliaddr.sin_addr.s_addr));
 		printf(" and %s\n",inet_ntoa(*(struct in_addr*) &servaddr.sin_addr.s_addr));
 
+		if(flag==1 || flag ==0) {
+			sync_packet(sockfd, sendline, &servaddr);
+		}
 		
-		sync_packet(sockfd, sendline, &servaddr);
 		//sendto(sockfd,sendline,1400,0,(struct sockaddr *)&servaddr,sizeof(servaddr));
 		
 		 
@@ -92,10 +101,18 @@ int main(int argc, char**argv)
 			printf("Timeout is now %d\n", timeout);
 			usleep(timeout);
 			timeout =  timeout *2;
+			flag =1;
 		} else {
+			flag =2;
 			n=recvfrom(sockfd,recvline,1399,0,NULL,NULL);
-			recvline[n]=0;
 			//fputs(recvline,stdout);
+			int ack = *(int *) recvline;
+			int seq = *(int *) (recvline +4);
+			printf("Is is sync ack? %d and %d \n", ack, seq);
+			if (ack==2 && seq == SEQUENCENUM && n ==16)
+			{
+				goto confirmed;
+			}
 			timeout = INTI_TO;
 			gettimeofday(&t1, NULL);
 		}
@@ -108,4 +125,8 @@ int main(int argc, char**argv)
 		}
 
 	}
+confirmed:
+
+	return;
+
 }
