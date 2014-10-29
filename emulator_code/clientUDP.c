@@ -10,7 +10,7 @@
 #include <errno.h>
 #include <string.h>
 #include <sys/types.h>
-#include <time.h> 
+#include <sys/time.h> 
 #include <asm/types.h>
 
 #define INTI_TO 10000
@@ -108,7 +108,8 @@ int main(int argc, char**argv)
 			//fputs(recvline,stdout);
 			int ack = *(int *) recvline;
 			int seq = *(int *) (recvline +4);
-			printf("Is is sync ack? %d and %d \n", ack, seq);
+			int port = *(int *) (recvline+8);
+			printf("Is is sync ack? %d and %d and the port number is %d\n", ack, seq, port);
 			if (ack==2 && seq == SEQUENCENUM && n ==16)
 			{
 				goto confirmed;
@@ -127,6 +128,6 @@ int main(int argc, char**argv)
 	}
 confirmed:
 
-	return;
+	return 0;
 
 }

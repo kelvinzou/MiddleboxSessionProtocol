@@ -11,7 +11,7 @@
 #include <asm/types.h>
 #include <pthread.h>
 #include <sys/time.h>
-
+#include "uthash.h"
 /* Sample UDP server */
 int hashport =1025;
 int sequenceNumber = 0;
@@ -155,7 +155,13 @@ int main(int argc, char**argv)
 	while(1){
 		len = sizeof(cliaddr);
 		char mesg[1400];
+
+		n = recvfrom(sockfd,mesg,1400,0,(struct sockaddr *)&cliaddr,&len);
+		handleRequest(mesg, n, & destintVar, &cliaddr);
+
+
 		//char response[1400];
+		/*
 		active_fs = readfds;
 		select(sockfd+1, &active_fs, NULL, NULL, &tv);
 		
@@ -168,7 +174,7 @@ int main(int argc, char**argv)
 			handleRequest(mesg, n, & destintVar, &cliaddr);
 			break;
 		}
-		
+		*/
 		usleep(1000);
 		gettimeofday(&t2, NULL);
    	 	elapsedTime =(t2.tv_sec - t1.tv_sec);
