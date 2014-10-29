@@ -12,6 +12,7 @@
 #include <pthread.h>
 #include <sys/time.h>
 #include "uthash.h"
+#include "flowhash.h"
 /* Sample UDP server */
 int hashport =1025;
 int sequenceNumber = 0;
@@ -118,25 +119,37 @@ int main(int argc, char**argv)
 */
 
 //keep track of time, and exits with a certain interval, since we cannot kill it in mininet
+
+   	//this marks an exit after 600 seconds
+   	//used for timing
    	struct timeval t1, t2;
     double elapsedTime;
     gettimeofday(&t1, NULL);
 
+
+    //this is not much useful, since it is for nonblocking sockets
+    //save it in the future in case
+    /*
     struct timeval tv;
     fd_set readfds, active_fs;
     tv.tv_sec = 0;
     tv.tv_usec = 1000;
     FD_ZERO(&readfds);
 
+	FD_SET(sockfd, &readfds);
 
-    int n;
-   	
+	active_fs = readfds;
+	select(sockfd+1, &active_fs, NULL, NULL, &tv);
+	
+	if(FD_ISSET(sockfd, &active_fs)){
+		n = recvfrom(sockfd,mesg,1400,0,(struct sockaddr *)&cliaddr,&len);
+	}
+	*/
+	
    	socklen_t len;
 	struct sockaddr_in servaddr,cliaddr;
    
 	sockfd=socket(AF_INET,SOCK_DGRAM,0);
-	
-	FD_SET(sockfd, &readfds);
 
 	int intvar, destintVar;
 	if(argc!=3) {printf("Argument list wrong, it should be ./serverUDP port_num \n");return 0;}
@@ -156,7 +169,7 @@ int main(int argc, char**argv)
 		len = sizeof(cliaddr);
 		char mesg[1400];
 
-		n = recvfrom(sockfd,mesg,1400,0,(struct sockaddr *)&cliaddr,&len);
+		int n = recvfrom(sockfd,mesg,1400,0,(struct sockaddr *)&cliaddr,&len);
 		handleRequest(mesg, n, & destintVar, &cliaddr);
 
 
