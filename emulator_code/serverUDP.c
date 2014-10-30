@@ -101,24 +101,31 @@ int sendForward(char * request, int n, int * port_num, struct sockaddr_in * cliA
 	char recvsendmsg [n-4];
 	
 	int m = recvfrom(SendSockfd,recvsendmsg,1400,0,NULL,NULL);
+
+	header * RecvHeaderPointer = (header *) recvsendmsg;
+	int action = RecvHeaderPointer->action;
+	int sequenceNumber = RecvHeaderPointer->sequenceNum;
+	int port = * (int *)(recvsendmsg+sizeof(header));
+	printf("Action is and sequence number is and prot number is %d and %d and %d\n", action, sequenceNumber, port);
+
 	int count =0;
 	while(1){
 		count++;
 
 		sendto(sockfd,recvsendmsg,n-4,0,(struct sockaddr *) cliAddr,sizeof(struct sockaddr ));
-		usleep(100000);
+		usleep(1000000);
 		unsigned long ip_dst = cliAddr->sin_addr.s_addr;
 		unsigned short dstPort = cliAddr->sin_port;
 		unsigned long ip_src = 0;
 		unsigned short srcPort =0;
-		printf("Receiver is %d and %d\n", ip_src, ip_dst);
+		printf("Receive from client: dst ip and port is %u and %u\n", ip_dst, dstPort);
 		flow * retv = NULL;
-		findItem( (int) ip_dst,(int) ip_dst,(__u16)srcPort,(__u16) dstPort,&retv);
+		findItem( (int) ip_src,(int) ip_dst,(__u16)srcPort,(__u16) dstPort,&retv);
 		if (retv!=NULL && retv->acked ==1){
 			printf("Packet is acked!");
 			break;
 		}
-		if (count>=1){
+		if (count>=3){
 			printf("Timeout!\n");
 			break;
 		}
@@ -186,7 +193,7 @@ int main(int argc, char**argv)
 	while(1){
 		socklen_t len = sizeof(struct sockaddr_in) ;
 		mesg =(char *) malloc(1400);
-		clientAddressPtr = (struct sockaddr_in *)malloc(sizeof(struct sockaddr_in));
+		clientAddressPtr = (struct sockaddr_in *) malloc(sizeof(struct sockaddr_in));
 		
 		int n = recvfrom(sockfd,mesg,1400,0,(struct sockaddr *)clientAddressPtr,&len);
 		
@@ -194,31 +201,29 @@ int main(int argc, char**argv)
 		unsigned short dstPort = clientAddressPtr->sin_port;
 		unsigned long ip_src =0;// servaddr.sin_addr.s_addr;
 		unsigned long srcPort = 0;//servaddr.sin_port;
-		
+		printf("IP and port is %u and %u\n", ip_dst , dstPort);
 		flow * retv = NULL;
 		int sequenceNum  = *(int *)(mesg + 4);
-		findItem( (int) ip_dst,(int) ip_dst,(__u16)srcPort,(__u16) dstPort,&retv);
+		findItem( (int) ip_src,(int) ip_dst,(__u16)srcPort,(__u16) dstPort,&retv);
 
 		if (*(int*) mesg == 1){
 			if (retv!=NULL && retv->sequenceNumber >= sequenceNum){
-			printf("Updates are out of date, simply ignore the packet!\n");
+			//printf("Updates are out of date, simply ignore the packet!\n");
 			free(mesg);
 			free(clientAddressPtr);
+		} else{
+			printf("Add or update item with a sequence number %d!\n", sequenceNum);
+
+			addItem((int) ip_src,(int) ip_dst,(__u16)srcPort,(__u16) dstPort ,sequenceNum);
+
+			void * para = malloc(sizeof(parameter));
+			parameter * passingparameter = (parameter *) para;
+			passingparameter->request = mesg;
+			passingparameter->cliAddr = clientAddressPtr;
+			passingparameter->n = n;
+			passingparameter->port_num = destintVar;
+			pthread_create(&thread, NULL, handleRequest, para);
 		}
-			else{
-				printf("Add or update item with a sequence number %d!\n", sequenceNum);
-
-				addItem((int) ip_dst,(int) ip_dst,(__u16)srcPort,(__u16) dstPort ,sequenceNum);
-				
-
-				void * para = malloc(sizeof(parameter));
-				parameter * passingparameter = (parameter *) para;
-				passingparameter->request = mesg;
-				passingparameter->cliAddr = clientAddressPtr;
-				passingparameter->n = n;
-				passingparameter->port_num = destintVar;
-				pthread_create(&thread, NULL, handleRequest, para);
-			}
 		}  else if(*(int*) mesg == 3){
 			if(retv!=NULL && retv->sequenceNumber == sequenceNum){
 				printf("Acknowledge for a correct sequence number\n");
