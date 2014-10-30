@@ -8,7 +8,7 @@ clientUDP:
 server:
 	g++ -o server server.c
 serverUDP:	
-	gcc -o serverUDP serverUDP.c
+	g++ -o serverUDP serverUDP.c -lpthread
 
 	
 clean:

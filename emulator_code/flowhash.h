@@ -17,6 +17,7 @@ typedef struct
 {
 	flow_key key;
 	int sequenceNumber;
+	int acked ;
 	 UT_hash_handle hh;
 } flow;
 
@@ -49,10 +50,12 @@ void addItem(int src_ip, int dst_ip, __u16 src_port, __u16 dst_port, int sequenc
 		ItemPtr->key.dst_port = dst_port;
 		ItemPtr->key.src_port = src_port;
 		ItemPtr->sequenceNumber = sequenceNumber;
+		ItemPtr->acked = 0;
 		HASH_ADD(hh, records, key, sizeof(flow_key), ItemPtr);
 	} else{
 		//update item
 		printf("update item!\n");
+		ret_ptr->acked = 0;
 		ret_ptr->sequenceNumber = sequenceNumber;
 	}
 	return;

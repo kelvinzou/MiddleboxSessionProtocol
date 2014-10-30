@@ -17,20 +17,56 @@
 
 #define SEQUENCENUM 100
 
+
+typedef struct{
+	int action;
+	int sequenceNum;
+	int src_IP;
+	int dst_IP;
+	__u16 srcPort;
+	__u16 dstPort;
+
+} header;
+
+int  ConnectionPort, srcPort, dstPort;
+
 int sync_packet(int fd, char * writeBuffer, struct sockaddr_in * servaddr ){
-	
-	int ByteStreamCount = 20;
-	*( (int * )writeBuffer) = 1;
-	* (int * )(writeBuffer + 4)  = SEQUENCENUM;
+	int ByteStreamCount = sizeof(header) + 4 + 4*3 ;
+
+	header * hdr_ptr = (header*) writeBuffer;
+
+
+
+	hdr_ptr->action = 1 ;
+	hdr_ptr->sequenceNum  = SEQUENCENUM ;
 	struct in_addr addr;
+
+
+	char * srcIP = "192.168.56.193";
+
+	char * dstIP = "192.168.34.53";
+
+	inet_aton(srcIP, &addr);
+	hdr_ptr->src_IP =(int) addr.s_addr;
+	inet_aton(dstIP, &addr);
+	hdr_ptr->dst_IP =(int) addr.s_addr;
+	
+	hdr_ptr->srcPort = srcPort;
+	hdr_ptr->dstPort = dstPort;
+
+
 
 	char * MBox1 = "127.0.0.1";
 	char * MBox2 = "127.0.0.1";
+	char * MBox3 = "127.0.0.1";
 	inet_aton(MBox1, &addr);
-	memcpy(writeBuffer+8, &addr.s_addr, 4);
+	memcpy(writeBuffer+sizeof(header), &addr.s_addr, 4);
 	
 	inet_aton(MBox2, &addr);
-	memcpy(writeBuffer+12, &addr.s_addr, 4);
+	memcpy(writeBuffer+sizeof(header)+4, &addr.s_addr, 4);
+
+	inet_aton(MBox3, &addr);
+	memcpy(writeBuffer+sizeof(header)+8, &addr.s_addr, 4);
 
 	sendto(fd,writeBuffer,ByteStreamCount,0,(struct sockaddr *)servaddr,sizeof(struct sockaddr_in ));
 	return 0;
@@ -42,22 +78,23 @@ int main(int argc, char**argv)
 	int sockfd,n;
 	struct sockaddr_in servaddr,cliaddr;
 
-	if (argc < 3)
+	if (argc < 5)
 	{
-		printf("usage:  udpcli <IP address>, udp <port number>\n");
+		printf("usage:  udpcli <IP address>, udp <port number>, srcPort, dstPort\n");
 		exit(1);
 	}
-	int  destintVar;
+	
+	if (sscanf (argv[2], "%i", &ConnectionPort)!=1) { printf ("error - not an integer"); exit(-1); }
 
-	if (sscanf (argv[2], "%i", &destintVar)!=1) { printf ("error - not an integer"); exit(-1); }
-
-
+	if (sscanf (argv[3], "%i", &srcPort)!=1) { printf ("error - not an integer"); exit(-1); }
+	if (sscanf (argv[4], "%i", &dstPort)!=1) { printf ("error - not an integer"); exit(-1); }
+	
 	sockfd=socket(AF_INET,SOCK_DGRAM,0);
 
 	bzero(&servaddr,sizeof(servaddr));
 	servaddr.sin_family = AF_INET;
 	servaddr.sin_addr.s_addr=inet_addr(argv[1]);
-	servaddr.sin_port=htons(destintVar);
+	servaddr.sin_port=htons(ConnectionPort);
 
 // Here we use file descriptor to avoid I/O block at receive side.
 	int timeout =10000;
@@ -82,7 +119,7 @@ int main(int argc, char**argv)
 		
 		char sendline[1400];
 		char recvline[1400];
-		memset(sendline, 0,1399);
+		memset(sendline, 0,1400);
 
 		printf("Source address for receive from is %s",inet_ntoa(*(struct in_addr*) &cliaddr.sin_addr.s_addr));
 		printf(" and %s\n",inet_ntoa(*(struct in_addr*) &servaddr.sin_addr.s_addr));
@@ -104,13 +141,13 @@ int main(int argc, char**argv)
 			flag =1;
 		} else {
 			flag =2;
-			n=recvfrom(sockfd,recvline,1399,0,NULL,NULL);
+			n=recvfrom(sockfd,recvline,1400,0,NULL,NULL);
 			//fputs(recvline,stdout);
 			int ack = *(int *) recvline;
 			int seq = *(int *) (recvline +4);
-			int port = *(int *) (recvline+8);
+			int port = *(int *) (recvline+20);
 			printf("Is is sync ack? %d and %d and the port number is %d\n", ack, seq, port);
-			if (ack==2 && seq == SEQUENCENUM && n ==16)
+			if (ack==2 && seq == SEQUENCENUM && n ==28)
 			{
 				goto confirmed;
 			}

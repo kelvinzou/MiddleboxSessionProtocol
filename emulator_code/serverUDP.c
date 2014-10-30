@@ -11,6 +11,7 @@
 #include <asm/types.h>
 #include <pthread.h>
 #include <sys/time.h>
+#include <queue>
 #include "uthash.h"
 #include "flowhash.h"
 /* Sample UDP server */
@@ -18,46 +19,67 @@ int hashport =1025;
 int sequenceNumber = 0;
 
 int sockfd;
+struct sockaddr_in servaddr;
 
+using namespace std;
+typedef struct {
+	char * request;
+	int n;
+	int port_num;
+	volatile int flag;
+	struct sockaddr_in * cliAddr;
+}parameter;
 
+typedef struct{
+	int action;
+	int sequenceNum;
+	int src_IP;
+	int dst_IP;
+	__u16 srcPort;
+	__u16 dstPort;
 
+} header;
 
 void sendBack(char * request, int n,  struct sockaddr_in * cliAddr){
-	int action = *( (int *) request);
-	int SeqNum = * (int *) (request + 4); 
-	sequenceNumber = SeqNum;
+	header * hdr = (header *) request;
+	
+	int action = hdr->action;
+	int SeqNum = hdr->sequenceNum;
+
 	printf("The action is %d and %d \n",  action, SeqNum);
 	int i ;
-	for (i=8; i<n-4 ; i+=4){
+	for (i=sizeof(header); i<n-4 ; i+=4){
 		struct in_addr addr = *(struct in_addr*) (request + i);
 		printf("middlebox address for receive from is %s\n",inet_ntoa(addr));
 	}
 
 	char response[n];
-	memcpy(response+12, request+8, (size_t) n-8);
-	*( (int *) response) = 2;
-	*(int *) (response+4) = sequenceNumber;
-	* (int *)( response+ 8 ) = hashport++;
+	header * replyHdr = (header *) response;
+	memcpy(response+4, request+4, n-4);
+	//memcpy(response+, request+24, (size_t) n-24);
+	replyHdr->action = 2;
+	//*(int *) (response+4) = sequenceNumber;
+	* (int *)( response+ sizeof(header) ) = hashport++;
 	printf("The socket fd is %d \n",  sockfd);
 	sendto(sockfd,response,n,0,(struct sockaddr *)cliAddr,sizeof(struct sockaddr_in ));
 
 }
+
+
 
 int sendForward(char * request, int n, int * port_num, struct sockaddr_in * cliAddr){
 	
 	int SendSockfd ;
    	struct sockaddr_in SendServaddr, SendCliaddr;
 
-	
-
 	char sendmsg [n-4];
-	memcpy(sendmsg+8, request+12, (size_t) n-12);
-
+	memcpy(sendmsg+4, request+4, 16);
+	memcpy(sendmsg+sizeof(header), request+sizeof(header)+4, n-sizeof(header)-4);
 	//it is a sync packet
 	*( (int *)sendmsg) = 1;
 	printf("The action is %d \n", sequenceNumber);
 	//set sequence number is here
-	* (int *)(sendmsg+4) = sequenceNumber;
+	//* (int *)(sendmsg+4) = sequenceNumber;
 	printf("The action is %d \n", * (int *)(sendmsg+4) );
 	//set sequence number is here
 	//*( (int *) sendmsg+4) = sequenceNumber;
@@ -68,7 +90,7 @@ int sendForward(char * request, int n, int * port_num, struct sockaddr_in * cliA
 	printf("The SendSockfd is %d \n", SendSockfd);
 
 	SendServaddr.sin_family = AF_INET;
-	struct in_addr addr = *(struct in_addr*) (request + 12);
+	struct in_addr addr = *(struct in_addr*) (request + 20);
 	char * IPStr = inet_ntoa(addr);
 	SendServaddr.sin_addr.s_addr=inet_addr(IPStr); 
 
@@ -79,76 +101,67 @@ int sendForward(char * request, int n, int * port_num, struct sockaddr_in * cliA
 	char recvsendmsg [n-4];
 	
 	int m = recvfrom(SendSockfd,recvsendmsg,1400,0,NULL,NULL);
-	
-	sendto(sockfd,recvsendmsg,n-4,0,(struct sockaddr *) cliAddr,sizeof(struct sockaddr ));
-	int responseSeq = *(int *)(recvsendmsg+4) ;
-	printf("Do we ever get to this line? and SeqNum is  %d %d\n", m, responseSeq);
+	int count =0;
+	while(1){
+		count++;
 
+		sendto(sockfd,recvsendmsg,n-4,0,(struct sockaddr *) cliAddr,sizeof(struct sockaddr ));
+		usleep(100000);
+		unsigned long ip_dst = cliAddr->sin_addr.s_addr;
+		unsigned short dstPort = cliAddr->sin_port;
+		unsigned long ip_src = 0;
+		unsigned short srcPort =0;
+		printf("Receiver is %d and %d\n", ip_src, ip_dst);
+		flow * retv = NULL;
+		findItem( (int) ip_dst,(int) ip_dst,(__u16)srcPort,(__u16) dstPort,&retv);
+		if (retv!=NULL && retv->acked ==1){
+			printf("Packet is acked!");
+			break;
+		}
+		if (count>=1){
+			printf("Timeout!\n");
+			break;
+		}
+	}
+	//char ackPackets[];	
+	
 }
 
-void handleRequest(char * request, int n, int * port_num,  struct sockaddr_in * cliAddr){
+
+//void handleRequest(char * request, int n, int * port_num,  struct sockaddr_in * cliAddr){
+void * handleRequest(void * ptr){
+	parameter * passingparameter = (parameter *) ptr;
+	char * request = passingparameter->request;
+	struct sockaddr_in * cliAddr = passingparameter->cliAddr;
+	int n  =  passingparameter->n;
+	int port_num = passingparameter->port_num;
+
 	int action = *( (int *) request);
 	int SeqNum = *(int *)(request + 4); 
 	if ( SeqNum < sequenceNumber)
 	{
 		//Ignore the messge since it is after the current sequence number
-		return;
+		return NULL;
 	}	
-	sendBack(request, n, cliAddr);
-   	if (n>16){
-		sendForward(request, n, port_num, cliAddr);
+	//sendBack(request, n, cliAddr);
+   	if (n>sizeof(header) +8){
+		sendForward(request, n, &port_num, cliAddr);
+	} else{
+		sendBack(request, n, cliAddr);
 	}
+	free(request);
+	free(cliAddr);
+	free(ptr);
+	return NULL;
 }
 
 
 int main(int argc, char**argv)
 {
-	/*
-//initialize the threads	
-	int counter  = 0;
-   	pthread_t threads[10000];
-   	const char * msg = "child thread";
-  	//here we keep a queue of idle threads in queue idle, 
-  	//and everytime we grab a thread id from the idle pool and create a thread to run it
-
-   	queue<int> idle;
-   	int i =0;
-   	for(i=0; i<1000; i++){
-   		idle.push(i);
-   	}
-*/
-
-//keep track of time, and exits with a certain interval, since we cannot kill it in mininet
-
-   	//this marks an exit after 600 seconds
-   	//used for timing
    	struct timeval t1, t2;
     double elapsedTime;
     gettimeofday(&t1, NULL);
 
-
-    //this is not much useful, since it is for nonblocking sockets
-    //save it in the future in case
-    /*
-    struct timeval tv;
-    fd_set readfds, active_fs;
-    tv.tv_sec = 0;
-    tv.tv_usec = 1000;
-    FD_ZERO(&readfds);
-
-	FD_SET(sockfd, &readfds);
-
-	active_fs = readfds;
-	select(sockfd+1, &active_fs, NULL, NULL, &tv);
-	
-	if(FD_ISSET(sockfd, &active_fs)){
-		n = recvfrom(sockfd,mesg,1400,0,(struct sockaddr *)&cliaddr,&len);
-	}
-	*/
-	
-   	socklen_t len;
-	struct sockaddr_in servaddr,cliaddr;
-   
 	sockfd=socket(AF_INET,SOCK_DGRAM,0);
 
 	int intvar, destintVar;
@@ -164,13 +177,60 @@ int main(int argc, char**argv)
 	bind(sockfd,(struct sockaddr *)&servaddr,sizeof(servaddr));
 	
 	//select(sockfd+1, &readfds, NULL, NULL, &tv);
+
+	int counter  = 0;
+   	pthread_t thread;
+   	char * mesg;
+   	struct sockaddr_in * clientAddressPtr;
 	int drop =0;
 	while(1){
-		len = sizeof(cliaddr);
-		char mesg[1400];
+		socklen_t len = sizeof(struct sockaddr_in) ;
+		mesg =(char *) malloc(1400);
+		clientAddressPtr = (struct sockaddr_in *)malloc(sizeof(struct sockaddr_in));
+		
+		int n = recvfrom(sockfd,mesg,1400,0,(struct sockaddr *)clientAddressPtr,&len);
+		
+		unsigned long ip_dst = clientAddressPtr->sin_addr.s_addr;
+		unsigned short dstPort = clientAddressPtr->sin_port;
+		unsigned long ip_src =0;// servaddr.sin_addr.s_addr;
+		unsigned long srcPort = 0;//servaddr.sin_port;
+		
+		flow * retv = NULL;
+		int sequenceNum  = *(int *)(mesg + 4);
+		findItem( (int) ip_dst,(int) ip_dst,(__u16)srcPort,(__u16) dstPort,&retv);
 
-		int n = recvfrom(sockfd,mesg,1400,0,(struct sockaddr *)&cliaddr,&len);
-		handleRequest(mesg, n, & destintVar, &cliaddr);
+		if (*(int*) mesg == 1){
+			if (retv!=NULL && retv->sequenceNumber >= sequenceNum){
+			printf("Updates are out of date, simply ignore the packet!\n");
+			free(mesg);
+			free(clientAddressPtr);
+		}
+			else{
+				printf("Add or update item with a sequence number %d!\n", sequenceNum);
+
+				addItem((int) ip_dst,(int) ip_dst,(__u16)srcPort,(__u16) dstPort ,sequenceNum);
+				
+
+				void * para = malloc(sizeof(parameter));
+				parameter * passingparameter = (parameter *) para;
+				passingparameter->request = mesg;
+				passingparameter->cliAddr = clientAddressPtr;
+				passingparameter->n = n;
+				passingparameter->port_num = destintVar;
+				pthread_create(&thread, NULL, handleRequest, para);
+			}
+		}  else if(*(int*) mesg == 3){
+			if(retv!=NULL && retv->sequenceNumber == sequenceNum){
+				printf("Acknowledge for a correct sequence number\n");
+				retv->acked=1;
+			}  else{
+				printf("Cannot update for an out-of-order ack packet\n");
+			}
+		}
+			 
+		
+
+		//handleRequest(mesg, n, & destintVar, &cliaddr);
 
 
 		//char response[1400];
