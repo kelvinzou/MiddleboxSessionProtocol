@@ -61,7 +61,25 @@ void sendBack(char * request, int n,  struct sockaddr_in * cliAddr){
 	//*(int *) (response+4) = sequenceNumber;
 	* (int *)( response+ sizeof(header) ) = hashport++;
 	printf("The socket fd is %d \n",  sockfd);
-	sendto(sockfd,response,n,0,(struct sockaddr *)cliAddr,sizeof(struct sockaddr_in ));
+	while(1){
+		sendto(sockfd,response,n,0,(struct sockaddr *)cliAddr,sizeof(struct sockaddr_in ));
+
+		unsigned long ip_dst = cliAddr->sin_addr.s_addr;
+		unsigned short dstPort = cliAddr->sin_port;
+		unsigned long ip_src = 0;
+		unsigned short srcPort =0;
+		printf("Receive from client: dst ip and port is %u and %u\n", ip_dst, dstPort);
+		flow * retv = NULL;
+		findItem( (int) ip_src,(int) ip_dst,(__u16)srcPort,(__u16) dstPort,&retv);
+
+		if (retv!=NULL && retv->acked ==1){
+			printf("Packet is acked!\n");
+			break;
+		} else if(retv!=NULL){
+			printf("Not acked yet!\n");
+		}
+		usleep(100000);
+	}
 
 }
 
@@ -77,10 +95,10 @@ int sendForward(char * request, int n, int * port_num, struct sockaddr_in * cliA
 	memcpy(sendmsg+sizeof(header), request+sizeof(header)+4, n-sizeof(header)-4);
 	//it is a sync packet
 	*( (int *)sendmsg) = 1;
-	printf("The action is %d \n", sequenceNumber);
+	printf("The sequenceNum is %d \n", sequenceNumber);
 	//set sequence number is here
 	//* (int *)(sendmsg+4) = sequenceNumber;
-	printf("The action is %d \n", * (int *)(sendmsg+4) );
+	printf("The sequenceNum is %d \n", * (int *)(sendmsg+4) );
 	//set sequence number is here
 	//*( (int *) sendmsg+4) = sequenceNumber;
 	SendSockfd=socket(AF_INET,SOCK_DGRAM,0);
@@ -98,7 +116,7 @@ int sendForward(char * request, int n, int * port_num, struct sockaddr_in * cliA
 
 	sendto(SendSockfd,sendmsg,n-4,0,(struct sockaddr *)&SendServaddr,sizeof(struct sockaddr_in ));
 
-	char recvsendmsg [n-4];
+	char recvsendmsg [1400];
 	
 	int m = recvfrom(SendSockfd,recvsendmsg,1400,0,NULL,NULL);
 
@@ -112,8 +130,8 @@ int sendForward(char * request, int n, int * port_num, struct sockaddr_in * cliA
 	while(1){
 		count++;
 
-		sendto(sockfd,recvsendmsg,n-4,0,(struct sockaddr *) cliAddr,sizeof(struct sockaddr ));
-		usleep(1000000);
+		sendto(sockfd,recvsendmsg,m,0,(struct sockaddr *) cliAddr,sizeof(struct sockaddr_in ));
+		
 		unsigned long ip_dst = cliAddr->sin_addr.s_addr;
 		unsigned short dstPort = cliAddr->sin_port;
 		unsigned long ip_src = 0;
@@ -121,14 +139,25 @@ int sendForward(char * request, int n, int * port_num, struct sockaddr_in * cliA
 		printf("Receive from client: dst ip and port is %u and %u\n", ip_dst, dstPort);
 		flow * retv = NULL;
 		findItem( (int) ip_src,(int) ip_dst,(__u16)srcPort,(__u16) dstPort,&retv);
+
 		if (retv!=NULL && retv->acked ==1){
-			printf("Packet is acked!");
+			printf("Packet is acked!\n");
+			int HeaderLength = sizeof(header);
+			char AckMesg[HeaderLength];
+			header * ackHeader = (header *)AckMesg;
+			ackHeader->action = 3;
+			ackHeader->sequenceNum = sequenceNumber;
+			//sendto(sockfd,recvsendmsg,m,0,(struct sockaddr *) cliAddr,sizeof(struct sockaddr_in ));
+			sendto(SendSockfd,AckMesg,HeaderLength,0,(struct sockaddr *)&SendServaddr,sizeof(struct sockaddr_in ));
 			break;
+		} else if(retv!=NULL){
+			printf("Not acked yet!\n");
 		}
 		if (count>=3){
 			printf("Timeout!\n");
 			break;
 		}
+		usleep(10000);
 	}
 	//char ackPackets[];	
 	
@@ -174,8 +203,8 @@ int main(int argc, char**argv)
 	int intvar, destintVar;
 	if(argc!=3) {printf("Argument list wrong, it should be ./serverUDP port_num \n");return 0;}
 
-	if (sscanf (argv[1], "%i", &intvar)!=1) { printf ("error - not an integer"); exit(-1); }
-	if (sscanf (argv[2], "%i", &destintVar)!=1) { printf ("error - not an integer"); exit(-1); }
+	if (sscanf (argv[1], "%i", &intvar)!=1) { printf ("error - not an integer\n"); exit(-1); }
+	if (sscanf (argv[2], "%i", &destintVar)!=1) { printf ("error - not an integer\n"); exit(-1); }
 
 	bzero(&servaddr,sizeof(servaddr));
 	servaddr.sin_family = AF_INET;

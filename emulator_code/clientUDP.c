@@ -164,7 +164,15 @@ int main(int argc, char**argv)
 
 	}
 confirmed:
-
-	return 0;
+	{
+		int HeaderLength = sizeof(header);
+		char AckMesg[HeaderLength];
+		header * ackHeader = (header *)AckMesg;
+		ackHeader->action = 3;
+		ackHeader->sequenceNum = SEQUENCENUM;
+		sendto(sockfd,AckMesg,sizeof(header),0,(struct sockaddr *) &servaddr,sizeof(struct sockaddr_in ));
+		return 0;
+	}
+	
 
 }
