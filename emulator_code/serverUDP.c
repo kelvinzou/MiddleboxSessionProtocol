@@ -61,14 +61,16 @@ void sendBack(char * request, int n,  struct sockaddr_in * cliAddr){
 	//*(int *) (response+4) = sequenceNumber;
 	* (int *)( response+ sizeof(header) ) = hashport++;
 	printf("The socket fd is %d \n",  sockfd);
+	int count = 1;
 	while(1){
+		count++;
 		sendto(sockfd,response,n,0,(struct sockaddr *)cliAddr,sizeof(struct sockaddr_in ));
 
 		unsigned long ip_dst = cliAddr->sin_addr.s_addr;
 		unsigned short dstPort = cliAddr->sin_port;
-		unsigned long ip_src = 0;
-		unsigned short srcPort =0;
-		printf("Receive from client: dst ip and port is %u and %u\n", ip_dst, dstPort);
+		unsigned long ip_src =servaddr.sin_addr.s_addr; 
+		unsigned long srcPort = servaddr.sin_port; 
+		printf("Receive from client: dst ip and port is %u and %u\n", ip_dst, ntohs(dstPort));
 		flow * retv = NULL;
 		findItem( (int) ip_src,(int) ip_dst,(__u16)srcPort,(__u16) dstPort,&retv);
 
@@ -78,7 +80,11 @@ void sendBack(char * request, int n,  struct sockaddr_in * cliAddr){
 		} else if(retv!=NULL){
 			printf("Not acked yet!\n");
 		}
-		usleep(100000);
+		if (count>=10){
+			printf("Timeout!\n");
+			break;
+		}
+		usleep(10000);
 	}
 
 }
@@ -89,26 +95,23 @@ int sendForward(char * request, int n, int * port_num, struct sockaddr_in * cliA
 	
 	int SendSockfd ;
    	struct sockaddr_in SendServaddr, SendCliaddr;
+   	int i ;
+	for (i=sizeof(header); i<n-4 ; i+=4){
+		struct in_addr addr = *(struct in_addr*) (request + i);
+		printf("middlebox address for receive from is %s\n",inet_ntoa(addr));
+	}
 
 	char sendmsg [n-4];
 	memcpy(sendmsg+4, request+4, 16);
 	memcpy(sendmsg+sizeof(header), request+sizeof(header)+4, n-sizeof(header)-4);
 	//it is a sync packet
 	*( (int *)sendmsg) = 1;
-	printf("The sequenceNum is %d \n", sequenceNumber);
-	//set sequence number is here
-	//* (int *)(sendmsg+4) = sequenceNumber;
-	printf("The sequenceNum is %d \n", * (int *)(sendmsg+4) );
-	//set sequence number is here
-	//*( (int *) sendmsg+4) = sequenceNumber;
 	SendSockfd=socket(AF_INET,SOCK_DGRAM,0);
-
 	bzero(&SendServaddr,sizeof(SendServaddr));
-	
 	printf("The SendSockfd is %d \n", SendSockfd);
 
 	SendServaddr.sin_family = AF_INET;
-	struct in_addr addr = *(struct in_addr*) (request + 20);
+	struct in_addr addr = *(struct in_addr*) (request + sizeof(header) +4);
 	char * IPStr = inet_ntoa(addr);
 	SendServaddr.sin_addr.s_addr=inet_addr(IPStr); 
 
@@ -125,7 +128,6 @@ int sendForward(char * request, int n, int * port_num, struct sockaddr_in * cliA
 	int sequenceNumber = RecvHeaderPointer->sequenceNum;
 	int port = * (int *)(recvsendmsg+sizeof(header));
 	printf("Action is and sequence number is and prot number is %d and %d and %d\n", action, sequenceNumber, port);
-
 	int count =0;
 	while(1){
 		count++;
@@ -134,9 +136,9 @@ int sendForward(char * request, int n, int * port_num, struct sockaddr_in * cliA
 		
 		unsigned long ip_dst = cliAddr->sin_addr.s_addr;
 		unsigned short dstPort = cliAddr->sin_port;
-		unsigned long ip_src = 0;
-		unsigned short srcPort =0;
-		printf("Receive from client: dst ip and port is %u and %u\n", ip_dst, dstPort);
+		unsigned long ip_src =servaddr.sin_addr.s_addr;// servaddr.sin_addr.s_addr;
+		unsigned long srcPort = servaddr.sin_port;//servaddr.sin_port;
+		printf("Receive from client: dst ip and port is %u and %u\n", ip_dst, ntohs(dstPort));
 		flow * retv = NULL;
 		findItem( (int) ip_src,(int) ip_dst,(__u16)srcPort,(__u16) dstPort,&retv);
 
@@ -147,13 +149,12 @@ int sendForward(char * request, int n, int * port_num, struct sockaddr_in * cliA
 			header * ackHeader = (header *)AckMesg;
 			ackHeader->action = 3;
 			ackHeader->sequenceNum = sequenceNumber;
-			//sendto(sockfd,recvsendmsg,m,0,(struct sockaddr *) cliAddr,sizeof(struct sockaddr_in ));
 			sendto(SendSockfd,AckMesg,HeaderLength,0,(struct sockaddr *)&SendServaddr,sizeof(struct sockaddr_in ));
 			break;
 		} else if(retv!=NULL){
 			printf("Not acked yet!\n");
 		}
-		if (count>=3){
+		if (count>=10){
 			printf("Timeout!\n");
 			break;
 		}
@@ -174,7 +175,7 @@ void * handleRequest(void * ptr){
 
 	int action = *( (int *) request);
 	int SeqNum = *(int *)(request + 4); 
-	if ( SeqNum < sequenceNumber)
+	if ( SeqNum <= sequenceNumber)
 	{
 		//Ignore the messge since it is after the current sequence number
 		return NULL;
@@ -228,8 +229,8 @@ int main(int argc, char**argv)
 		
 		unsigned long ip_dst = clientAddressPtr->sin_addr.s_addr;
 		unsigned short dstPort = clientAddressPtr->sin_port;
-		unsigned long ip_src =0;// servaddr.sin_addr.s_addr;
-		unsigned long srcPort = 0;//servaddr.sin_port;
+		unsigned long ip_src =servaddr.sin_addr.s_addr;// servaddr.sin_addr.s_addr;
+		unsigned long srcPort = servaddr.sin_port;//servaddr.sin_port;
 		printf("IP and port is %u and %u\n", ip_dst , dstPort);
 		flow * retv = NULL;
 		int sequenceNum  = *(int *)(mesg + 4);
@@ -261,27 +262,6 @@ int main(int argc, char**argv)
 				printf("Cannot update for an out-of-order ack packet\n");
 			}
 		}
-			 
-		
-
-		//handleRequest(mesg, n, & destintVar, &cliaddr);
-
-
-		//char response[1400];
-		/*
-		active_fs = readfds;
-		select(sockfd+1, &active_fs, NULL, NULL, &tv);
-		
-		if(FD_ISSET(sockfd, &active_fs)){
-			n = recvfrom(sockfd,mesg,1400,0,(struct sockaddr *)&cliaddr,&len);
-			
-			printf("Source address for receive from is %s",inet_ntoa(*(struct in_addr*) &cliaddr.sin_addr.s_addr));
-			printf(" and %s\n",inet_ntoa(*(struct in_addr*) &servaddr.sin_addr.s_addr));
-
-			handleRequest(mesg, n, & destintVar, &cliaddr);
-			break;
-		}
-		*/
 		usleep(1000);
 		gettimeofday(&t2, NULL);
    	 	elapsedTime =(t2.tv_sec - t1.tv_sec);

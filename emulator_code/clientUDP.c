@@ -42,9 +42,9 @@ int sync_packet(int fd, char * writeBuffer, struct sockaddr_in * servaddr ){
 	struct in_addr addr;
 
 
-	char * srcIP = "192.168.56.193";
+	char * srcIP = "10.0.0.1";
 
-	char * dstIP = "192.168.34.53";
+	char * dstIP = "10.0.0.5";
 
 	inet_aton(srcIP, &addr);
 	hdr_ptr->src_IP =(int) addr.s_addr;
@@ -56,9 +56,9 @@ int sync_packet(int fd, char * writeBuffer, struct sockaddr_in * servaddr ){
 
 
 
-	char * MBox1 = "127.0.0.1";
-	char * MBox2 = "127.0.0.1";
-	char * MBox3 = "127.0.0.1";
+	char * MBox1 = "10.0.0.2";
+	char * MBox2 = "10.0.0.3";
+	char * MBox3 = "10.0.0.4";
 	inet_aton(MBox1, &addr);
 	memcpy(writeBuffer+sizeof(header), &addr.s_addr, 4);
 	
@@ -76,7 +76,7 @@ int sync_packet(int fd, char * writeBuffer, struct sockaddr_in * servaddr ){
 int main(int argc, char**argv)
 {
 	int sockfd,n;
-	struct sockaddr_in servaddr,cliaddr;
+	struct sockaddr_in servaddr;
 
 	if (argc < 5)
 	{
@@ -97,11 +97,11 @@ int main(int argc, char**argv)
 	servaddr.sin_port=htons(ConnectionPort);
 
 // Here we use file descriptor to avoid I/O block at receive side.
-	int timeout =10000;
+	int timeout =1000;
 	struct timeval tv;
 	fd_set readfds, active_fs;
 	tv.tv_sec = 0;
-	tv.tv_usec = 10000;
+	tv.tv_usec = 1000;
 	FD_ZERO(&readfds);
 	FD_SET(sockfd, &readfds);
 
@@ -121,8 +121,7 @@ int main(int argc, char**argv)
 		char recvline[1400];
 		memset(sendline, 0,1400);
 
-		printf("Source address for receive from is %s",inet_ntoa(*(struct in_addr*) &cliaddr.sin_addr.s_addr));
-		printf(" and %s\n",inet_ntoa(*(struct in_addr*) &servaddr.sin_addr.s_addr));
+		printf(" Destination is %s\n",inet_ntoa(*(struct in_addr*) &servaddr.sin_addr.s_addr));
 
 		if(flag==1 || flag ==0) {
 			sync_packet(sockfd, sendline, &servaddr);
@@ -136,8 +135,11 @@ int main(int argc, char**argv)
 		if(!FD_ISSET(sockfd, &active_fs)){
 			printf("Not ready for read yet, skip\n");
 			printf("Timeout is now %d\n", timeout);
-			usleep(timeout);
+			//usleep(timeout);
 			timeout =  timeout *2;
+			if(timeout<40000)
+				usleep(timeout);
+			else usleep(40000);
 			flag =1;
 		} else {
 			flag =2;
