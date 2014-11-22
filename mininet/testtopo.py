@@ -62,7 +62,7 @@ class TestTopo( Topo ):
         midSwitch = self.addSwitch('s2')
 
 
-        # Add links
+        # Add linnet.startTerm() ks
         self.addLink( Host1, leftSwitch )
         self.addLink( Host2, rightSwitch )
         self.addLink( MBox1, leftSwitch )
@@ -80,13 +80,9 @@ def bootMininet():
     host = custom(CPULimitedHost, cpu=0.2)
     link = custom(TCLink, bw=100, delay='20ms')
     topo = TestTopo()
-<<<<<<< HEAD
-    #OVSSwitch, KernelSwitch 
-    net = Mininet(topo=topo, controller=  RemoteController,  host=host, link=link, build=True, autoPinCpus=True, autoSetMacs=True, listenPort = 6633)
-=======
-    #OVSSwitch, KernelSwitch , controller= RemoteController
+    #OVSSwitch, KernelSwitch controller=  RemoteController,
+
     net = Mininet(topo=topo,  host=host, link=link, build=True, autoPinCpus=True, autoSetMacs=True, listenPort = 6633)
->>>>>>> c7ccf0c3e18d4e152878252b22a3d28344a98b7d
     net.start()
     print("Background process!")
     CLI(net)    
