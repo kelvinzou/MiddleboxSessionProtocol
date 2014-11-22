@@ -1,12 +1,21 @@
 """Custom topology example
+Author Kelvin Xuan Zou. 
+This is the python mininet start script, and it generates the network and xterminal. 
 
-Two directly connected switches plus a host for each switch:
 
-   host --- switch --- switch --- host
-
-Adding the 'topos' dict with a key/value pair to generate our newly defined
-topology enables one to pass in '--topo=mytopo' from the command line.
 """
+
+"""
+          h3(M2)
+          |
+      /---s2-------\
+h1--s1              s3----h5
+      \		    	/
+       \           /
+	h2 M1     (h4) M3
+"""
+
+
 
 from mininet.topo import Topo
 from mininet.net import Mininet

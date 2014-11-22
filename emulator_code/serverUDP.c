@@ -230,7 +230,7 @@ int main(int argc, char**argv)
 		unsigned long ip_dst = clientAddressPtr->sin_addr.s_addr;
 		unsigned short dstPort = clientAddressPtr->sin_port;
 		unsigned long ip_src =servaddr.sin_addr.s_addr;// servaddr.sin_addr.s_addr;
-		unsigned long srcPort = servaddr.sin_port;//servaddr.sin_port;
+		unsigned short srcPort = servaddr.sin_port;//servaddr.sin_port;
 		printf("IP and port is %u and %u\n", ip_dst , dstPort);
 		flow * retv = NULL;
 		int sequenceNum  = *(int *)(mesg + 4);

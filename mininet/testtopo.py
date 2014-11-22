@@ -34,7 +34,7 @@ from time import time
           |
       /---s2-------\
 h1--s1              s3----h5
-      \		    /
+      \		        /
        \           /
 	h2 M1     (h4) M3
 '''
