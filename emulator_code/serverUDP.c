@@ -1,3 +1,10 @@
+/*
+Author: Kelvin Xuan Zou
+This is the middlebox user-space agent for Middlebox session protocol 
+
+
+*/
+
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -17,9 +24,10 @@
 /* Sample UDP server */
 int hashport =1025;
 int sequenceNumber = 0;
-
+int thread_iterator =0;
 int sockfd;
 struct sockaddr_in servaddr;
+struct timeval t1, t2;
 
 using namespace std;
 typedef struct {
@@ -41,6 +49,9 @@ typedef struct{
 } header;
 
 void sendBack(char * request, int n,  struct sockaddr_in * cliAddr){
+
+	double elapsedTime;
+	
 	header * hdr = (header *) request;
 	
 	int action = hdr->action;
@@ -55,44 +66,52 @@ void sendBack(char * request, int n,  struct sockaddr_in * cliAddr){
 
 	char response[n];
 	header * replyHdr = (header *) response;
-	memcpy(response+4, request+4, n-4);
+	memcpy(response+4, request+4, n-4); 
 	//memcpy(response+, request+24, (size_t) n-24);
 	replyHdr->action = 2;
 	//*(int *) (response+4) = sequenceNumber;
 	* (int *)( response+ sizeof(header) ) = hashport++;
 	printf("The socket fd is %d \n",  sockfd);
-	int count = 1;
+	int count = 0;
 	while(1){
 		count++;
-		sendto(sockfd,response,n,0,(struct sockaddr *)cliAddr,sizeof(struct sockaddr_in ));
-
+		if(count%40==1){
+			sendto(sockfd,response,n,0,(struct sockaddr *)cliAddr,sizeof(struct sockaddr_in ));
+		}
+		
 		unsigned long ip_dst = cliAddr->sin_addr.s_addr;
 		unsigned short dstPort = cliAddr->sin_port;
 		unsigned long ip_src =servaddr.sin_addr.s_addr; 
-		unsigned long srcPort = servaddr.sin_port; 
-		printf("Receive from client: dst ip and port is %u and %u\n", ip_dst, ntohs(dstPort));
+		unsigned short srcPort = servaddr.sin_port; 
+		printf("Receive from client: dst ip and port is %lu %u \n", ip_dst, dstPort);
 		flow * retv = NULL;
 		findItem( (int) ip_src,(int) ip_dst,(__u16)srcPort,(__u16) dstPort,&retv);
-
+		
 		if (retv!=NULL && retv->acked ==1){
 			printf("Packet is acked!\n");
 			break;
 		} else if(retv!=NULL){
 			printf("Not acked yet!\n");
 		}
-		if (count>=10){
+		if (count>=1000){
 			printf("Timeout!\n");
 			break;
 		}
-		usleep(10000);
+		usleep(3000);
 	}
+	gettimeofday(&t2, NULL);
+	elapsedTime =(t2.tv_usec - t1.tv_usec) + (t2.tv_sec - t1.tv_sec)*1000000;
+	printf("3. Elapse Time is %f\n",elapsedTime);
 
 }
 
 
 
 int sendForward(char * request, int n, int * port_num, struct sockaddr_in * cliAddr){
-	
+	struct timeval t1, t2;
+	double elapsedTime;
+	char recvsendmsg [1400];
+
 	int SendSockfd ;
    	struct sockaddr_in SendServaddr, SendCliaddr;
    	int i ;
@@ -104,7 +123,7 @@ int sendForward(char * request, int n, int * port_num, struct sockaddr_in * cliA
 	char sendmsg [n-4];
 	memcpy(sendmsg+4, request+4, 16);
 	memcpy(sendmsg+sizeof(header), request+sizeof(header)+4, n-sizeof(header)-4);
-	//it is a sync packet
+	//Building a sync packet, and it sends to the next hop infinitely!
 	*( (int *)sendmsg) = 1;
 	SendSockfd=socket(AF_INET,SOCK_DGRAM,0);
 	bzero(&SendServaddr,sizeof(SendServaddr));
@@ -118,32 +137,40 @@ int sendForward(char * request, int n, int * port_num, struct sockaddr_in * cliA
 	SendServaddr.sin_port=htons(*port_num);
 
 	sendto(SendSockfd,sendmsg,n-4,0,(struct sockaddr *)&SendServaddr,sizeof(struct sockaddr_in ));
-
-	char recvsendmsg [1400];
-	
+	gettimeofday(&t1, NULL);
 	int m = recvfrom(SendSockfd,recvsendmsg,1400,0,NULL,NULL);
+	gettimeofday(&t2, NULL);
+	double elapsedTimeOld =(t2.tv_usec - t1.tv_usec) + (t2.tv_sec - t1.tv_sec)*1000000;
+	//printf("1. Elapse Time is %f\n",elapsedTime);
+	
 
 	header * RecvHeaderPointer = (header *) recvsendmsg;
+	
 	int action = RecvHeaderPointer->action;
 	int sequenceNumber = RecvHeaderPointer->sequenceNum;
 	int port = * (int *)(recvsendmsg+sizeof(header));
-	printf("Action is and sequence number is and prot number is %d and %d and %d\n", action, sequenceNumber, port);
+
+	//printf("Action is and sequence number is and port number is %d and %d and %d\n", action, sequenceNumber, port);
+
 	int count =0;
+
+	gettimeofday(&t1, NULL);
+	//receivd the message from the next hop, and reply the message back to the last hop, it is basically a repeated sending, until it is terminate. 
 	while(1){
 		count++;
-
+		if(count%40==1){
 		sendto(sockfd,recvsendmsg,m,0,(struct sockaddr *) cliAddr,sizeof(struct sockaddr_in ));
-		
+		}
 		unsigned long ip_dst = cliAddr->sin_addr.s_addr;
 		unsigned short dstPort = cliAddr->sin_port;
 		unsigned long ip_src =servaddr.sin_addr.s_addr;// servaddr.sin_addr.s_addr;
-		unsigned long srcPort = servaddr.sin_port;//servaddr.sin_port;
-		printf("Receive from client: dst ip and port is %u and %u\n", ip_dst, ntohs(dstPort));
+		unsigned short srcPort = servaddr.sin_port;//servaddr.sin_port;
+		//printf("Receive from client: dst ip and port is %u and %u, %u and %u \n", ip_dst, ntohs(dstPort),  ip_src, ntohs(srcPort));
 		flow * retv = NULL;
 		findItem( (int) ip_src,(int) ip_dst,(__u16)srcPort,(__u16) dstPort,&retv);
 
 		if (retv!=NULL && retv->acked ==1){
-			printf("Packet is acked!\n");
+			//printf("Packet is acked!\n");
 			int HeaderLength = sizeof(header);
 			char AckMesg[HeaderLength];
 			header * ackHeader = (header *)AckMesg;
@@ -152,16 +179,18 @@ int sendForward(char * request, int n, int * port_num, struct sockaddr_in * cliA
 			sendto(SendSockfd,AckMesg,HeaderLength,0,(struct sockaddr *)&SendServaddr,sizeof(struct sockaddr_in ));
 			break;
 		} else if(retv!=NULL){
-			printf("Not acked yet!\n");
+			//printf("Not acked yet!\n");
 		}
-		if (count>=10){
+		if (count>=1000){
 			printf("Timeout!\n");
 			break;
 		}
-		usleep(10000);
+		usleep(3000);
 	}
-	//char ackPackets[];	
-	
+	printf("1. Elapse Time is %f\n",elapsedTimeOld);
+	gettimeofday(&t2, NULL);
+	elapsedTime =(t2.tv_usec - t1.tv_usec) + (t2.tv_sec - t1.tv_sec)*1000000;
+	printf("2. Elapse Time is %f\n",elapsedTime);
 }
 
 
@@ -195,14 +224,13 @@ void * handleRequest(void * ptr){
 
 int main(int argc, char**argv)
 {
-   	struct timeval t1, t2;
     double elapsedTime;
     gettimeofday(&t1, NULL);
 
 	sockfd=socket(AF_INET,SOCK_DGRAM,0);
 
 	int intvar, destintVar;
-	if(argc!=3) {printf("Argument list wrong, it should be ./serverUDP port_num \n");return 0;}
+	if(argc!=3) {printf("Argument list wrong, it should be ./serverUDP src port_num, dest port number \n");return 0;}
 
 	if (sscanf (argv[1], "%i", &intvar)!=1) { printf ("error - not an integer\n"); exit(-1); }
 	if (sscanf (argv[2], "%i", &destintVar)!=1) { printf ("error - not an integer\n"); exit(-1); }
@@ -216,7 +244,7 @@ int main(int argc, char**argv)
 	//select(sockfd+1, &readfds, NULL, NULL, &tv);
 
 	int counter  = 0;
-   	pthread_t thread;
+   	pthread_t thread[10];
    	char * mesg;
    	struct sockaddr_in * clientAddressPtr;
 	int drop =0;
@@ -231,17 +259,22 @@ int main(int argc, char**argv)
 		unsigned short dstPort = clientAddressPtr->sin_port;
 		unsigned long ip_src =servaddr.sin_addr.s_addr;// servaddr.sin_addr.s_addr;
 		unsigned short srcPort = servaddr.sin_port;//servaddr.sin_port;
-		printf("IP and port is %u and %u\n", ip_dst , dstPort);
+		
 		flow * retv = NULL;
 		int sequenceNum  = *(int *)(mesg + 4);
 		findItem( (int) ip_src,(int) ip_dst,(__u16)srcPort,(__u16) dstPort,&retv);
+		//The first part is to check whether the it is a sync request
 
 		if (*(int*) mesg == 1){
+
 			if (retv!=NULL && retv->sequenceNumber >= sequenceNum){
-			//printf("Updates are out of date, simply ignore the packet!\n");
+			printf("Updates are out of date, simply ignore the packet!\n");
 			free(mesg);
 			free(clientAddressPtr);
 		} else{
+			gettimeofday(&t1, NULL);
+			printf("IP and port is %lu and %u \n", ip_dst , dstPort);
+
 			printf("Add or update item with a sequence number %d!\n", sequenceNum);
 
 			addItem((int) ip_src,(int) ip_dst,(__u16)srcPort,(__u16) dstPort ,sequenceNum);
@@ -252,17 +285,25 @@ int main(int argc, char**argv)
 			passingparameter->cliAddr = clientAddressPtr;
 			passingparameter->n = n;
 			passingparameter->port_num = destintVar;
-			pthread_create(&thread, NULL, handleRequest, para);
+			pthread_create(&(thread[thread_iterator]), NULL, handleRequest, para);
+			thread_iterator++;
+			if(thread_iterator>=10){
+				thread_iterator=0;
+			}
 		}
-		}  else if(*(int*) mesg == 3){
+		}
+		// the second part is to check whether it is a ack? 
+		else if(*(int*) mesg == 3){
 			if(retv!=NULL && retv->sequenceNumber == sequenceNum){
 				printf("Acknowledge for a correct sequence number\n");
 				retv->acked=1;
-			}  else{
-				printf("Cannot update for an out-of-order ack packet\n");
+			}  else if (retv==NULL){
+				printf("Cannot update NULL entry\n");
+			} else{
+				printf("Cannot update for an out-of-order ack packet%d\n",sequenceNum );
 			}
 		}
-		usleep(1000);
+		usleep(10000);
 		gettimeofday(&t2, NULL);
    	 	elapsedTime =(t2.tv_sec - t1.tv_sec);
    	 	if (elapsedTime>600){

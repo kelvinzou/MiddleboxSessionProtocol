@@ -7,10 +7,10 @@ This is the python mininet start script, and it generates the network and xtermi
 
 """
           h3(M2)
-          |
+          | 
       /---s2-------\
-h1--s1              s3----h5
-      \		    	/
+h1--s1      |       s3----h5
+      \	    MContr  /
        \           /
 	h2 M1     (h4) M3
 """
@@ -47,8 +47,9 @@ class TestTopo( Topo ):
         Host1 = self.addHost( 'h1' )
         MBox1 = self.addHost('h2')
         MBox2 = self.addHost( 'h3' )
-	MBox3 = self.addHost('h4')
-	Host2 = self.addHost('h5')
+    	MBox3 = self.addHost('h4')
+    	Host2 = self.addHost('h5')
+    	MControler= self.addHost('h6')
 
         leftSwitch = self.addSwitch( 's1' )
         rightSwitch = self.addSwitch( 's3' )
@@ -56,12 +57,13 @@ class TestTopo( Topo ):
 
 
         # Add links
-        self.addLink( Host1, leftSwitch )
+        self.addLink( Host1, leftSwitch,bw=100, delay='20ms' )
         self.addLink( Host2, rightSwitch )
         self.addLink( MBox1, leftSwitch )
         self.addLink( MBox3 , rightSwitch )
-	self.addLink( MBox2, midSwitch)	
-	
+        self.addLink( MBox2, midSwitch)	
+        self.addLink (MControler, midSwitch)
+
         self.addLink( leftSwitch, midSwitch )
         self.addLink( rightSwitch, midSwitch )
 
@@ -70,12 +72,12 @@ topos = { 'custopo': ( lambda: TestTopo() ) }
 
 def bootMininet():
     #create mininet with the topology
-    host = custom(CPULimitedHost, cpu=0.2)
-    link = custom(TCLink, bw=100, delay='20ms')
+    host = custom(CPULimitedHost, cpu=0.1)
+    #link = custom(TCLink, bw=100, delay='5ms')
     topo = TestTopo()
     #OVSSwitch, KernelSwitch controller=  RemoteController,
 
-    net = Mininet(topo=topo,  controller= partial( RemoteController, ip='127.0.0.1', port=6633 ), host=host, link=link, build=True, autoPinCpus=True )
+    net = Mininet(topo=topo,  controller= partial( RemoteController, ip='127.0.0.1', port=6633 ), host=host, link=TCLink, build=True, autoPinCpus=True )
     net.start()
     net.startTerms()
     print("Background process!")

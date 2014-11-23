@@ -31,7 +31,9 @@ typedef struct{
 int  ConnectionPort, srcPort, dstPort;
 
 int sync_packet(int fd, char * writeBuffer, struct sockaddr_in * servaddr ){
-	int ByteStreamCount = sizeof(header) + 4 + 4*3 ;
+	
+	char * MBox[] ={"10.0.0.3",  "10.0.0.4", "10.0.0.5"} ;
+	int ByteStreamCount = sizeof(header) + 4 + 4 *( sizeof(MBox) / sizeof(char * )) ;
 
 	header * hdr_ptr = (header*) writeBuffer;
 
@@ -56,17 +58,15 @@ int sync_packet(int fd, char * writeBuffer, struct sockaddr_in * servaddr ){
 
 
 
-	char * MBox1 = "10.0.0.2";
-	char * MBox2 = "10.0.0.3";
-	char * MBox3 = "10.0.0.4";
-	inet_aton(MBox1, &addr);
-	memcpy(writeBuffer+sizeof(header), &addr.s_addr, 4);
 	
-	inet_aton(MBox2, &addr);
-	memcpy(writeBuffer+sizeof(header)+4, &addr.s_addr, 4);
-
-	inet_aton(MBox3, &addr);
-	memcpy(writeBuffer+sizeof(header)+8, &addr.s_addr, 4);
+	//char * MBox3 = "10.0.0.5";
+	int i = 0;
+	for (i=0; i<sizeof(MBox) / sizeof(char * ); i++ ){
+		inet_aton(MBox[i], &addr);
+		memcpy(writeBuffer+sizeof(header)+ 4*i, &addr.s_addr, 4);
+	} 
+	
+	
 
 	sendto(fd,writeBuffer,ByteStreamCount,0,(struct sockaddr *)servaddr,sizeof(struct sockaddr_in ));
 	return 0;
@@ -97,11 +97,11 @@ int main(int argc, char**argv)
 	servaddr.sin_port=htons(ConnectionPort);
 
 // Here we use file descriptor to avoid I/O block at receive side.
-	int timeout =1000;
+	int timeout =3000;
 	struct timeval tv;
 	fd_set readfds, active_fs;
 	tv.tv_sec = 0;
-	tv.tv_usec = 1000;
+	tv.tv_usec = 3000;
 	FD_ZERO(&readfds);
 	FD_SET(sockfd, &readfds);
 
@@ -109,11 +109,30 @@ int main(int argc, char**argv)
 
 	struct timeval t1, t2;
 	double elapsedTime;
-	gettimeofday(&t1, NULL);
+	
 
 
 	int flag =0;
 
+	gettimeofday(&t1, NULL);
+	
+
+	//blocking way, it measures the latency in a better way!
+	char sendline[1400];
+	char recvline[1400];
+	memset(sendline, 0,1400);
+	sync_packet(sockfd, sendline, &servaddr);
+	n=recvfrom(sockfd,recvline,1400,0,NULL,NULL);
+			//fputs(recvline,stdout);
+	int ack = *(int *) recvline;
+	int seq = *(int *) (recvline +4);
+	int port = *(int *) (recvline+20);
+	printf("Is is sync ack? %d and %d and the port number is %d\n", ack, seq, port);
+	if (ack==2 && seq == SEQUENCENUM && n ==28)
+	{
+		goto confirmed;
+	}
+	/*
 	while (1)
 	{
 		
@@ -121,9 +140,11 @@ int main(int argc, char**argv)
 		char recvline[1400];
 		memset(sendline, 0,1400);
 
-		printf(" Destination is %s\n",inet_ntoa(*(struct in_addr*) &servaddr.sin_addr.s_addr));
-
-		if(flag==1 || flag ==0) {
+		//printf(" Destination is %s\n",inet_ntoa(*(struct in_addr*) &servaddr.sin_addr.s_addr));
+		if (flag==0){
+			sync_packet(sockfd, sendline, &servaddr);
+		}
+		if((flag==1 || flag ==0) &&timeout>=400000){
 			sync_packet(sockfd, sendline, &servaddr);
 		}
 		
@@ -133,13 +154,15 @@ int main(int argc, char**argv)
 		active_fs = readfds;
 		select(sockfd+1, &active_fs, NULL, NULL, &tv);
 		if(!FD_ISSET(sockfd, &active_fs)){
-			printf("Not ready for read yet, skip\n");
-			printf("Timeout is now %d\n", timeout);
+			//printf("Not ready for read yet, skip\n");
+			//printf("Timeout is now %d\n", timeout);
 			//usleep(timeout);
-			timeout =  timeout *2;
-			if(timeout<40000)
-				usleep(timeout);
-			else usleep(40000);
+			
+			if(timeout<400000){
+				timeout += 3000;
+			}
+			usleep(3000);
+			
 			flag =1;
 		} else {
 			flag =2;
@@ -164,7 +187,8 @@ int main(int argc, char**argv)
 			break;
 		}
 
-	}
+	}*/
+
 confirmed:
 	{
 		int HeaderLength = sizeof(header);
@@ -172,7 +196,11 @@ confirmed:
 		header * ackHeader = (header *)AckMesg;
 		ackHeader->action = 3;
 		ackHeader->sequenceNum = SEQUENCENUM;
+		gettimeofday(&t2, NULL);
+		elapsedTime =(t2.tv_usec - t1.tv_usec) + (t2.tv_sec - t1.tv_sec)*1000000;
+		printf("Time is %f\n",elapsedTime);
 		sendto(sockfd,AckMesg,sizeof(header),0,(struct sockaddr *) &servaddr,sizeof(struct sockaddr_in ));
+		
 		return 0;
 	}
 	
