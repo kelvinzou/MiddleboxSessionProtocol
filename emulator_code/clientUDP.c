@@ -16,7 +16,7 @@
 #define INTI_TO 10000
 
 #define SEQUENCENUM 100
-
+struct timeval t1, t2;
 
 typedef struct{
 	int action;
@@ -32,17 +32,14 @@ int  ConnectionPort, srcPort, dstPort;
 
 int sync_packet(int fd, char * writeBuffer, struct sockaddr_in * servaddr ){
 	
-	char * MBox[] ={"10.0.0.3",  "10.0.0.4", "10.0.0.5"} ;
+	char * MBox[] ={"10.0.0.2", "10.0.0.3",  "10.0.0.4", "10.0.0.5" } ;
 	int ByteStreamCount = sizeof(header) + 4 + 4 *( sizeof(MBox) / sizeof(char * )) ;
 
 	header * hdr_ptr = (header*) writeBuffer;
 
-
-
 	hdr_ptr->action = 1 ;
 	hdr_ptr->sequenceNum  = SEQUENCENUM ;
 	struct in_addr addr;
-
 
 	char * srcIP = "10.0.0.1";
 
@@ -55,21 +52,26 @@ int sync_packet(int fd, char * writeBuffer, struct sockaddr_in * servaddr ){
 	
 	hdr_ptr->srcPort = srcPort;
 	hdr_ptr->dstPort = dstPort;
-
-
-
 	
-	//char * MBox3 = "10.0.0.5";
 	int i = 0;
 	for (i=0; i<sizeof(MBox) / sizeof(char * ); i++ ){
 		inet_aton(MBox[i], &addr);
 		memcpy(writeBuffer+sizeof(header)+ 4*i, &addr.s_addr, 4);
 	} 
+	gettimeofday(&t1, NULL);
 	
-	
-
 	sendto(fd,writeBuffer,ByteStreamCount,0,(struct sockaddr *)servaddr,sizeof(struct sockaddr_in ));
 	return 0;
+}
+
+void keepalive(int sockfd){
+	int HeaderLength = sizeof(header);
+	char AckMesg[HeaderLength];
+	header * ackHeader = (header *)AckMesg;
+	ackHeader->action = 4;
+	ackHeader->sequenceNum = SEQUENCENUM;
+	printf("Keep alive!\n");
+	sendto(sockfd,AckMesg,sizeof(header),0,(struct sockaddr *) &servaddr,sizeof(struct sockaddr_in ));
 }
 
 
@@ -105,17 +107,9 @@ int main(int argc, char**argv)
 	FD_ZERO(&readfds);
 	FD_SET(sockfd, &readfds);
 
-
-
-	struct timeval t1, t2;
+	
 	double elapsedTime;
-	
-
-
 	int flag =0;
-
-	gettimeofday(&t1, NULL);
-	
 
 	//blocking way, it measures the latency in a better way!
 	char sendline[1400];
@@ -132,7 +126,33 @@ int main(int argc, char**argv)
 	{
 		goto confirmed;
 	}
-	/*
+	
+
+confirmed:
+	{
+		int HeaderLength = sizeof(header);
+		char AckMesg[HeaderLength];
+		header * ackHeader = (header *)AckMesg;
+		ackHeader->action = 3;
+		ackHeader->sequenceNum = SEQUENCENUM;
+		gettimeofday(&t2, NULL);
+		elapsedTime =(t2.tv_usec - t1.tv_usec) + (t2.tv_sec - t1.tv_sec)*1000000;
+		printf("Time is %f\n",elapsedTime);
+		sendto(sockfd,AckMesg,sizeof(header),0,(struct sockaddr *) &servaddr,sizeof(struct sockaddr_in ));
+		/*
+		Here we add keep alive messages to show the mobility can be handled for packets on the fly
+		*/
+		while(1){
+			sleep(5);
+			keepalive(sockfd);
+		}
+		return 0;
+	}
+	
+
+}
+
+/*
 	while (1)
 	{
 		
@@ -188,21 +208,3 @@ int main(int argc, char**argv)
 		}
 
 	}*/
-
-confirmed:
-	{
-		int HeaderLength = sizeof(header);
-		char AckMesg[HeaderLength];
-		header * ackHeader = (header *)AckMesg;
-		ackHeader->action = 3;
-		ackHeader->sequenceNum = SEQUENCENUM;
-		gettimeofday(&t2, NULL);
-		elapsedTime =(t2.tv_usec - t1.tv_usec) + (t2.tv_sec - t1.tv_sec)*1000000;
-		printf("Time is %f\n",elapsedTime);
-		sendto(sockfd,AckMesg,sizeof(header),0,(struct sockaddr *) &servaddr,sizeof(struct sockaddr_in ));
-		
-		return 0;
-	}
-	
-
-}

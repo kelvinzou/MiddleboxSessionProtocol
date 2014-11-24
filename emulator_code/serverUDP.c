@@ -83,7 +83,7 @@ void sendBack(char * request, int n,  struct sockaddr_in * cliAddr){
 		unsigned short dstPort = cliAddr->sin_port;
 		unsigned long ip_src =servaddr.sin_addr.s_addr; 
 		unsigned short srcPort = servaddr.sin_port; 
-		printf("Receive from client: dst ip and port is %lu %u \n", ip_dst, dstPort);
+	//	printf("Receive from client: dst ip and port is %lu %u \n", ip_dst, dstPort);
 		flow * retv = NULL;
 		findItem( (int) ip_src,(int) ip_dst,(__u16)srcPort,(__u16) dstPort,&retv);
 		
@@ -91,7 +91,7 @@ void sendBack(char * request, int n,  struct sockaddr_in * cliAddr){
 			printf("Packet is acked!\n");
 			break;
 		} else if(retv!=NULL){
-			printf("Not acked yet!\n");
+		//	printf("Not acked yet!\n");
 		}
 		if (count>=1000){
 			printf("Timeout!\n");
@@ -209,7 +209,6 @@ void * handleRequest(void * ptr){
 		//Ignore the messge since it is after the current sequence number
 		return NULL;
 	}	
-	//sendBack(request, n, cliAddr);
    	if (n>sizeof(header) +8){
 		sendForward(request, n, &port_num, cliAddr);
 	} else{
@@ -230,7 +229,7 @@ int main(int argc, char**argv)
 	sockfd=socket(AF_INET,SOCK_DGRAM,0);
 
 	int intvar, destintVar;
-	if(argc!=3) {printf("Argument list wrong, it should be ./serverUDP src port_num, dest port number \n");return 0;}
+	if(argc!=3) {printf("Argument list wrong, it should be ./serverUDP my listening port_num, next hop listening port number \n");return 0;}
 
 	if (sscanf (argv[1], "%i", &intvar)!=1) { printf ("error - not an integer\n"); exit(-1); }
 	if (sscanf (argv[2], "%i", &destintVar)!=1) { printf ("error - not an integer\n"); exit(-1); }
@@ -255,6 +254,8 @@ int main(int argc, char**argv)
 		
 		int n = recvfrom(sockfd,mesg,1400,0,(struct sockaddr *)clientAddressPtr,&len);
 		
+
+		//check the item in the hash table and then check the sequence number
 		unsigned long ip_dst = clientAddressPtr->sin_addr.s_addr;
 		unsigned short dstPort = clientAddressPtr->sin_port;
 		unsigned long ip_src =servaddr.sin_addr.s_addr;// servaddr.sin_addr.s_addr;
@@ -263,10 +264,10 @@ int main(int argc, char**argv)
 		flow * retv = NULL;
 		int sequenceNum  = *(int *)(mesg + 4);
 		findItem( (int) ip_src,(int) ip_dst,(__u16)srcPort,(__u16) dstPort,&retv);
+		
+
 		//The first part is to check whether the it is a sync request
-
 		if (*(int*) mesg == 1){
-
 			if (retv!=NULL && retv->sequenceNumber >= sequenceNum){
 			printf("Updates are out of date, simply ignore the packet!\n");
 			free(mesg);
@@ -289,8 +290,8 @@ int main(int argc, char**argv)
 			thread_iterator++;
 			if(thread_iterator>=10){
 				thread_iterator=0;
+				}	
 			}
-		}
 		}
 		// the second part is to check whether it is a ack? 
 		else if(*(int*) mesg == 3){
@@ -302,8 +303,9 @@ int main(int argc, char**argv)
 			} else{
 				printf("Cannot update for an out-of-order ack packet%d\n",sequenceNum );
 			}
+			free(mesg);
+			free(clientAddressPtr);
 		}
-		usleep(10000);
 		gettimeofday(&t2, NULL);
    	 	elapsedTime =(t2.tv_sec - t1.tv_sec);
    	 	if (elapsedTime>600){

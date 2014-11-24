@@ -57,7 +57,7 @@ class TestTopo( Topo ):
 
 
         # Add links
-        self.addLink( Host1, leftSwitch,bw=100, delay='20ms' )
+        self.addLink( Host1, leftSwitch,bw=100, delay='25ms' )
         self.addLink( Host2, rightSwitch )
         self.addLink( MBox1, leftSwitch )
         self.addLink( MBox3 , rightSwitch )
@@ -72,7 +72,7 @@ topos = { 'custopo': ( lambda: TestTopo() ) }
 
 def bootMininet():
     #create mininet with the topology
-    host = custom(CPULimitedHost, cpu=0.1)
+    host = custom(CPULimitedHost, cpu=0.3)
     #link = custom(TCLink, bw=100, delay='5ms')
     topo = TestTopo()
     #OVSSwitch, KernelSwitch controller=  RemoteController,
