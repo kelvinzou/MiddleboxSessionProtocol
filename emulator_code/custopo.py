@@ -1,19 +1,26 @@
-'''
+"""Custom topology example
+Author Kelvin Xuan Zou. 
+This is the python mininet start script, and it generates the network and xterminal. 
 
 
-author: Kelvin Zou
+"""
 
-File: testtopo
-Description:
-This function boots mininet and invokes iperf functions
+"""
+          h3(M2)
+          | 
+      /---s2-------\
+h1--s1      |       s3----h5
+      \	    MContr  /
+       \           /
+	h2 M1     (h4) M3
+"""
 
-'''
 
 
 from mininet.topo import Topo
 from mininet.net import Mininet
 from mininet.log import lg, output
-from mininet.node import CPULimitedHost, RemoteController, Host
+from mininet.node import CPULimitedHost, RemoteController, Host, Controller
 from mininet.link import TCLink
 from mininet.util import irange, custom, quietRun, dumpNetConnections
 from mininet.cli import CLI
@@ -21,26 +28,12 @@ from time import sleep, time
 from multiprocessing import Process
 from subprocess import Popen
 import random
-
+from functools import partial
 import argparse
 
 import sys
 import os
 import signal
-from time import time
-
-'''
-          h3(M2)
-          |
-      /---s2-------\
-h1--s1              s3----h5
-      \		        /
-       \           /
-	h2 M1     (h4) M3
-'''
-
-
-from mininet.topo import Topo
 
 class TestTopo( Topo ):
     #this is a simple topolgoy that has 4 switches and 4 hosts
@@ -54,59 +47,42 @@ class TestTopo( Topo ):
         Host1 = self.addHost( 'h1' )
         MBox1 = self.addHost('h2')
         MBox2 = self.addHost( 'h3' )
-	MBox3 = self.addHost('h4')
-	Host2 = self.addHost('h5')
+    	MBox3 = self.addHost('h4')
+    	Host2 = self.addHost('h5')
+    	MControler= self.addHost('h6')
 
         leftSwitch = self.addSwitch( 's1' )
         rightSwitch = self.addSwitch( 's3' )
         midSwitch = self.addSwitch('s2')
 
 
-        # Add linnet.startTerm() ks
-        self.addLink( Host1, leftSwitch )
+        # Add links
+        self.addLink( Host1, leftSwitch,bw=100, delay='25ms' )
         self.addLink( Host2, rightSwitch )
         self.addLink( MBox1, leftSwitch )
         self.addLink( MBox3 , rightSwitch )
-	self.addLink( MBox2, midSwitch)	
-	
+        self.addLink( MBox2, midSwitch)	
+        self.addLink (MControler, midSwitch)
+
         self.addLink( leftSwitch, midSwitch )
         self.addLink( rightSwitch, midSwitch )
 
 
-#topos = { 'TestTopo': ( lambda: TestTopo() ) }
+topos = { 'custopo': ( lambda: TestTopo() ) }
 
 def bootMininet():
     #create mininet with the topology
-    host = custom(CPULimitedHost, cpu=0.2)
-    link = custom(TCLink, bw=100, delay='20ms')
+    host = custom(CPULimitedHost, cpu=0.3)
+    #link = custom(TCLink, bw=100, delay='5ms')
     topo = TestTopo()
-<<<<<<< HEAD
-    #OVSSwitch, KernelSwitch  controller= RemoteController,
-=======
     #OVSSwitch, KernelSwitch controller=  RemoteController,
 
->>>>>>> df378e2f4c4322a32b941548eb055b0d0e200033
-    net = Mininet(topo=topo,  host=host, link=link, build=True, autoPinCpus=True, autoSetMacs=True, listenPort = 6633)
+    net = Mininet(topo=topo,  controller= partial( RemoteController, ip='127.0.0.1', port=6633 ), host=host, link=TCLink, build=True, autoPinCpus=True )
     net.start()
+    net.startTerms()
     print("Background process!")
     CLI(net)    
-    h1 = net.get('h1')
-    print "Host", h1.name, "has IP address", h1.IP(), "and MAC address", h1.MAC()
-    host1.cmd("./RECEIVE_RAW >/disk/local/kelvinzou/MiddleboxSessionProtocol/mininet/log1 &")
-    print "start the net already"
-    net.pingAll()
-
-    sleep(5)
-    hosts = [net.hosts[1],net.hosts[2]]
-    print "Stop testing"
-    host1.cmd("kill %./RECEIVE_RAW")
-    print"successfully killed demon"
-    #host1.cmd("echo hello")
-    net.iperf(hosts, 'TCP', '10M')
     net.stop()
-
-
-
 
 def main():
     bootMininet()
@@ -114,9 +90,5 @@ def main():
 if __name__ == '__main__':
     # Tell mininet to print useful information
     main()
-
-
-
-
 
 

@@ -11,21 +11,15 @@
 
 int main(int argc, char *argv[])
 {
-    if (argc<2){
-        printf("Missing argument number of bytes, blah...\n");
-        return 0;
-    }
+
     int listenfd = 0, connfd = 0, n=0;
     struct sockaddr_in serv_addr; 
-    int num;
-    sscanf(argv[1], "%d", &num);
-    printf("argument is %d\n", num);
+
     char sendBuff[4096*4];
     time_t ticks; 
 
-
     listenfd = socket(AF_INET, SOCK_STREAM, 0);
-   int optval = 1;
+    int optval = 1;
     setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof optval);
 
     memset(&serv_addr, '0', sizeof(serv_addr));
@@ -41,9 +35,8 @@ int main(int argc, char *argv[])
          exit(1);
     }
 
-
     listen(listenfd, 10); 
-    int i=1, roundnumber= num*100000;
+
     while(1)
     {
         connfd = accept(listenfd, (struct sockaddr*)NULL, NULL); 
@@ -52,11 +45,8 @@ int main(int argc, char *argv[])
         //snprintf(sendBuff, sizeof(sendBuff), "%.24s\r\n", ctime(&ticks));
         //write(connfd, sendBuff, strlen(sendBuff)); 
         //memset(sendBuff, '0', sizeof(sendBuff)); 
-        for (i=1; i<roundnumber; i++)
-        {
-            n= write(connfd, sendBuff, strlen(sendBuff)); 
-        }
-        close(connfd);
         sleep(1);
+        close(connfd);
+       
      }
 }

@@ -1,4 +1,4 @@
-all: client.o clientUDP.o server.o serverUDP.o
+all: client clientUDP server serverUDP
 
 client:
 	g++ -o client client.c
@@ -8,7 +8,7 @@ clientUDP:
 server:
 	g++ -o server server.c
 serverUDP:	
-	gcc -o serverUDP serverUDP.c
+	g++ -o serverUDP serverUDP.c
 
 	
 clean:
