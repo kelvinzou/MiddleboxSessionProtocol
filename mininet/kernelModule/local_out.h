@@ -93,17 +93,21 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     //if (p) printk( KERN_ALERT "found %d %d and value is %d \n", p->key.a, p->key.b, p->a);
     }
 
-    if(iph->daddr == in_aton("192.168.56.101")){
+    if(iph->daddr == in_aton("192.168.56.102")){
         printk(KERN_ALERT "Output: Initial Src and Dest address is %pI4 and  %pI4\n",   &iph->saddr ,&iph->daddr );
         printk("Output: Initial checksum is %u and %u and %u checksum header and offset are %d and %d and %d \n", skb->csum, tcph->check,iph->check ,skb->csum_start, skb->transport_header, skb->csum_offset); 
         printk("The headroom is %d\n", skb_headroom(skb));
 
         if (unlikely(skb_linearize(skb) != 0))
             return NULL;
-        __u32 oldIP = iph->daddr;
-        iph->daddr = in_aton("192.168.56.101");
-        inet_proto_csum_replace4(&tcph->check, skb, oldIP, iph->daddr, 1);
-        //tcph->check = 0;
+
+        __be32 oldIP = iph->daddr;
+        iph->daddr = in_aton("192.168.56.1");
+        __be32 newIP = iph->daddr;
+        __sum16 sum = tcph->check;
+        inet_proto_csum_replace4(&sum, skb, oldIP, newIP, 1);
+        tcph->check = sum;
+        csum_replace4(&iph->check, oldIP, newIP);
         //tcph->check = csum_tcpudp_magic( iph->saddr, iph->daddr,tcp_len, IPPROTO_TCP, csum_partial((char *)tcph, tcp_len, 0)  );
         printk( "Output: New Src and Dest address is %pI4 and  %pI4\n",   &iph->saddr ,&iph->daddr );
         //iph->check = 0;
