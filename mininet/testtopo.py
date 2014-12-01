@@ -80,8 +80,8 @@ def bootMininet():
     host = custom(CPULimitedHost, cpu=0.2)
     link = custom(TCLink, bw=100, delay='20ms')
     topo = TestTopo()
-    #OVSSwitch, KernelSwitch
-    net = Mininet(topo=topo, controller= RemoteController,  host=host, link=link, build=True, autoPinCpus=True, autoSetMacs=True, listenPort = 6633)
+    #OVSSwitch, KernelSwitch  controller= RemoteController,
+    net = Mininet(topo=topo,  host=host, link=link, build=True, autoPinCpus=True, autoSetMacs=True, listenPort = 6633)
     net.start()
     print("Background process!")
     h1 = net.get('h1')
@@ -96,7 +96,7 @@ def bootMininet():
     print"successfully killed demon"
     #host1.cmd("echo hello")
     net.iperf(hosts, 'TCP', '10M')
-    #net.stop()
+    net.stop()
 
 
 

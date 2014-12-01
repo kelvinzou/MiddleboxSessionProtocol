@@ -67,7 +67,7 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     tcph = (struct tcphdr *) tcp_hdr (skb );
 
    // printk(KERN_ALERT "Output: Initial tcp port number is %u and %u and %u \n", ntohs(tcph->source), ntohs(tcph ->dest),   ntohs(portvalue)  ); 
-   // printk(KERN_ALERT "Output: Src and Dest address is %pI4 and  %pI4\n",   &iph->saddr ,&iph->daddr );
+    
     unsigned int  iphdr_len;
     iphdr_len =  ip_hdrlen(skb) ;
     unsigned int   tcphdr_len;
@@ -76,14 +76,9 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     tcp_len = data_len - iphdr_len;  
 
    // printk(KERN_ALERT "The ip hdr address is %d and tcp addr is %d and length is %d and %d\n", iph, tcph, skb->len, tcp_len);
-   // printk(KERN_ALERT "Output: Initial checksum is %u and %u and %u checksum header and offset are %d and %d and %d \n", skb->csum, tcph->check,iph->check ,skb->csum_start, skb->transport_header, skb->csum_offset); 
-    
 
-    __u16 tempCheck = tcph->check; 
-
-    tcph->check = 0;
-    
-    tcph->check = ~csum_tcpudp_magic( iph->saddr, iph->daddr,tcp_len, IPPROTO_TCP, 0);
+    //tcph->check = 0;
+    //tcph->check = ~csum_tcpudp_magic( iph->saddr, iph->daddr,tcp_len, IPPROTO_TCP, 0);
     bool FLAG = false;
     if(FLAG){
     int i;
@@ -98,13 +93,23 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     //if (p) printk( KERN_ALERT "found %d %d and value is %d \n", p->key.a, p->key.b, p->a);
     }
 
-  //  printk(KERN_ALERT "Output: New checksum is %u and %u and %u checksum header and offset are %d and %d \n", skb->csum, tcph->check,iph->check , skb->csum_start, skb->csum_offset); 
-
     if(iph->daddr == in_aton("192.168.56.101")){
-        iph->daddr = in_aton("192.168.56.1");
-        tcph->check = 0;
-        tcph->check = ~csum_tcpudp_magic( iph->saddr, iph->daddr,tcp_len, IPPROTO_TCP, 0);
-        
+        printk(KERN_ALERT "Output: Initial Src and Dest address is %pI4 and  %pI4\n",   &iph->saddr ,&iph->daddr );
+        printk("Output: Initial checksum is %u and %u and %u checksum header and offset are %d and %d and %d \n", skb->csum, tcph->check,iph->check ,skb->csum_start, skb->transport_header, skb->csum_offset); 
+        printk("The headroom is %d\n", skb_headroom(skb));
+
+        if (unlikely(skb_linearize(skb) != 0))
+            return NULL;
+        __u32 oldIP = iph->daddr;
+        iph->daddr = in_aton("192.168.56.101");
+        inet_proto_csum_replace4(&tcph->check, skb, oldIP, iph->daddr, 1);
+        //tcph->check = 0;
+        //tcph->check = csum_tcpudp_magic( iph->saddr, iph->daddr,tcp_len, IPPROTO_TCP, csum_partial((char *)tcph, tcp_len, 0)  );
+        printk( "Output: New Src and Dest address is %pI4 and  %pI4\n",   &iph->saddr ,&iph->daddr );
+        //iph->check = 0;
+        //ip_send_check(iph);
+        printk("Output: New checksum is %u and %u and %u checksum header and offset are %d and %d and %d \n", skb->csum, tcph->check, iph->check ,skb->csum_start, skb->transport_header, skb->csum_offset); 
+
     }
        
 
@@ -133,6 +138,10 @@ static unsigned int pkt_mangle_begin (unsigned int hooknum,
         {
             skb=tcp_header_rewrite(skb);
             //return NF_ACCEPT;
+            if (skb ==NULL) {
+                printk(KERN_ALERT "Output: Fail to skb_linearize\n");
+                return NF_DROP;
+            }
             okfn(skb);
 
             return  NF_STOLEN;

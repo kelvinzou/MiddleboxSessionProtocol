@@ -78,7 +78,7 @@ struct iphdr *iph ;
     tcp_len = data_len - iphdr_len;  
 
    // printk(KERN_ALERT "The ip hdr address is %d and tcp addr is %d and length is %d and %d\n", iph, tcph, skb->len, tcp_len);
-  printk(KERN_ALERT "Input: Initial checksum is %u and %u and %u checksum header and offset are %d and %d and %d \n", skb->csum, tcph->check,iph->check ,skb->csum_start, skb->transport_header, skb->csum_offset); 
+  	//printk("Input: Initial checksum is %u and %u and %u checksum header and offset are %d and %d and %d \n", skb->csum, tcph->check,iph->check ,skb->csum_start, skb->transport_header, skb->csum_offset); 
     
 
     __u16 tempCheck = tcph->check; 
@@ -88,7 +88,7 @@ struct iphdr *iph ;
     //CHECKSUM_UNNECESSARY, HW already checked the packet for you. 
     //tcph->check = ~csum_tcpudp_magic( iph->saddr, iph->daddr,tcp_len, IPPROTO_TCP, 0);
 
-     printk(KERN_ALERT "Input: New checksum is %u and %u and %u checksum header and offset are %d and %d and %d \n", skb->csum, tcph->check,iph->check ,skb->csum_start, skb->transport_header, skb->csum_offset); 
+    // printk("Input: New checksum is %u and %u and %u checksum header and offset are %d and %d and %d \n", skb->csum, tcph->check,iph->check ,skb->csum_start, skb->transport_header, skb->csum_offset); 
 
 
       if(iph->saddr == in_aton("192.168.56.101")){
@@ -132,7 +132,6 @@ static unsigned int pre_routing_begin(unsigned int hooknum,
         	
         	tcp_header_write_prerouting(skb);
 
-        	printk(KERN_ALERT "PRE_ROUTING: ever pass input check?\n");
         }
         else  if( iph->protocol ==IPPROTO_UDP)
         {
