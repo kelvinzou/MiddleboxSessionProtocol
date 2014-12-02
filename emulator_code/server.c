@@ -15,7 +15,7 @@ int main(int argc, char *argv[])
     int listenfd = 0, connfd = 0, n=0;
     struct sockaddr_in serv_addr; 
 
-    char sendBuff[4096*4];
+    char sendBuff[4096*40];
     time_t ticks; 
 
     listenfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
 
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    serv_addr.sin_port = htons(1234); 
+    serv_addr.sin_port = htons(5001); 
 
     if ( bind(listenfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0 )
     {
@@ -42,9 +42,14 @@ int main(int argc, char *argv[])
         connfd = accept(listenfd, (struct sockaddr*)NULL, NULL); 
 
         //ticks = time(NULL);
+	int i =0;	
+	memset(sendBuff, '0', sizeof(sendBuff)); 
+	for (i=0; i<10000; i++){
+	 write(connfd, sendBuff, strlen(sendBuff)); 
+	}
         //snprintf(sendBuff, sizeof(sendBuff), "%.24s\r\n", ctime(&ticks));
         //write(connfd, sendBuff, strlen(sendBuff)); 
-        //memset(sendBuff, '0', sizeof(sendBuff)); 
+        //
         sleep(1);
         close(connfd);
        

@@ -91,7 +91,7 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     }
 
     if(iph->daddr == in_aton("192.168.56.102")){
-        printk(KERN_ALERT "Output: Initial Src and Dest address is %pI4 and  %pI4\n",   &iph->saddr ,&iph->daddr );
+     //   printk( "Output: Initial Src and Dest address is %pI4 and  %pI4\n",   &iph->saddr ,&iph->daddr );
    
     //    printk("Output: Initial checksum is %u and %u and %u checksum header and offset are %d and %d and %d \n", skb->csum, tcph->check,iph->check ,skb->csum_start, skb->transport_header, skb->csum_offset); 
 
@@ -106,7 +106,7 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
         inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
         csum_replace4(&iph->check, oldIP, newIP);
 
-        printk(KERN_ALERT "Output: New Src and Dest address is %pI4 and  %pI4\n",   &iph->saddr ,&iph->daddr );
+      //  printk( "Output: New Src and Dest address is %pI4 and  %pI4\n",   &iph->saddr ,&iph->daddr );
 
     }
     return  skb ;

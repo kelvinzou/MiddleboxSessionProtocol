@@ -89,9 +89,9 @@ struct sk_buff * tcp_header_write_prerouting(struct sk_buff *skb){
 
 
     if(iph->saddr == in_aton("192.168.56.1") && ntohs(tcph->source)==5001 ){
-        printk(KERN_ALERT "Input: Initial Src and Dest address is %pI4 and  %pI4\n",   &iph->saddr ,&iph->daddr );
+      //  printk( "Input: Initial Src and Dest address is %pI4 and  %pI4\n",   &iph->saddr ,&iph->daddr );
         iph->saddr = in_aton("192.168.56.102");
-        printk(KERN_ALERT "Input: New Src and Dest address is %pI4 and  %pI4\n",   &iph->saddr ,&iph->daddr );
+     //   printk( "Input: New Src and Dest address is %pI4 and  %pI4\n",   &iph->saddr ,&iph->daddr );
     }
     /*
     switch(skb->ip_summed){
