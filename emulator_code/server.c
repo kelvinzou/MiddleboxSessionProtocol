@@ -15,7 +15,7 @@ int main(int argc, char *argv[])
     int listenfd = 0, connfd = 0, n=0;
     struct sockaddr_in serv_addr; 
 
-    char sendBuff[4000*4000];
+   
     time_t ticks; 
 
     listenfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -23,7 +23,6 @@ int main(int argc, char *argv[])
     setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof optval);
 
     memset(&serv_addr, '0', sizeof(serv_addr));
-    memset(sendBuff, '0', sizeof(sendBuff)); 
 
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -36,22 +35,24 @@ int main(int argc, char *argv[])
     }
 
     listen(listenfd, 10); 
-
+    int blocksize = 16000000;
     while(1)
     {
         connfd = accept(listenfd, (struct sockaddr*)NULL, NULL); 
-
+ 	void * sendBuff = malloc(blocksize*sizeof(char));
         //ticks = time(NULL);
 	int i =0;	
-	memset(sendBuff, '0', sizeof(sendBuff)); 
+	memset((char *)sendBuff, '0', blocksize*sizeof(char) ); 
 	for (i=0; i<100; i++){
-	 write(connfd, sendBuff, strlen(sendBuff)); 
+	 write(connfd, sendBuff, blocksize*sizeof(char) ); 
 	}
         //snprintf(sendBuff, sizeof(sendBuff), "%.24s\r\n", ctime(&ticks));
         //write(connfd, sendBuff, strlen(sendBuff)); 
         //
+	free(sendBuff);
         sleep(1);
         close(connfd);
        
      }
+	
 }

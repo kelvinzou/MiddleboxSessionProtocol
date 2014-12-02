@@ -64,14 +64,14 @@ int sync_packet(int fd, char * writeBuffer, struct sockaddr_in * servaddr ){
 	return 0;
 }
 
-void keepalive(int sockfd){
+void keepalive(int sockfd, struct sockaddr * servaddr){
 	int HeaderLength = sizeof(header);
 	char AckMesg[HeaderLength];
 	header * ackHeader = (header *)AckMesg;
 	ackHeader->action = 4;
 	ackHeader->sequenceNum = SEQUENCENUM;
 	printf("Keep alive!\n");
-	sendto(sockfd,AckMesg,sizeof(header),0,(struct sockaddr *) &servaddr,sizeof(struct sockaddr_in ));
+	sendto(sockfd,AckMesg,sizeof(header),0, servaddr,sizeof(struct sockaddr_in ));
 }
 
 
@@ -144,7 +144,7 @@ confirmed:
 		*/
 		while(1){
 			sleep(5);
-			keepalive(sockfd);
+			keepalive(sockfd, (struct sockaddr *)&servaddr);
 		}
 		return 0;
 	}
