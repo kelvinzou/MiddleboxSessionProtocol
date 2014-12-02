@@ -59,7 +59,7 @@ struct sk_buff * header_rewrite_back(struct sk_buff *skb){
 }
 
 struct sk_buff * tcp_header_write_prerouting(struct sk_buff *skb){
-struct iphdr *iph ;
+    struct iphdr *iph ;
     struct tcphdr *tcph ;
 
     unsigned int data_len;
@@ -68,8 +68,6 @@ struct iphdr *iph ;
     iph = (struct iphdr *) ip_hdr (skb ); 
     tcph = (struct tcphdr *) tcp_hdr (skb );
 
-   // printk(KERN_ALERT "Output: Initial tcp port number is %u and %u and %u \n", ntohs(tcph->source), ntohs(tcph ->dest),   ntohs(portvalue)  ); 
-   // printk(KERN_ALERT "Output: Src and Dest address is %pI4 and  %pI4\n",   &iph->saddr ,&iph->daddr );
     unsigned int  iphdr_len;
     iphdr_len =  ip_hdrlen(skb) ;
     unsigned int   tcphdr_len;
@@ -77,7 +75,6 @@ struct iphdr *iph ;
     unsigned int tcp_len;
     tcp_len = data_len - iphdr_len;  
 
-   // printk(KERN_ALERT "The ip hdr address is %d and tcp addr is %d and length is %d and %d\n", iph, tcph, skb->len, tcp_len);
   	//printk("Input: Initial checksum is %u and %u and %u checksum header and offset are %d and %d and %d \n", skb->csum, tcph->check,iph->check ,skb->csum_start, skb->transport_header, skb->csum_offset); 
     
 
@@ -91,8 +88,10 @@ struct iphdr *iph ;
     // printk("Input: New checksum is %u and %u and %u checksum header and offset are %d and %d and %d \n", skb->csum, tcph->check,iph->check ,skb->csum_start, skb->transport_header, skb->csum_offset); 
 
 
-      if(iph->saddr == in_aton("192.168.56.101")){
-        iph->saddr = in_aton("192.168.56.1");
+    if(iph->saddr == in_aton("192.168.56.1") && ntohs(tcph->source)==5001 ){
+        printk(KERN_ALERT "Input: Initial Src and Dest address is %pI4 and  %pI4\n",   &iph->saddr ,&iph->daddr );
+        iph->saddr = in_aton("192.168.56.102");
+        printk(KERN_ALERT "Input: New Src and Dest address is %pI4 and  %pI4\n",   &iph->saddr ,&iph->daddr );
     }
     /*
     switch(skb->ip_summed){

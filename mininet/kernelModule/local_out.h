@@ -66,8 +66,6 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     iph = (struct iphdr *) ip_hdr (skb ); 
     tcph = (struct tcphdr *) tcp_hdr (skb );
 
-   // printk(KERN_ALERT "Output: Initial tcp port number is %u and %u and %u \n", ntohs(tcph->source), ntohs(tcph ->dest),   ntohs(portvalue)  ); 
-    
     unsigned int  iphdr_len;
     iphdr_len =  ip_hdrlen(skb) ;
     unsigned int   tcphdr_len;
@@ -75,7 +73,6 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     unsigned int tcp_len;
     tcp_len = data_len - iphdr_len;  
 
-   // printk(KERN_ALERT "The ip hdr address is %d and tcp addr is %d and length is %d and %d\n", iph, tcph, skb->len, tcp_len);
 
     //tcph->check = 0;
     //tcph->check = ~csum_tcpudp_magic( iph->saddr, iph->daddr,tcp_len, IPPROTO_TCP, 0);
@@ -95,8 +92,8 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
 
     if(iph->daddr == in_aton("192.168.56.102")){
         printk(KERN_ALERT "Output: Initial Src and Dest address is %pI4 and  %pI4\n",   &iph->saddr ,&iph->daddr );
-        printk("Output: Initial checksum is %u and %u and %u checksum header and offset are %d and %d and %d \n", skb->csum, tcph->check,iph->check ,skb->csum_start, skb->transport_header, skb->csum_offset); 
-        printk("The headroom is %d\n", skb_headroom(skb));
+   
+    //    printk("Output: Initial checksum is %u and %u and %u checksum header and offset are %d and %d and %d \n", skb->csum, tcph->check,iph->check ,skb->csum_start, skb->transport_header, skb->csum_offset); 
 
         if (unlikely(skb_linearize(skb) != 0))
             return NULL;
@@ -104,19 +101,14 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
         __be32 oldIP = iph->daddr;
         iph->daddr = in_aton("192.168.56.1");
         __be32 newIP = iph->daddr;
-        __sum16 sum = tcph->check;
-        inet_proto_csum_replace4(&sum, skb, oldIP, newIP, 1);
-        tcph->check = sum;
+
+        //smart way of running checksum, it is being the same way in linux kernel netfilter_nat
+        inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
         csum_replace4(&iph->check, oldIP, newIP);
-        //tcph->check = csum_tcpudp_magic( iph->saddr, iph->daddr,tcp_len, IPPROTO_TCP, csum_partial((char *)tcph, tcp_len, 0)  );
-        printk( "Output: New Src and Dest address is %pI4 and  %pI4\n",   &iph->saddr ,&iph->daddr );
-        //iph->check = 0;
-        //ip_send_check(iph);
-        printk("Output: New checksum is %u and %u and %u checksum header and offset are %d and %d and %d \n", skb->csum, tcph->check, iph->check ,skb->csum_start, skb->transport_header, skb->csum_offset); 
+
+        printk(KERN_ALERT "Output: New Src and Dest address is %pI4 and  %pI4\n",   &iph->saddr ,&iph->daddr );
 
     }
-       
-
     return  skb ;
 }
  
@@ -147,10 +139,9 @@ static unsigned int pkt_mangle_begin (unsigned int hooknum,
                 return NF_DROP;
             }
             okfn(skb);
-
             return  NF_STOLEN;
-        } else if (iph->protocol == IPPROTO_UDP)
-        {
+        } 
+        else if (iph->protocol == IPPROTO_UDP)  {
             udph = (struct udphdr *) skb_header_pointer (skb, sizeof(struct iphdr) , 0, NULL);
             src_port = ntohs (udph->source);
             dst_port = ntohs (udph->dest);
