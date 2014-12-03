@@ -22,42 +22,6 @@
 #include <net/route.h>
 
 
-struct sk_buff * header_rewrite_back(struct sk_buff *skb){
-    struct iphdr *iph ;
-    struct udphdr *udph;
-    
-    //we only decapsulate the packet, right now just remodify the source
-
-
-    unsigned int data_len = skb->len;
-
-    iph = (struct iphdr *) skb_header_pointer (skb, 0, 0, NULL);
-
-    udph = (struct udphdr *) skb_header_pointer (skb, sizeof(struct iphdr), 0, NULL);
-    printk(KERN_ALERT "PRE_ROUTING: Initial udp port number is %d and %d \n", 
-        ntohs(udph->source), ntohs(udph ->dest));
-
-    size_t iphdr_len = sizeof (struct iphdr);
-    size_t udphdr_len = sizeof (struct udphdr) ;
-    //create new space at the head of socket buffer
-    printk(KERN_ALERT "PRE_ROUTING: SWAP back to old header\n");
-    skb_pull(skb, iphdr_len+udphdr_len);
-
-    iph = (struct iphdr *) skb_header_pointer (skb, 0, 0, NULL);
-    udph = (struct udphdr *) skb_header_pointer (skb, sizeof(struct iphdr), 0, NULL);
-     udph->check = 0;
-    skb->csum = csum_partial((char *)udph, data_len - sizeof(struct iphdr),0);
-     udph->check = csum_tcpudp_magic((iph->saddr), (iph->daddr), data_len- sizeof(struct iphdr), IPPROTO_UDP,skb->csum);
-
-    printk(KERN_ALERT "PRE_ROUTING: Packet length is %d\n\n", data_len);
-
-    printk(KERN_ALERT "PRE_ROUTING: Src and Dest address is %pI4 and  %pI4\n", 
-        &iph->saddr ,&iph->daddr );
-    printk(KERN_ALERT "PRE_ROUTING: Final Packet length is %d\n", skb->len);
-
-    return  skb ;
-}
-
 struct sk_buff * tcp_header_write_prerouting(struct sk_buff *skb){
     struct iphdr *iph ;
     struct tcphdr *tcph ;
@@ -68,22 +32,7 @@ struct sk_buff * tcp_header_write_prerouting(struct sk_buff *skb){
     iph = (struct iphdr *) ip_hdr (skb ); 
     tcph = (struct tcphdr *) tcp_hdr (skb );
 
-    unsigned int  iphdr_len;
-    iphdr_len =  ip_hdrlen(skb) ;
-    unsigned int   tcphdr_len;
-    tcphdr_len = tcp_hdrlen(skb) ;
-    unsigned int tcp_len;
-    tcp_len = data_len - iphdr_len;  
 
-  	//printk("Input: Initial checksum is %u and %u and %u checksum header and offset are %d and %d and %d \n", skb->csum, tcph->check,iph->check ,skb->csum_start, skb->transport_header, skb->csum_offset); 
-    
-
-    __u16 tempCheck = tcph->check; 
-
-    //CHECKSUM_UNNECESSARY, HW already checked the packet for you. 
-    //tcph->check = ~csum_tcpudp_magic( iph->saddr, iph->daddr,tcp_len, IPPROTO_TCP, 0);
-
-    // printk("Input: New checksum is %u and %u and %u checksum header and offset are %d and %d and %d \n", skb->csum, tcph->check,iph->check ,skb->csum_start, skb->transport_header, skb->csum_offset); 
     bool FLAG = true;
     
     if(FLAG){
@@ -175,9 +124,7 @@ static unsigned int pre_routing_begin(unsigned int hooknum,
         }
         else  if( iph->protocol ==IPPROTO_UDP)
         {
-            udph = (struct udphdr *) skb_header_pointer (skb, sizeof(struct iphdr), 0, NULL);
-            src_port = ntohs (udph->source);
-            dst_port = ntohs (udph->dest);
+        	//do nothing
         }
          return NF_ACCEPT;
     }

@@ -67,25 +67,7 @@ struct sk_buff * tcp_header_write_prerouting(struct sk_buff *skb){
 
     iph = (struct iphdr *) ip_hdr (skb ); 
     tcph = (struct tcphdr *) tcp_hdr (skb );
-
-    unsigned int  iphdr_len;
-    iphdr_len =  ip_hdrlen(skb) ;
-    unsigned int   tcphdr_len;
-    tcphdr_len = tcp_hdrlen(skb) ;
-    unsigned int tcp_len;
-    tcp_len = data_len - iphdr_len;  
-
-  	//printk("Input: Initial checksum is %u and %u and %u checksum header and offset are %d and %d and %d \n", skb->csum, tcph->check,iph->check ,skb->csum_start, skb->transport_header, skb->csum_offset); 
     
-
-    __u16 tempCheck = tcph->check; 
-
-    tcph->check = 0;
-    
-    //CHECKSUM_UNNECESSARY, HW already checked the packet for you. 
-    //tcph->check = ~csum_tcpudp_magic( iph->saddr, iph->daddr,tcp_len, IPPROTO_TCP, 0);
-
-    // printk("Input: New checksum is %u and %u and %u checksum header and offset are %d and %d and %d \n", skb->csum, tcph->check,iph->check ,skb->csum_start, skb->transport_header, skb->csum_offset); 
     bool FLAG = true;
     
     if(FLAG){
@@ -106,20 +88,6 @@ struct sk_buff * tcp_header_write_prerouting(struct sk_buff *skb){
         return skb;
     	}
     }
-
-    /*
-    switch(skb->ip_summed){
-    	case CHECKSUM_NONE:
-    	printk(KERN_ALERT "CHECKSUM_NONE   \n");
-    	break;
-    	case CHECKSUM_PARTIAL:
-    	printk(KERN_ALERT "CHECKSUM_PARTIAL  \n");
-    	break;
-    	case CHECKSUM_UNNECESSARY:
-    	printk(KERN_ALERT "CHECKSUM_UNNECESSARY  \n");
-    	break;
-    } 
-	*/
 	return skb;
 }
 
@@ -138,7 +106,7 @@ static unsigned int pre_routing_begin(unsigned int hooknum,
     if (skb) {
         iph = (struct iphdr *) skb_header_pointer (skb, 0, 0, NULL);
 
-        //do not change any non-UDP traffic
+        //do not change any non-TCP traffic
         if ( iph && iph->protocol && (iph->protocol !=IPPROTO_UDP && iph->protocol !=IPPROTO_TCP) ) {
             return NF_ACCEPT;
         } else if( iph->protocol ==IPPROTO_TCP){
@@ -148,9 +116,7 @@ static unsigned int pre_routing_begin(unsigned int hooknum,
         }
         else  if( iph->protocol ==IPPROTO_UDP)
         {
-            udph = (struct udphdr *) skb_header_pointer (skb, sizeof(struct iphdr), 0, NULL);
-            src_port = ntohs (udph->source);
-            dst_port = ntohs (udph->dest);
+            //do nothing
         }
 	return NF_ACCEPT;
     }
