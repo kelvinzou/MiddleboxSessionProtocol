@@ -25,9 +25,9 @@
 #define __KERNEL__
 
 #include "uthash.h"
-#include "pre_routing.h"
+#include "in.h"
 #include "post_routing.h"
-#include "local_out.h"
+#include "out.h"
 #include "netlink_connection.h"
 #include <stddef.h>  
 static struct nf_hook_ops post_routing ;
@@ -47,7 +47,7 @@ static int __init pkt_mangle_init(void)
     pre_routing.pf = NFPROTO_IPV4;
     pre_routing.priority =  NF_IP_PRI_NAT_SRC;
     pre_routing.hooknum = NF_IP_PRE_ROUTING;
-    pre_routing.hook = pre_routing_begin;
+    pre_routing.hook = incoming_change_begin;
     nf_register_hook(& pre_routing);
 
 
@@ -55,8 +55,8 @@ static int __init pkt_mangle_init(void)
 
     local_out.pf = NFPROTO_IPV4;
     local_out.priority = NF_IP_PRI_NAT_DST;
-    local_out.hooknum = NF_IP_LOCAL_OUT;
-    local_out.hook =  pkt_mangle_begin;
+    local_out.hooknum = NF_IP_POST_ROUTING;
+    local_out.hook =  outgoing_change_begin;
    // nf_register_hook(& local_out);
 
 
