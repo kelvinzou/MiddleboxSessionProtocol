@@ -6,7 +6,7 @@ KDIR    := /lib/modules/$(shell uname -r)/build
 PWD    := $(shell pwd)
 
 
-default: netlink_kernel
+default: netlink_user
 	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules  
 netlink_kernel: 
 	$(CXX) -o netlink_kernel netlink_kernel.c
@@ -14,4 +14,4 @@ netlink_kernel:
 clean: cleanuser
 	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) clean 
 cleanuser:
-	rm -rf netlink_kernel *.o
+	rm -rf netlink_user *.o
