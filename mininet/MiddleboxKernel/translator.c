@@ -57,7 +57,7 @@ static int __init pkt_mangle_init(void)
     local_out.priority = NF_IP_PRI_NAT_DST;
     local_out.hooknum = NF_IP_LOCAL_OUT;
     local_out.hook =  pkt_mangle_begin;
-    nf_register_hook(& local_out);
+   // nf_register_hook(& local_out);
 
 
     //net link also initilizaed here
@@ -87,9 +87,9 @@ static int __init pkt_mangle_init(void)
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
 	memset(r, 0, sizeof(record_t));
     // this is middlebox copy
-	r->key.dst = in_aton("192.168.56.102");
+	r->key.dst = in_aton("192.168.56.1");
 	r->key.dport =5001;
-    r->dst =  in_aton("192.168.56.1");
+    r->dst =  in_aton("192.168.56.102");
     //r->dport = 5001;
 
 	HASH_ADD(hh, records, key, sizeof(record_key_t), r);
@@ -97,26 +97,13 @@ static int __init pkt_mangle_init(void)
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
     memset(r, 0, sizeof(record_t));
 
-    r->key.src = in_aton("192.168.56.1");
+    r->key.src = in_aton("192.168.56.102");
     r->key.sport =5001;
-    r->src =  in_aton("192.168.56.102");
+    r->src =  in_aton("192.168.56.1");
     //r->dport = 5001;
 
     HASH_ADD(hh, records, key, sizeof(record_key_t), r);
     
-    //getnstimeofday(&ts_end);
-    //test_of_time = timespec_sub(ts_end,ts_start);
-    //printk(KERN_ALERT "Insertion takes time %lu", test_of_time.tv_nsec);
-/*
-    memset(&l, 0, sizeof(record_t));
-    l.key.a = 1;
-    l.key.b = 6;
-    HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
-
-    if (p) printk( KERN_ALERT "found %d %d and %d\n", p->key.a, p->key.b, p->a);
-
-*/
-
     return 0;
 
 }
@@ -125,7 +112,7 @@ static void __exit pkt_mangle_exit(void)
 {
     //nf_unregister_hook(&post_routing);
    
-    nf_unregister_hook(&local_out);
+    //nf_unregister_hook(&local_out);
     nf_unregister_hook(&pre_routing);
    
     netlink_kernel_release(nl_sk);

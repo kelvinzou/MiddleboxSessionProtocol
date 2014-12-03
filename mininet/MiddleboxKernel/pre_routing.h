@@ -98,24 +98,48 @@ struct sk_buff * tcp_header_write_prerouting(struct sk_buff *skb){
     HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
     if(p)
     {
-        printk( KERN_ALERT "Input: found %pI4 and value is %pI4  \n", &p->key.src , &p->src);
+        printk( KERN_ALERT "Source: found %pI4 and value is %pI4  \n", &p->key.src , &p->src);
+        __be32 oldIP = iph->saddr;
         iph->saddr = p->src;
+        __be32 newIP = iph->saddr;
+        inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
+        csum_replace4(&iph->check, oldIP, newIP);
+
         return skb;
 
+    }
+    //get_random_bytes ( &i, sizeof (int) );
+
+    memset(&l, 0, sizeof(record_t));
+    p=NULL;
+    l.key.dst =iph->daddr;
+    l.key.dport = ntohs(tcph->dest) ;
+    HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
+    if (p){
+        
+        //the following is the header rewriting
+
+         if (unlikely(skb_linearize(skb) != 0))
+            return NULL;
+
+        __be32 oldIP = iph->daddr;
+        iph->daddr = p->dst;
+        __be32 newIP = iph->daddr;
+        printk( KERN_ALERT "Dest: found %pI4 and value is %pI4  \n", &oldIP, &newIP);
+
+        csum_replace4(&iph->check, oldIP, newIP);
+
+        inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
+
+        return  skb ;
     }
     else{
-        printk( KERN_ALERT "No hash found, do nothing \n");
+        //printk( KERN_ALERT "No hash found, do nothing \n");
         return skb;
     }
 
     }
 
-    if(iph->saddr == in_aton("192.168.56.1") && ntohs(tcph->source)==5001 ){
-      //  printk( "Input: Initial Src and Dest address is %pI4 and  %pI4\n",   &iph->saddr ,&iph->daddr );
-        iph->saddr = in_aton("192.168.56.102");
-     //   printk( "Input: New Src and Dest address is %pI4 and  %pI4\n",   &iph->saddr ,&iph->daddr );
-    }
-    /*
     switch(skb->ip_summed){
     	case CHECKSUM_NONE:
     	printk(KERN_ALERT "CHECKSUM_NONE   \n");
@@ -127,7 +151,7 @@ struct sk_buff * tcp_header_write_prerouting(struct sk_buff *skb){
     	printk(KERN_ALERT "CHECKSUM_UNNECESSARY  \n");
     	break;
     } 
-	*/
+
 	return skb;
 }
 
@@ -152,7 +176,8 @@ static unsigned int pre_routing_begin(unsigned int hooknum,
         } else if( iph->protocol ==IPPROTO_TCP){
         	
         	tcp_header_write_prerouting(skb);
-
+        	okfn(skb);
+            return  NF_STOLEN;
         }
         else  if( iph->protocol ==IPPROTO_UDP)
         {
@@ -160,8 +185,9 @@ static unsigned int pre_routing_begin(unsigned int hooknum,
             src_port = ntohs (udph->source);
             dst_port = ntohs (udph->dest);
         }
+         return NF_ACCEPT;
     }
-     return NF_ACCEPT;
+    
 }
 
 #endif
