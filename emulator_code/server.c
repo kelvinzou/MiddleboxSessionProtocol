@@ -43,6 +43,7 @@ int main(int argc, char *argv[])
         //ticks = time(NULL);
 	int i =0;	
 	memset((char *)sendBuff, '0', blocksize*sizeof(char) ); 
+		
 	for (i=0; i<100; i++){
 	 write(connfd, sendBuff, blocksize*sizeof(char) ); 
 	}
