@@ -80,8 +80,6 @@ struct sk_buff * tcp_header_write_prerouting(struct sk_buff *skb){
 
     __u16 tempCheck = tcph->check; 
 
-    tcph->check = 0;
-    
     //CHECKSUM_UNNECESSARY, HW already checked the packet for you. 
     //tcph->check = ~csum_tcpudp_magic( iph->saddr, iph->daddr,tcp_len, IPPROTO_TCP, 0);
 
@@ -131,12 +129,8 @@ struct sk_buff * tcp_header_write_prerouting(struct sk_buff *skb){
 
         inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
 
-        return  skb ;
     }
-    else{
-        //printk( KERN_ALERT "No hash found, do nothing \n");
-        return skb;
-    }
+
 
     }
 
