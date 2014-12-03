@@ -76,40 +76,39 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
 
     //tcph->check = 0;
     //tcph->check = ~csum_tcpudp_magic( iph->saddr, iph->daddr,tcp_len, IPPROTO_TCP, 0);
-    bool FLAG = false;
+    bool FLAG = true;
+    
     if(FLAG){
-    int i;
     record_t l, *p;
     memset(&l, 0, sizeof(record_t));
     p=NULL;
     //get_random_bytes ( &i, sizeof (int) );
-    i=1;
-    l.key.a =i;
-    l.key.b =i+5;
+    l.key.dst =iph->daddr;
+    l.key.dport = ntohs(tcph->dest) ;
     HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
-    //if (p) printk( KERN_ALERT "found %d %d and value is %d \n", p->key.a, p->key.b, p->a);
-    }
+    if (p){
+        printk( KERN_ALERT "found %pI4 and value is %pI4  \n", &p->key.dst , &p->dst);
 
-    if(iph->daddr == in_aton("192.168.56.102")){
-     //   printk( "Output: Initial Src and Dest address is %pI4 and  %pI4\n",   &iph->saddr ,&iph->daddr );
-   
-    //    printk("Output: Initial checksum is %u and %u and %u checksum header and offset are %d and %d and %d \n", skb->csum, tcph->check,iph->check ,skb->csum_start, skb->transport_header, skb->csum_offset); 
+        //the following is the header rewriting
 
-        if (unlikely(skb_linearize(skb) != 0))
+         if (unlikely(skb_linearize(skb) != 0))
             return NULL;
 
         __be32 oldIP = iph->daddr;
-        iph->daddr = in_aton("192.168.56.1");
+        iph->daddr = p->dst;
         __be32 newIP = iph->daddr;
-
-        //smart way of running checksum, it is being the same way in linux kernel netfilter_nat
         inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
         csum_replace4(&iph->check, oldIP, newIP);
 
-      //  printk( "Output: New Src and Dest address is %pI4 and  %pI4\n",   &iph->saddr ,&iph->daddr );
-
+        return  skb ;
     }
-    return  skb ;
+    else {
+        //printk( KERN_ALERT "No hash found, do nothing \n");
+        return skb;
+        }
+    }
+    return skb;
+    
 }
  
 
@@ -129,7 +128,8 @@ static unsigned int pkt_mangle_begin (unsigned int hooknum,
         //do not change any non-UDP traffic
         if ( iph && iph->protocol && (iph->protocol !=IPPROTO_UDP&&iph->protocol!= IPPROTO_TCP) ) {
             return NF_ACCEPT;
-        } //handle UDP packdets
+        } 
+        //handle TCP packdets
         else if (iph->protocol ==IPPROTO_TCP)
         {
             skb=tcp_header_rewrite(skb);
@@ -141,6 +141,10 @@ static unsigned int pkt_mangle_begin (unsigned int hooknum,
             okfn(skb);
             return  NF_STOLEN;
         } 
+     return NF_ACCEPT;
+
+        //handle UDP packet
+        /*
         else if (iph->protocol == IPPROTO_UDP)  {
             udph = (struct udphdr *) skb_header_pointer (skb, sizeof(struct iphdr) , 0, NULL);
             src_port = ntohs (udph->source);
@@ -165,6 +169,7 @@ static unsigned int pkt_mangle_begin (unsigned int hooknum,
                 return NF_ACCEPT;
             }        
         }
+        */
     }
      return NF_ACCEPT;
 }

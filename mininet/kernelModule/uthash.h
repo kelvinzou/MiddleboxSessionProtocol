@@ -959,15 +959,18 @@ typedef struct UT_hash_handle {
 } UT_hash_handle;
 
 typedef struct {
-  int a;
-  int b;
-  int c;
-  int d;
+  int src;
+  int dst;
+  uint16_t sport;
+  uint16_t dport;
 } record_key_t;
 
 typedef struct {
     record_key_t key;
-    int a;
+    int src;
+    int dst;
+    uint16_t sport;
+    uint16_t dport;
     UT_hash_handle hh;
 } record_t;
 

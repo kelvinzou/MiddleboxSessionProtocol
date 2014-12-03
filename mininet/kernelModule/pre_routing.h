@@ -86,7 +86,29 @@ struct sk_buff * tcp_header_write_prerouting(struct sk_buff *skb){
     //tcph->check = ~csum_tcpudp_magic( iph->saddr, iph->daddr,tcp_len, IPPROTO_TCP, 0);
 
     // printk("Input: New checksum is %u and %u and %u checksum header and offset are %d and %d and %d \n", skb->csum, tcph->check,iph->check ,skb->csum_start, skb->transport_header, skb->csum_offset); 
+    bool FLAG = true;
+    
+    if(FLAG){
+    record_t l, *p;
+    memset(&l, 0, sizeof(record_t));
+    p=NULL;
+    //get_random_bytes ( &i, sizeof (int) );
+    l.key.src =iph->saddr;
+    l.key.sport = ntohs(tcph->source) ;
+    HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
+    if(p)
+    {
+        printk( KERN_ALERT "Input: found %pI4 and value is %pI4  \n", &p->key.src , &p->src);
+        iph->saddr = p->src;
+        return skb;
 
+    }
+    else{
+        printk( KERN_ALERT "No hash found, do nothing \n");
+        return skb;
+    }
+
+    }
 
     if(iph->saddr == in_aton("192.168.56.1") && ntohs(tcph->source)==5001 ){
       //  printk( "Input: Initial Src and Dest address is %pI4 and  %pI4\n",   &iph->saddr ,&iph->daddr );

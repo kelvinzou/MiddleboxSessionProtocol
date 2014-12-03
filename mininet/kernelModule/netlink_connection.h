@@ -25,7 +25,7 @@ static void hello_nl_recv_msg(struct sk_buff *skb)
 
     //create a hash table
     getnstimeofday(&ts_start);
-
+    /*
     int i;
     record_t l, *p;
     memset(&l, 0, sizeof(record_t));
@@ -35,13 +35,14 @@ static void hello_nl_recv_msg(struct sk_buff *skb)
 	l.key.a =i;
 	l.key.b =i+5;
 	HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
+   
     getnstimeofday(&ts_end);
-
+    
     test_of_time = timespec_sub(ts_end,ts_start);
     printk(KERN_ALERT "Finding takes time %lu", test_of_time.tv_nsec);
     printk(KERN_ALERT "Finding value is  time %d", i);
     if (p) printk( KERN_ALERT "found %d %d and value is %d \n", p->key.a, p->key.b, p->a);
-
+ */
 
     msg_size = strlen(msg);
 

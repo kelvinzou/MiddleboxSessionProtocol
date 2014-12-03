@@ -79,22 +79,35 @@ static int __init pkt_mangle_init(void)
 	struct timespec ts_start,ts_end,test_of_time;
 
     //create a hash table
-    getnstimeofday(&ts_start);
+    //getnstimeofday(&ts_start);
     record_t l, *p, *r;
-    int i =0;
-    for(i=0; i<1000; i++){
-    	r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
-	    memset(r, 0, sizeof(record_t));
-	    r->key.a = i;
-	    r->key.b = i+5;
-	    r->a = 2*i;
-	    HASH_ADD(hh, records, key, sizeof(record_key_t), r);
-    }
-    
-    getnstimeofday(&ts_end);
-    test_of_time = timespec_sub(ts_end,ts_start);
-    printk(KERN_ALERT "Insertion takes time %lu", test_of_time.tv_nsec);
 
+
+    //add hash entry in the hash table    
+    r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
+	memset(r, 0, sizeof(record_t));
+
+	r->key.dst = in_aton("192.168.56.102");
+	r->key.dport =5001;
+    r->dst =  in_aton("192.168.56.1");
+    //r->dport = 5001;
+
+	HASH_ADD(hh, records, key, sizeof(record_key_t), r);
+
+    r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
+    memset(r, 0, sizeof(record_t));
+
+    r->key.src = in_aton("192.168.56.1");
+    r->key.sport =5001;
+    r->src =  in_aton("192.168.56.102");
+    //r->dport = 5001;
+
+    HASH_ADD(hh, records, key, sizeof(record_key_t), r);
+    
+    //getnstimeofday(&ts_end);
+    //test_of_time = timespec_sub(ts_end,ts_start);
+    //printk(KERN_ALERT "Insertion takes time %lu", test_of_time.tv_nsec);
+/*
     memset(&l, 0, sizeof(record_t));
     l.key.a = 1;
     l.key.b = 6;
@@ -102,7 +115,7 @@ static int __init pkt_mangle_init(void)
 
     if (p) printk( KERN_ALERT "found %d %d and %d\n", p->key.a, p->key.b, p->a);
 
-
+*/
 
     return 0;
 
