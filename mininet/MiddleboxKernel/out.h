@@ -73,35 +73,48 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     unsigned int tcp_len;
     tcp_len = data_len - iphdr_len;  
 
-
-    //tcph->check = 0;
-    //tcph->check = ~csum_tcpudp_magic( iph->saddr, iph->daddr,tcp_len, IPPROTO_TCP, 0);
+    //get_random_bytes ( &i, sizeof (int) );
+    
     bool FLAG = true;
     
     if(FLAG){
     record_t l, *p;
+    
+    
+    
     memset(&l, 0, sizeof(record_t));
     p=NULL;
-    //get_random_bytes ( &i, sizeof (int) );
-    l.key.dst =iph->daddr;
+    l.key.src =iph->saddr;
     l.key.dport = ntohs(tcph->dest) ;
     HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
     if (p){
-        printk( KERN_ALERT "found %pI4 and value is %pI4  \n", &p->key.dst , &p->src);
-
-        //the following is the header rewriting
-
-         if (unlikely(skb_linearize(skb) != 0))
-            return NULL;
 
         __be32 oldIP = iph->saddr;
         iph->saddr = p->src;
         __be32 newIP = iph->saddr;
-	 printk( KERN_ALERT "Src: found %pI4 and value is %pI4  \n", &oldIP, &newIP);
+	    printk( KERN_ALERT "Source: found %pI4 and value is %pI4  \n", &oldIP, &newIP);
         inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
         csum_replace4(&iph->check, oldIP, newIP);
 
         return  skb ;
+    }
+    
+    memset(&l, 0, sizeof(record_t));
+    p=NULL;
+    l.key.src =iph->saddr;
+    l.key.sport = ntohs(tcph->source) ;
+    HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
+    if(p)
+    {
+        printk( KERN_ALERT "src: found %pI4 and value is %pI4  \n", &p->key.src , &p->src);
+        __be32 oldIP = iph->saddr;
+        iph->saddr = p->src;
+        __be32 newIP = iph->saddr;
+        inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
+        csum_replace4(&iph->check, oldIP, newIP);
+	
+        return skb;
+
     }
     else {
         //printk( KERN_ALERT "No hash found, do nothing \n");

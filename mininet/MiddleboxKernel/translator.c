@@ -86,48 +86,25 @@ static int __init pkt_mangle_init(void)
     //add hash entry in the hash table    
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
 	memset(r, 0, sizeof(record_t));
-    // this is middlebox copy
-	r->key.dst = in_aton("128.112.93.106");
+	r->key.src = in_aton("128.112.93.107");
 	r->key.dport =5001;
 	//r->src = in_aton("128.112.93.106");
     r->dst =  in_aton("128.112.93.108");
+    r->src = in_aton("128.112.93.106");
     //r->dport = 5001;
 
     HASH_ADD(hh, records, key, sizeof(record_key_t), r);
 
-   r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
-	memset(r, 0, sizeof(record_t));
-    // this is middlebox copy
-	r->key.dst = in_aton("128.112.93.108");
-	r->key.dport =5001;
-	r->src = in_aton("128.112.93.106");
-   // r->dst =  in_aton("128.112.93.108");
-    //r->dport = 5001;
-
-    HASH_ADD(hh, records, key, sizeof(record_key_t), r);
-
-    /*
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
     memset(r, 0, sizeof(record_t));
 
     r->key.src = in_aton("128.112.93.108");
     r->key.sport =5001;
-    r->src = in_aton("128.112.93.106");
-
-	
-    HASH_ADD(hh, records, key, sizeof(record_key_t), r);
-
-    r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
-    memset(r, 0, sizeof(record_t));
-
-    r->key.src = in_aton("128.112.93.106");
-    r->key.sport =5001;
     r->dst = in_aton("128.112.93.107");
-
+    r->src = in_aton("128.112.93.106");
 	
     HASH_ADD(hh, records, key, sizeof(record_key_t), r);
-    */
-    
+
     return 0;
 
 }

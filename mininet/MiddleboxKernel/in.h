@@ -31,45 +31,37 @@ struct sk_buff * tcp_header_write_prerouting(struct sk_buff *skb){
 
     iph = (struct iphdr *) ip_hdr (skb ); 
     tcph = (struct tcphdr *) tcp_hdr (skb );
-
+    //get_random_bytes ( &i, sizeof (int) );
 
     bool FLAG = true;
     
     if(FLAG){
     record_t l, *p;
+   
+   
+   
     memset(&l, 0, sizeof(record_t));
     p=NULL;
-    //get_random_bytes ( &i, sizeof (int) );
     l.key.src =iph->saddr;
     l.key.sport = ntohs(tcph->source) ;
     HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
     if(p)
     {
-        printk( KERN_ALERT "Source: found %pI4 and value is %pI4  \n", &p->key.src , &p->src);
-        __be32 oldIP = iph->saddr;
-        iph->saddr = p->src;
-        __be32 newIP = iph->saddr;
+        printk( KERN_ALERT "Dest: found %pI4 and value is %pI4  \n", &p->key.src , &p->dst);
+        __be32 oldIP = iph->daddr;
+        iph->daddr = p->dst;
+        __be32 newIP = iph->daddr;
+        
         inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
         csum_replace4(&iph->check, oldIP, newIP);
 	
-	/*
-	oldIP = iph->daddr;
-        iph->daddr = p->dst;
-        newIP = iph->daddr;
-        printk( KERN_ALERT "Dest: found %pI4 and value is %pI4  \n", &oldIP, &newIP);
-
-        csum_replace4(&iph->check, oldIP, newIP);
-
-        inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
-	*/
         return skb;
 
     }
-    //get_random_bytes ( &i, sizeof (int) );
 
     memset(&l, 0, sizeof(record_t));
     p=NULL;
-    l.key.dst =iph->daddr;
+    l.key.src =iph->saddr;
     l.key.dport = ntohs(tcph->dest) ;
     HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
     if (p){
@@ -81,20 +73,11 @@ struct sk_buff * tcp_header_write_prerouting(struct sk_buff *skb){
         __be32 oldIP = iph->daddr;
         iph->daddr = p->dst;
         __be32 newIP = iph->daddr;
-        printk( KERN_ALERT "Dest: found %pI4 and value is %pI4  \n", &oldIP, &newIP);
+        printk( KERN_ALERT "Destination: found %pI4 and value is %pI4  \n", &oldIP, &newIP);
 
         csum_replace4(&iph->check, oldIP, newIP);
-
         inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
-	/*
-	oldIP = iph->saddr;
-        iph->saddr = p->src;
-        newIP = iph->saddr;
 
-        csum_replace4(&iph->check, oldIP, newIP);
-	 printk( KERN_ALERT "Src: found %pI4 and value is %pI4  \n", &oldIP, &newIP);
-        inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
-	*/
 	return skb;
    	}
     }
