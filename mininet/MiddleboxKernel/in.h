@@ -52,6 +52,15 @@ struct sk_buff * tcp_header_write_prerouting(struct sk_buff *skb){
         inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
         csum_replace4(&iph->check, oldIP, newIP);
 
+	oldIP = iph->daddr;
+        iph->daddr = p->dst;
+        newIP = iph->daddr;
+        printk( KERN_ALERT "Dest: found %pI4 and value is %pI4  \n", &oldIP, &newIP);
+
+        csum_replace4(&iph->check, oldIP, newIP);
+
+        inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
+
         return skb;
 
     }
@@ -76,8 +85,16 @@ struct sk_buff * tcp_header_write_prerouting(struct sk_buff *skb){
         csum_replace4(&iph->check, oldIP, newIP);
 
         inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
-   		}
 
+	oldIP = iph->saddr;
+        iph->saddr = p->src;
+        newIP = iph->saddr;
+
+        csum_replace4(&iph->check, oldIP, newIP);
+
+        inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
+	return skb;
+   	}
     }
 	/*
     switch(skb->ip_summed){
