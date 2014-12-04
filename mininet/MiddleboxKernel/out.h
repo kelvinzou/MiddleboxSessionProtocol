@@ -87,16 +87,17 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     l.key.dport = ntohs(tcph->dest) ;
     HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
     if (p){
-        printk( KERN_ALERT "found %pI4 and value is %pI4  \n", &p->key.dst , &p->dst);
+        printk( KERN_ALERT "found %pI4 and value is %pI4  \n", &p->key.dst , &p->src);
 
         //the following is the header rewriting
 
          if (unlikely(skb_linearize(skb) != 0))
             return NULL;
 
-        __be32 oldIP = iph->daddr;
-        iph->daddr = p->dst;
-        __be32 newIP = iph->daddr;
+        __be32 oldIP = iph->saddr;
+        iph->saddr = p->src;
+        __be32 newIP = iph->saddr;
+	 printk( KERN_ALERT "Src: found %pI4 and value is %pI4  \n", &oldIP, &newIP);
         inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
         csum_replace4(&iph->check, oldIP, newIP);
 

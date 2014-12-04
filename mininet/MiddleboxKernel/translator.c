@@ -38,6 +38,7 @@ static struct nf_hook_ops pre_routing;
 struct timespec ts_start,ts_end,test_of_time;
 //standard init and exit for a module 
 
+
 static int __init pkt_mangle_init(void)
 {   
     printk(KERN_ALERT "\npkt_mangle output module started ...\n");
@@ -56,7 +57,7 @@ static int __init pkt_mangle_init(void)
     local_out.priority = NF_IP_PRI_NAT_DST;
     local_out.hooknum = NF_IP_POST_ROUTING;
     local_out.hook =  outgoing_change_begin;
-    nf_register_hook(& outgoing_change_begin);
+    nf_register_hook(&  local_out);
 
 
     //net link also initilizaed here
@@ -88,32 +89,55 @@ static int __init pkt_mangle_init(void)
     // this is middlebox copy
 	r->key.dst = in_aton("128.112.93.106");
 	r->key.dport =5001;
-	r->src = in_aton("128.112.93.106");
+	//r->src = in_aton("128.112.93.106");
     r->dst =  in_aton("128.112.93.108");
     //r->dport = 5001;
 
-	HASH_ADD(hh, records, key, sizeof(record_key_t), r);
+    HASH_ADD(hh, records, key, sizeof(record_key_t), r);
 
+   r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
+	memset(r, 0, sizeof(record_t));
+    // this is middlebox copy
+	r->key.dst = in_aton("128.112.93.108");
+	r->key.dport =5001;
+	r->src = in_aton("128.112.93.106");
+   // r->dst =  in_aton("128.112.93.108");
+    //r->dport = 5001;
+
+    HASH_ADD(hh, records, key, sizeof(record_key_t), r);
+
+    /*
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
     memset(r, 0, sizeof(record_t));
 
     r->key.src = in_aton("128.112.93.108");
     r->key.sport =5001;
-    r->dst = in_aton("128.112.93.107");
     r->src = in_aton("128.112.93.106");
-    //r->dport = 5001;
 
+	
     HASH_ADD(hh, records, key, sizeof(record_key_t), r);
+
+    r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
+    memset(r, 0, sizeof(record_t));
+
+    r->key.src = in_aton("128.112.93.106");
+    r->key.sport =5001;
+    r->dst = in_aton("128.112.93.107");
+
+	
+    HASH_ADD(hh, records, key, sizeof(record_key_t), r);
+    */
     
     return 0;
 
 }
 
+
 static void __exit pkt_mangle_exit(void)
 {
     //nf_unregister_hook(&post_routing);
    
-    //nf_unregister_hook(&local_out);
+    nf_unregister_hook(&local_out);
     nf_unregister_hook(&pre_routing);
    
     netlink_kernel_release(nl_sk);
