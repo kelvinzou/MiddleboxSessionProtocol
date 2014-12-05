@@ -74,8 +74,8 @@ struct sk_buff * tcp_header_write_prerouting(struct sk_buff *skb){
     record_t l, *p;
     memset(&l, 0, sizeof(record_t));
     p=NULL ;
-    //get_random_bytes ( &i, sizeof (int) );
-    l.key.src =iph->saddr ;
+
+    l.key.src = iph->saddr ;
     l.key.sport = ntohs(tcph->source) ;
     read_lock(&my_rwlock) ;
     HASH_FIND(hh, records, &l.key, sizeof( record_key_t ), p) ;

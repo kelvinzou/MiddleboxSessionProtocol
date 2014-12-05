@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
     }
 
     listen(listenfd, 10); 
-    int blocksize = 16000000;
+    int blocksize = 1400;
     while(1)
     {
         connfd = accept(listenfd, (struct sockaddr*)NULL, NULL); 
@@ -46,6 +46,7 @@ int main(int argc, char *argv[])
 		
 	for (i=0; i<100; i++){
 	 write(connfd, sendBuff, blocksize*sizeof(char) ); 
+	  sleep(1);
 	}
         //snprintf(sendBuff, sizeof(sendBuff), "%.24s\r\n", ctime(&ticks));
         //write(connfd, sendBuff, strlen(sendBuff)); 
