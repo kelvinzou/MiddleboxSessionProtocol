@@ -50,6 +50,10 @@ int main(int argc, char *argv[])
        printf("\n Error : Connect Failed \n");
        return 1;
     } 
+      gettimeofday(&t2, NULL);
+     elapsedTime =(t2.tv_sec - t1.tv_sec)*1000000.0;
+     elapsedTime +=(t2.tv_usec-t1.tv_usec);
+     printf("\n the latency to establish a connection is %f\n", elapsedTime);
     double count =0;
     gettimeofday(&t1, NULL);
     while ( (n = read(sockfd, recvBuff, sizeof(recvBuff))) > 0)
@@ -59,7 +63,7 @@ int main(int argc, char *argv[])
      gettimeofday(&t2, NULL);
      elapsedTime =(t2.tv_sec - t1.tv_sec)*1000000.0;
      elapsedTime +=(t2.tv_usec-t1.tv_usec);
-    double bandwidth = (count * 8.0)/(1.024*1.024*elapsedTime);
+    double bandwidth = (count * 8.0)/(elapsedTime);
     printf("\ntotal bytes received is %f and bandwidth is %f\n", count, bandwidth);
     if(n < 0)
     {

@@ -84,7 +84,7 @@ struct sk_buff * tcp_header_write_prerouting(struct sk_buff *skb){
         iph->saddr = p->src;
         return skb;
     } else{
-        printk( KERN_ALERT "No hash found, do nothing \n");
+       // printk( KERN_ALERT "No hash found, do nothing \n");
         return skb;
     	}
     }

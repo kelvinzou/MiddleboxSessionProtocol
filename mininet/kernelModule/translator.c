@@ -44,7 +44,7 @@ static int __init pkt_mangle_init(void)
     
     //pre_routing
     pre_routing.pf = NFPROTO_IPV4;
-    pre_routing.priority =  NF_IP_PRI_NAT_SRC;
+    pre_routing.priority =  NF_IP_PRI_CONNTRACK_DEFRAG -1;
     pre_routing.hooknum = NF_IP_PRE_ROUTING;
     pre_routing.hook = incoming_begin;
     nf_register_hook(& pre_routing);
@@ -86,9 +86,9 @@ static int __init pkt_mangle_init(void)
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
 	memset(r, 0, sizeof(record_t));
     // this is middlebox copy
-	r->key.dst = in_aton("192.168.56.102");
+	r->key.dst = in_aton("128.112.93.108");
 	r->key.dport =5001;
-    r->dst =  in_aton("192.168.56.1");
+    r->dst =  in_aton("128.112.93.106");
     //r->dport = 5001;
 
 	HASH_ADD(hh, records, key, sizeof(record_key_t), r);
@@ -96,9 +96,9 @@ static int __init pkt_mangle_init(void)
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
     memset(r, 0, sizeof(record_t));
 
-    r->key.src = in_aton("192.168.56.1");
+    r->key.src = in_aton("128.112.93.106");
     r->key.sport =5001;
-    r->src =  in_aton("192.168.56.102");
+    r->src =  in_aton("128.112.93.108");
     //r->dport = 5001;
 
     HASH_ADD(hh, records, key, sizeof(record_key_t), r);
