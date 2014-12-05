@@ -73,19 +73,22 @@ struct sk_buff * tcp_header_write_prerouting(struct sk_buff *skb){
     if(FLAG){
     record_t l, *p;
     memset(&l, 0, sizeof(record_t));
-    p=NULL;
+    p=NULL ;
     //get_random_bytes ( &i, sizeof (int) );
-    l.key.src =iph->saddr;
+    l.key.src =iph->saddr ;
     l.key.sport = ntohs(tcph->source) ;
-    HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
+    read_lock(&my_rwlock) ;
+    HASH_FIND(hh, records, &l.key, sizeof( record_key_t ), p) ;
+    read_unlock(&my_rwlock) ;
     if(p)
     {
-        printk( KERN_ALERT "Input: found %pI4 and value is %pI4  \n", &p->key.src , &p->src);
-        iph->saddr = p->src;
-        return skb;
+        printk( KERN_ALERT "Input: found %pI4 and value is %pI4  \n", &p->key.src , &p->src ) ;
+        iph->saddr = p->src ;
+        return skb ;
     } else{
-       // printk( KERN_ALERT "No hash found, do nothing \n");
-        return skb;
+    	if ( ntohs(tcph->source)  == 5001 )
+			printk( KERN_ALERT "No hash found, do nothing \n") ;
+    	return skb ;
     	}
     }
 	return skb;

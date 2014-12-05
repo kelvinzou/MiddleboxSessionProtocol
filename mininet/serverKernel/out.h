@@ -24,7 +24,7 @@
 #include <net/route.h>
 #include <linux/inetdevice.h>
 
-#include "uthash.h"
+//#include "uthash.h"
 
 struct sk_buff * header_rewrite(struct sk_buff *skb){ 
 
@@ -60,38 +60,40 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     struct iphdr *iph ;
     struct tcphdr *tcph ;
 
-    unsigned int data_len;
-    data_len = skb->len;
+    unsigned int data_len ;
+    data_len = skb->len ;
 
-    iph = (struct iphdr *) ip_hdr (skb ); 
-    tcph = (struct tcphdr *) tcp_hdr (skb );
+    iph = (struct iphdr *) ip_hdr ( skb ); 
+    tcph = (struct tcphdr *) tcp_hdr ( skb ) ;
 
-    unsigned int  iphdr_len;
-    iphdr_len =  ip_hdrlen(skb) ;
-    unsigned int   tcphdr_len;
+    unsigned int iphdr_len ;
+    iphdr_len = ip_hdrlen(skb) ;
+    unsigned int tcphdr_len ;
     tcphdr_len = tcp_hdrlen(skb) ;
-    unsigned int tcp_len;
-    tcp_len = data_len - iphdr_len;  
+    unsigned int tcp_len ;
+    tcp_len = data_len - iphdr_len ;  
 
 
     //tcph->check = 0;
     //tcph->check = ~csum_tcpudp_magic( iph->saddr, iph->daddr,tcp_len, IPPROTO_TCP, 0);
-    bool FLAG = true;
+    bool FLAG = true ;
     
     if(FLAG){
-    record_t l, *p;
-    memset(&l, 0, sizeof(record_t));
+    record_t l, *p ;
+    memset(&l, 0, sizeof(record_t) ) ;
     p=NULL;
     //get_random_bytes ( &i, sizeof (int) );
-    l.key.dst =iph->daddr;
+    l.key.dst =iph->daddr ;
     l.key.dport = ntohs(tcph->dest) ;
-    HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
+    read_lock(&my_rwlock) ;
+    HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p) ;
+    read_unlock(&my_rwlock) ;
     if (p){
 
         //the following is the header rewriting
-
-         if (unlikely(skb_linearize(skb) != 0))
-            return NULL;
+		if (unlikely(skb_linearize(skb) != 0))
+			return NULL;
+        
         printk( KERN_ALERT "found %pI4 and value is %pI4  \n", &p->key.dst , &p->dst);
 
         __be32 oldIP = iph->daddr;
@@ -99,11 +101,11 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
         __be32 newIP = iph->daddr;
         inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
         csum_replace4(&iph->check, oldIP, newIP);
-
         return  skb ;
     }
     else {
-        //printk( KERN_ALERT "No hash found, do nothing \n");
+    	if ( ntohs(tcph->dest)  == 5001 )
+        	printk( KERN_ALERT "No hash found, do nothing \n");
         return skb;
         }
     }
@@ -143,33 +145,6 @@ static unsigned int outgoing_begin (unsigned int hooknum,
         } 
      return NF_ACCEPT;
 
-        //handle UDP packet
-        /*
-        else if (iph->protocol == IPPROTO_UDP)  {
-            udph = (struct udphdr *) skb_header_pointer (skb, sizeof(struct iphdr) , 0, NULL);
-            src_port = ntohs (udph->source);
-            dst_port = ntohs (udph->dest);
-            //do not change any non-special traffic
-            if (dst_port !=1234 && src_port !=1234){
-                return NF_ACCEPT;
-            }
-            else 
-             {
-                if (dst_port==1234)
-                {
-                    printk(KERN_ALERT "Output: get to modification phase? \n");
-                    
-                    skb = header_rewrite(skb);
-                    //ip_route_me_harder(skb,RTN_LOCAL);
-                    printk(KERN_ALERT "Finish writing? \n");
-                    okfn(skb);
-
-                    return  NF_STOLEN;
-                }     
-                return NF_ACCEPT;
-            }        
-        }
-        */
     }
      return NF_ACCEPT;
 }

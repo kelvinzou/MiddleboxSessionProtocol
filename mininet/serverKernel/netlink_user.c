@@ -47,7 +47,7 @@ void main()
     nlh->nlmsg_pid = getpid();
     nlh->nlmsg_flags = 0;
 
-    strcpy(NLMSG_DATA(nlh), "Hello");
+    strcpy(NLMSG_DATA(nlh), "Update!");
 
     iov.iov_base = (void *)nlh;
     iov.iov_len = nlh->nlmsg_len;
@@ -56,7 +56,7 @@ void main()
     msg.msg_iov = &iov;
     msg.msg_iovlen = 1;
 
-    printf("Sending message to kernel\n");
+    printf("Sending update message to kernel\n");
     sendmsg(sock_fd, &msg, 0);
     printf("Waiting for message from kernel\n");
 

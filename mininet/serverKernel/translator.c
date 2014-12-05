@@ -8,6 +8,7 @@
 #include <linux/mm.h>
 #include <linux/err.h>
 #include <linux/crypto.h>
+#include <linux/spinlock.h>
 #include <linux/init.h>
 #include <linux/crypto.h>
 #include <linux/scatterlist.h>
@@ -41,7 +42,7 @@ struct timespec ts_start,ts_end,test_of_time;
 static int __init pkt_mangle_init(void)
 {   
     printk(KERN_ALERT "\npkt_mangle output module started ...\n");
-    
+    rwlock_init(&my_rwlock);
     //pre_routing
     pre_routing.pf = NFPROTO_IPV4;
     pre_routing.priority =  NF_IP_PRI_CONNTRACK_DEFRAG -1;
@@ -90,9 +91,9 @@ static int __init pkt_mangle_init(void)
 	r->key.dport =5001;
     r->dst =  in_aton("128.112.93.106");
     //r->dport = 5001;
-
+    write_lock(&my_rwlock);
 	HASH_ADD(hh, records, key, sizeof(record_key_t), r);
-
+	write_unlock(&my_rwlock);
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
     memset(r, 0, sizeof(record_t));
 
@@ -100,22 +101,12 @@ static int __init pkt_mangle_init(void)
     r->key.sport =5001;
     r->src =  in_aton("128.112.93.108");
     //r->dport = 5001;
-
-    HASH_ADD(hh, records, key, sizeof(record_key_t), r);
     
+	write_lock(&my_rwlock);
+    HASH_ADD(hh, records, key, sizeof(record_key_t), r);
+    write_unlock(&my_rwlock);
     //getnstimeofday(&ts_end);
     //test_of_time = timespec_sub(ts_end,ts_start);
-    //printk(KERN_ALERT "Insertion takes time %lu", test_of_time.tv_nsec);
-/*
-    memset(&l, 0, sizeof(record_t));
-    l.key.a = 1;
-    l.key.b = 6;
-    HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
-
-    if (p) printk( KERN_ALERT "found %d %d and %d\n", p->key.a, p->key.b, p->a);
-
-*/
-
     return 0;
 
 }

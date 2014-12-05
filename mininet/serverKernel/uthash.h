@@ -975,5 +975,6 @@ typedef struct {
 } record_t;
 
 static record_t  *records = NULL;
+rwlock_t my_rwlock;
 
 #endif /* UTHASH_H */
