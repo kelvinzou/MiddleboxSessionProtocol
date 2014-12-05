@@ -5,7 +5,7 @@
 #include "uthash.h"
 static struct sock *nl_sk = NULL;
 
-
+static int count = 0;
 
 static void hello_nl_recv_msg(struct sk_buff *skb)
 { 
