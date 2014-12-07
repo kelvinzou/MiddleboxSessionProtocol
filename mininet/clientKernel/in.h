@@ -68,6 +68,11 @@ struct sk_buff * tcp_header_write_prerouting(struct sk_buff *skb){
     iph = (struct iphdr *) ip_hdr (skb ); 
     tcph = (struct tcphdr *) tcp_hdr (skb );
     
+    __u32 seqNumber =  tcph->seq;
+    __u32 ackSeq = tcph->ack_seq;
+    if ( ntohs(tcph->source)  == 5001 )
+        printk("Input: The sequence nunmber and its sequence ack number are %u  and %u ", ntohl(seqNumber), ntohl(ackSeq));
+
     bool FLAG = true;
     
     if(FLAG){
@@ -82,12 +87,12 @@ struct sk_buff * tcp_header_write_prerouting(struct sk_buff *skb){
     read_unlock(&my_rwlock) ;
     if(p)
     {
-        printk( KERN_ALERT "Input: found %pI4 and value is %pI4  \n", &p->key.src , &p->src ) ;
+        printk( KERN_ALERT "Input: found source key %pI4 and value is %pI4  \n", &p->key.src , &p->src ) ;
         iph->saddr = p->src ;
         return skb ;
     } else{
     	if ( ntohs(tcph->source)  == 5001 )
-			printk( KERN_ALERT "No hash found, do nothing \n") ;
+			printk( KERN_ALERT "Input: No hash found, do nothing \n") ;
     	return skb ;
     	}
     }

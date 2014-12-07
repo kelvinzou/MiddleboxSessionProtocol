@@ -68,6 +68,7 @@ int main(int argc, char *argv[])
     if(n < 0)
     {
         printf("\n Read error \n");
+        printf("Error with read() is %s!\n", strerror(errno));
     } 
 
      return 0;
