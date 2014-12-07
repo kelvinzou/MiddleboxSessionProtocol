@@ -45,8 +45,12 @@ int main(int argc, char *argv[])
 	memset((char *)sendBuff, '0', blocksize*sizeof(char) ); 
 		
 	for (i=0; i<100; i++){
-	 write(connfd, sendBuff, blocksize*sizeof(char) ); 
+	 int n = write(connfd, sendBuff, blocksize*sizeof(char) ); 
 	  sleep(1);
+	  if (n<0){
+	    printf("\n Write error \n");
+        printf("Error with write() is %s!\n", strerror(errno));
+	  }
 	}
         //snprintf(sendBuff, sizeof(sendBuff), "%.24s\r\n", ctime(&ticks));
         //write(connfd, sendBuff, strlen(sendBuff)); 

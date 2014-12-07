@@ -33,6 +33,7 @@
 static struct nf_hook_ops post_routing ;
 static struct nf_hook_ops local_out;  
 static struct nf_hook_ops pre_routing;
+static struct nf_hook_ops local_in;  
 
 #define NETLINK_USER 31
 
@@ -44,17 +45,17 @@ static int __init pkt_mangle_init(void)
     printk(KERN_ALERT "\npkt_mangle output module started ...\n");
     rwlock_init(&my_rwlock);
     //pre_routing
-    pre_routing.pf = NFPROTO_IPV4;
-    pre_routing.priority =  NF_IP_PRI_CONNTRACK_DEFRAG -1;
-    pre_routing.hooknum = NF_IP_PRE_ROUTING;
-    pre_routing.hook = incoming_begin;
-    nf_register_hook(& pre_routing);
+    local_in.pf = NFPROTO_IPV4;
+    local_in.priority =  NF_IP_PRI_CONNTRACK_DEFRAG -1;
+    local_in.hooknum = NF_IP_LOCAL_IN;
+    local_in.hook = incoming_begin;
+    nf_register_hook(&  local_in);
 
 
     //out put does to localout and mangle the hdr
 
     local_out.pf = NFPROTO_IPV4;
-    local_out.priority = NF_IP_PRI_NAT_DST;
+    local_out.priority =  NF_IP_PRI_CONNTRACK_DEFRAG -1;
     local_out.hooknum = NF_IP_LOCAL_OUT;
     local_out.hook =  outgoing_begin;
     nf_register_hook(& local_out);
@@ -87,8 +88,8 @@ static int __init pkt_mangle_init(void)
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
 	memset(r, 0, sizeof(record_t));
     // this is middlebox copy
-	r->key.dst = in_aton("128.112.93.108");
-	r->key.dport =5001;
+	r->key.dst = in_aton("128.112.93.107");
+	r->key.sport =5001;
     r->dst =  in_aton("128.112.93.106");
     //r->dport = 5001;
     write_lock(&my_rwlock);
@@ -98,8 +99,8 @@ static int __init pkt_mangle_init(void)
     memset(r, 0, sizeof(record_t));
 
     r->key.src = in_aton("128.112.93.106");
-    r->key.sport =5001;
-    r->src =  in_aton("128.112.93.108");
+    r->key.dport =5001;
+    r->src =  in_aton("128.112.93.107");
     //r->dport = 5001;
     
 	write_lock(&my_rwlock);
@@ -112,14 +113,11 @@ static int __init pkt_mangle_init(void)
 }
 
 static void __exit pkt_mangle_exit(void)
-{
-    //nf_unregister_hook(&post_routing);
-   
+{   
     nf_unregister_hook(&local_out);
-    nf_unregister_hook(&pre_routing);
+    nf_unregister_hook(&local_in);
    
     netlink_kernel_release(nl_sk);
-
     
     //this is hash table 
     struct timespec ts_start,ts_end,test_of_time;
