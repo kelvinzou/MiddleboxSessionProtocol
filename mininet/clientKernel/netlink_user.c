@@ -18,11 +18,14 @@
 #define MAX_PAYLOAD 1024 /* maximum payload size*/
 struct sockaddr_nl src_addr, dest_addr;
 struct nlmsghdr *nlh = NULL;
+
 struct iovec iov;
+
 int sock_fd;
+
 struct msghdr msg;
 
-void main()
+void main(int argc, char *argv[])
 {
     sock_fd = socket(PF_NETLINK, SOCK_RAW, NETLINK_USER);
     if (sock_fd < 0)
@@ -37,17 +40,19 @@ void main()
 
     memset(&dest_addr, 0, sizeof(dest_addr));
     memset(&dest_addr, 0, sizeof(dest_addr));
+    
     dest_addr.nl_family = AF_NETLINK;
+    
     dest_addr.nl_pid = 0; /* For Linux Kernel */
     dest_addr.nl_groups = 0; /* unicast */
 
     nlh = (struct nlmsghdr *)malloc(NLMSG_SPACE(MAX_PAYLOAD));
+    
     memset(nlh, 0, NLMSG_SPACE(MAX_PAYLOAD));
     nlh->nlmsg_len = NLMSG_SPACE(MAX_PAYLOAD);
     nlh->nlmsg_pid = getpid();
     nlh->nlmsg_flags = 0;
 
-    strcpy(NLMSG_DATA(nlh), "Update!");
 
     iov.iov_base = (void *)nlh;
     iov.iov_len = nlh->nlmsg_len;
@@ -55,6 +60,17 @@ void main()
     msg.msg_namelen = sizeof(dest_addr);
     msg.msg_iov = &iov;
     msg.msg_iovlen = 1;
+
+    //remove means remove some string, 
+    //add means readd back the rules
+    size_t n =0;
+    char input [MAX_PAYLOAD-1];
+    n = scanf("%s", input);
+    printf("input is %s\n", input);
+
+    strcpy(NLMSG_DATA(nlh),input);
+
+    
 
     printf("Sending update message to kernel\n");
     sendmsg(sock_fd, &msg, 0);

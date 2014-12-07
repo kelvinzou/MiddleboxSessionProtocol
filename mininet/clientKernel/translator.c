@@ -64,7 +64,7 @@ static int __init pkt_mangle_init(void)
     printk(KERN_ALERT "Entering: %s\n", __FUNCTION__);
     struct netlink_kernel_cfg cfg = {
                 .groups = 1,
-                .input = hello_nl_recv_msg,
+                .input = netlink_agent,
         };
     nl_sk = netlink_kernel_create(&init_net, NETLINK_USER, &cfg);
 
@@ -80,8 +80,7 @@ static int __init pkt_mangle_init(void)
 
     //create a hash table
     //getnstimeofday(&ts_start);
-    record_t l, *p, *r;
-
+    record_t  *r;
 
     //add hash entry in the hash table    
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
@@ -94,17 +93,19 @@ static int __init pkt_mangle_init(void)
     write_lock(&my_rwlock);
 	HASH_ADD(hh, records, key, sizeof(record_key_t), r);
 	write_unlock(&my_rwlock);
+
+
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
     memset(r, 0, sizeof(record_t));
-
     r->key.src = in_aton("128.112.93.106");
     r->key.sport =5001;
     r->src =  in_aton("128.112.93.108");
     //r->dport = 5001;
-    
 	write_lock(&my_rwlock);
     HASH_ADD(hh, records, key, sizeof(record_key_t), r);
     write_unlock(&my_rwlock);
+
+    
     //getnstimeofday(&ts_end);
     //test_of_time = timespec_sub(ts_end,ts_start);
     return 0;
@@ -124,7 +125,8 @@ static void __exit pkt_mangle_exit(void)
     //this is hash table 
     struct timespec ts_start,ts_end,test_of_time;
     getnstimeofday(&ts_start);
-     record_t  *p,  *tmp;
+     record_t  *p;
+     record_t *tmp;
      int counter;
      counter = 0;
      HASH_ITER(hh, records, p, tmp) {

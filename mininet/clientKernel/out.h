@@ -72,6 +72,10 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     tcphdr_len = tcp_hdrlen(skb) ;
     unsigned int tcp_len ;
     tcp_len = data_len - iphdr_len ;  
+    __u32 seqNumber =  tcph->seq;
+    __u32 ackSeq = tcph->ack_seq;
+    if ( ntohs(tcph->dest)  == 5001 )
+        printk("Output: The sequence nunmber and its sequence ack number are %u  and %u ",ntohl(seqNumber) , ntohl(ackSeq));
 
 
     //tcph->check = 0;
@@ -94,7 +98,7 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
 		if (unlikely(skb_linearize(skb) != 0))
 			return NULL;
         
-        printk( KERN_ALERT "found %pI4 and value is %pI4  \n", &p->key.dst , &p->dst);
+        printk( KERN_ALERT "Output: found destination key  %pI4 and value is %pI4  \n", &p->key.dst , &p->dst);
 
         __be32 oldIP = iph->daddr;
         iph->daddr = p->dst;
@@ -105,7 +109,7 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     }
     else {
     	if ( ntohs(tcph->dest)  == 5001 )
-        	printk( KERN_ALERT "No hash found, do nothing \n");
+        	printk( KERN_ALERT "Output: No hash found, do nothing \n");
         return skb;
         }
     }
