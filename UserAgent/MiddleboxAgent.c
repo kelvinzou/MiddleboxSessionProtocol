@@ -364,14 +364,13 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
     tv.tv_sec = 0;
     tv.tv_usec = 1000000;
     FD_ZERO(&readfds);
-    FD_ZERO(&active_fs);
     FD_SET(SendSockfd, &readfds);
 
     while(1){
         active_fs = readfds;
 
-        select(SendSockfd+1, &active_fs, NULL, NULL, &tv);
-
+        int i =  select(SendSockfd+1, &active_fs, NULL, NULL, &tv);
+        printf("%d select value", i);
         if( FD_ISSET(SendSockfd, &active_fs) ){  
             m = recvfrom(SendSockfd,recvsendmsg,1400,0,NULL,NULL);
 
@@ -388,7 +387,7 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
             }
         } else{
             printf("Socket not set yet\n" );
-            usleep(3000);
+            usleep(1000000);
         }
     }
 }
