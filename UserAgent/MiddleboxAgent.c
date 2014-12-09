@@ -374,7 +374,7 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
         active_fs = readfds;
         sendto(sockfd,recvsendmsg,m,0,(struct sockaddr *) cliAddr,sizeof(struct sockaddr_in ));
         int i =  select(SendSockfd+1, &active_fs, NULL, NULL, &tv);
-        printf("%d select value", i);
+        printf("%d select value\n", i);
         if( FD_ISSET(SendSockfd, &active_fs) ){  
             m = recvfrom(SendSockfd,recvsendmsg,1400,0,NULL,NULL);
 
