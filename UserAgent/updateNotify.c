@@ -139,11 +139,12 @@ int main(int argc, char**argv)
 		sendto(sockfd,AckMesg,sizeof(header),0,(struct sockaddr *) &servaddr,sizeof(struct sockaddr_in ));
 		/*
 		Here we add keep alive messages to show the mobility can be handled for packets on the fly
-		*/
+		
 		while(1){
 			sleep(5);
 			keepalive(sockfd, (struct sockaddr *)&servaddr);
 		}
+		*/
 		return 0;
 	}
 	

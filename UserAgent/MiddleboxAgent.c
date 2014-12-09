@@ -366,7 +366,7 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
 
     fd_set readfds, active_fs;
     tv.tv_sec = 0;
-    tv.tv_usec = 1000000;
+    tv.tv_usec = 10000;
     FD_ZERO(&readfds);
     FD_SET(SendSockfd, &readfds);
 
@@ -389,7 +389,7 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
             }
         } else{
             printf("Socket not set yet\n" );
-            usleep(1000000);
+            usleep(10000);
         }
     }
 }
@@ -437,7 +437,7 @@ void updateBack(char * request, int n,  struct sockaddr_in * cliAddr){
             printf("Timeout!\n");
             break;
         }
-        usleep(30000);
+        usleep(300);
     }
     gettimeofday(&t2, NULL);
     elapsedTime =(t2.tv_usec - t1.tv_usec) + (t2.tv_sec - t1.tv_sec)*1000000;
