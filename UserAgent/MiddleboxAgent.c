@@ -413,7 +413,7 @@ void updateBack(char * request, int n,  struct sockaddr_in * cliAddr){
 
     char response[n-4];
     header * replyHdr = (header *) response;
-    memcpy(response+4, request+4, n-4); 
+    memcpy(response+4, request+4, sizeof(header)-4); 
     //this is UPDATE-SYN-AC
     replyHdr->action =5;
     * (int *)( response+ sizeof(header) ) = 0;
@@ -431,13 +431,13 @@ void updateBack(char * request, int n,  struct sockaddr_in * cliAddr){
             printf("Packet is acked!\n");
             break;
         } else  {
-            printf("Not acked yet!\n");
+            //printf("Not acked yet!\n");
         }
         if (count>=1000){
             printf("Timeout!\n");
             break;
         }
-        usleep(300);
+        usleep(3000);
     }
     gettimeofday(&t2, NULL);
     elapsedTime =(t2.tv_usec - t1.tv_usec) + (t2.tv_sec - t1.tv_sec)*1000000;
