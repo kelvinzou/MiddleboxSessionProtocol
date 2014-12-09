@@ -388,7 +388,6 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
                 printf("No Ack yet!\n");
             }
         } else{
-            printf("Socket not set yet\n" );
             usleep(10000);
         }
     }
