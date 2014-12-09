@@ -347,9 +347,6 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
     
     //receiving ACK from the receiver
     int m ;
-    m = recvfrom(SendSockfd,recvsendmsg,1400,0,NULL,NULL);
-
-    m = recvfrom(SendSockfd,recvsendmsg,1400,0,NULL,NULL);
     
     header * RecvHeaderPointer = (header *) recvsendmsg;
     
@@ -372,12 +369,12 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
 
     while(1){
         active_fs = readfds;
-        sendto(sockfd,recvsendmsg,m,0,(struct sockaddr *) cliAddr,sizeof(struct sockaddr_in ));
+        
         int i =  select(SendSockfd+1, &active_fs, NULL, NULL, &tv);
-        printf("%d select value\n", i);
-        if( FD_ISSET(SendSockfd, &active_fs) ){  
+        printf(" select value is %d\n", i);
+        if( FD_ISSET(SendSockfd, &active_fs) && (update_ack !=1) ){  
             m = recvfrom(SendSockfd,recvsendmsg,1400,0,NULL,NULL);
-
+            sendto(sockfd,recvsendmsg,m,0,(struct sockaddr *) cliAddr,sizeof(struct sockaddr_in ));
             printf("Is is update sync ack? relaying packet again\n" );
 
             if(update_ack ==1){
