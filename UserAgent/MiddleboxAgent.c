@@ -345,7 +345,7 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
     
     //receiving ACK from the receiver
     int m ;
-    m= recvfrom(SendSockfd,recvsendmsg,1400,0,NULL,NULL);
+    //m= recvfrom(SendSockfd,recvsendmsg,1400,0,NULL,NULL);
 
     header * RecvHeaderPointer = (header *) recvsendmsg;
     
@@ -364,12 +364,14 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
     tv.tv_sec = 0;
     tv.tv_usec = 3000;
     FD_ZERO(&readfds);
+    FD_ZERO(&active_fs);
     FD_SET(SendSockfd, &readfds);
 
     while(1){
         active_fs = readfds;
 
         select(SendSockfd+1, &active_fs, NULL, NULL, &tv);
+
         if(FD_ISSET(SendSockfd, &active_fs) && update_ack ==0){  
             m = recvfrom(SendSockfd,recvsendmsg,1400,0,NULL,NULL);
 
@@ -385,6 +387,7 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
                 printf("No Ack yet!\n");
             }
         } else{
+            printf("Socket not set yet\n" );
             usleep(3000);
         }
     }
