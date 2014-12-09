@@ -117,6 +117,7 @@ int main(int argc, char**argv)
 	char recvline[1400];
 	memset(sendline, 0,1400);
 	sync_packet(sockfd, sendline, &servaddr);
+	printf("Before ACK \n");
 	n=recvfrom(sockfd,recvline,1400,0,NULL,NULL);
 			//fputs(recvline,stdout);
 

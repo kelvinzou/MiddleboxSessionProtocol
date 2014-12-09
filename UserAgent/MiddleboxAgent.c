@@ -343,15 +343,9 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
 
     sendto(SendSockfd,sendmsg,n-4,0,(struct sockaddr *)&SendServaddr,sizeof(struct sockaddr_in ));
     
-
     //receiving ACK from the receiver
-    gettimeofday(&t1, NULL);
-    
-    int m = recvfrom(SendSockfd,recvsendmsg,1400,0,NULL,NULL);
-    gettimeofday(&t2, NULL);
-    double elapsedTimeOld =(t2.tv_usec - t1.tv_usec) + (t2.tv_sec - t1.tv_sec)*1000000;
-    printf("1. Elapse Time is %f\n",elapsedTime);
-    
+    int m ;
+    m= recvfrom(SendSockfd,recvsendmsg,1400,0,NULL,NULL);
 
     header * RecvHeaderPointer = (header *) recvsendmsg;
     
@@ -374,8 +368,9 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
 
     while(1){
         active_fs = readfds;
+
         select(SendSockfd+1, &active_fs, NULL, NULL, &tv);
-        if(FD_ISSET(SendSockfd, &active_fs)){  
+        if(FD_ISSET(SendSockfd, &active_fs) && update_ack ==0){  
             m = recvfrom(SendSockfd,recvsendmsg,1400,0,NULL,NULL);
 
             printf("Is is update sync ack? relaying packet again\n" );
@@ -425,7 +420,7 @@ void updateBack(char * request, int n,  struct sockaddr_in * cliAddr){
     while(1){
         count++;
         if(count%40==1){
-            sendto(sockfd,response,n,0,(struct sockaddr *)cliAddr,sizeof(struct sockaddr_in ));
+            sendto(sockfd,response,n-4,0,(struct sockaddr *)cliAddr,sizeof(struct sockaddr_in ));
         }
         
         if (update_ack ==1){
@@ -438,7 +433,7 @@ void updateBack(char * request, int n,  struct sockaddr_in * cliAddr){
             printf("Timeout!\n");
             break;
         }
-        usleep(3000);
+        usleep(300000);
     }
     gettimeofday(&t2, NULL);
     elapsedTime =(t2.tv_usec - t1.tv_usec) + (t2.tv_sec - t1.tv_sec)*1000000;
