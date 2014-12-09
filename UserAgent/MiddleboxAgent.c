@@ -437,7 +437,7 @@ void updateBack(char * request, int n,  struct sockaddr_in * cliAddr){
             printf("Timeout!\n");
             break;
         }
-        usleep(300000);
+        usleep(30000);
     }
     gettimeofday(&t2, NULL);
     elapsedTime =(t2.tv_usec - t1.tv_usec) + (t2.tv_sec - t1.tv_sec)*1000000;
