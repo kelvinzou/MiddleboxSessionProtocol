@@ -478,6 +478,7 @@ void * handleRequest(void * ptr){
 
 
 void * handleUpdate(void * ptr){
+    printf("Debug, get in HandleUpdate?\n");
     parameter * passingparameter = (parameter *) ptr;
     char * request = passingparameter->request;
     struct sockaddr_in * cliAddr = passingparameter->cliAddr;
@@ -492,10 +493,12 @@ void * handleUpdate(void * ptr){
         return NULL;
     } 
     if (n>sizeof(header) +8){
-       // sendForward(request, n, &port_num, cliAddr);
+       updateForward(request, n, &port_num, cliAddr);
     } else{
-       // sendBack(request, n, cliAddr);
+       updateBack(request, n, cliAddr);
     }
+    printf("Debug, get in HandleUpdate?\n");
+
     free(request);
     free(cliAddr);
     free(ptr);
