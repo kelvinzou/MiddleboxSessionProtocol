@@ -310,6 +310,35 @@ int sendForward(char * request, int n, int * port_num, struct sockaddr_in * cliA
     printf("2. Elapse Time is %f\n",elapsedTime);
 }
 
+
+//void handleRequest(char * request, int n, int * port_num,  struct sockaddr_in * cliAddr){
+void * handleRequest(void * ptr){
+    parameter * passingparameter = (parameter *) ptr;
+    char * request = passingparameter->request;
+    struct sockaddr_in * cliAddr = passingparameter->cliAddr;
+    int n  =  passingparameter->n;
+    int port_num = passingparameter->port_num;
+
+    int action = *( (int *) request);
+    int SeqNum = *(int *)(request + 4); 
+    if ( SeqNum <= sequenceNumber)
+    {
+        //Ignore the messge since it is after the current sequence number
+        return NULL;
+    }   
+    if (n>sizeof(header) +8){
+        sendForward(request, n, &port_num, cliAddr);
+    } else{
+        sendBack(request, n, cliAddr);
+    }
+    free(request);
+    free(cliAddr);
+    free(ptr);
+    return NULL;
+}
+
+
+
 //this notifies the update, it is UPDATE-SYN to next hop and SYN to back 
 void updateForward(char * request, int n, int * port_num, struct sockaddr_in * cliAddr){
     struct timeval t1, t2;
@@ -350,10 +379,7 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
     
     header * RecvHeaderPointer = (header *) recvsendmsg;
     
-    int action = RecvHeaderPointer->action;
-    int sequenceNumber = RecvHeaderPointer->sequenceNum;
-
-    printf("Action is and sequence number is and seq number is %d and %d \n", action, sequenceNumber);
+   
 
     gettimeofday(&t1, NULL);
     //receivd the message from the next hop, and reply the message back to the last hop, it is basically a repeated sending, until it is terminate. 
@@ -372,13 +398,19 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
         active_fs = readfds;
         
         int i =  select(SendSockfd+1, &active_fs, NULL, NULL, &tv);
+        printf("after select session!\n");
 
-        printf(" select value is %d\n", i);
         if( FD_ISSET(SendSockfd, &active_fs) && (update_ack !=1) ){  
             m = recvfrom(SendSockfd,recvsendmsg,1400,0,NULL,NULL);
 
+
+            int action = RecvHeaderPointer->action;
+            int sequenceNumber = RecvHeaderPointer->sequenceNum;
+            printf("Action is and sequence number is and seq number is %d and %d \n", action, sequenceNumber);
+
+
             sendto(sockfd,recvsendmsg,m,0,(struct sockaddr *) cliAddr,sizeof(struct sockaddr_in ));
-            printf("Is is update sync ack? relaying packet again and the length is %d\n", m );
+            printf("Is it update sync ack? relaying packet again and the length is %d\n", m );
 
             if(update_ack ==1){
                 printf("Packet is been acked, so we can exit this loop now!\n");
@@ -416,7 +448,7 @@ void updateBack(char * request, int n,  struct sockaddr_in * cliAddr){
     memcpy(response+4, request+4, sizeof(header)-4); 
     //this is UPDATE-SYN-AC
     replyHdr->action =5;
-    * (int *)( response+ sizeof(header) ) = 0;
+    * (int *)(response + sizeof(header)) = 0;
 
     printf("The socket fd is %d \n",  sockfd);
 
@@ -447,32 +479,6 @@ void updateBack(char * request, int n,  struct sockaddr_in * cliAddr){
 
 
 
-//void handleRequest(char * request, int n, int * port_num,  struct sockaddr_in * cliAddr){
-void * handleRequest(void * ptr){
-    parameter * passingparameter = (parameter *) ptr;
-    char * request = passingparameter->request;
-    struct sockaddr_in * cliAddr = passingparameter->cliAddr;
-    int n  =  passingparameter->n;
-    int port_num = passingparameter->port_num;
-
-    int action = *( (int *) request);
-    int SeqNum = *(int *)(request + 4); 
-    if ( SeqNum <= sequenceNumber)
-    {
-        //Ignore the messge since it is after the current sequence number
-        return NULL;
-    }   
-    if (n>sizeof(header) +8){
-        sendForward(request, n, &port_num, cliAddr);
-    } else{
-        sendBack(request, n, cliAddr);
-    }
-    free(request);
-    free(cliAddr);
-    free(ptr);
-    return NULL;
-}
-
 
 
 
@@ -496,7 +502,6 @@ void * handleUpdate(void * ptr){
     } else{
        updateBack(request, n, cliAddr);
     }
-    printf("Debug, get in HandleUpdate?\n");
 
     free(request);
     free(cliAddr);
