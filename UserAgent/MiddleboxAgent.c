@@ -337,6 +337,8 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
     SendServaddr.sin_family = AF_INET;
     struct in_addr addr = *(struct in_addr*) (request + sizeof(header) +4);
     char * IPStr = inet_ntoa(addr);
+    
+    printf("the destination is %s\n", IPStr);
     SendServaddr.sin_addr.s_addr=inet_addr(IPStr); 
 
     SendServaddr.sin_port=htons(*port_num);
@@ -345,8 +347,8 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
     
     //receiving ACK from the receiver
     int m ;
-    m= recvfrom(SendSockfd,recvsendmsg,1400,0,NULL,NULL);
-
+    m = recvfrom(SendSockfd,recvsendmsg,1400,0,NULL,NULL);
+    
     header * RecvHeaderPointer = (header *) recvsendmsg;
     
     int action = RecvHeaderPointer->action;
