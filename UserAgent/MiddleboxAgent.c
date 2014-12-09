@@ -30,6 +30,7 @@ This is the user space agent of the middlebox protocol
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <signal.h>
+#include <poll.h>
 
 #include <linux/genetlink.h>
 
@@ -347,6 +348,7 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
 
     //send to next hop
     int SendSockfd ;
+    struct pollfd poll_fd[1] ;
     struct sockaddr_in SendServaddr, SendCliaddr;
     int i ;
     for (i=sizeof(header); i<n-4 ; i+=4){
@@ -387,37 +389,29 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
     
     struct timeval tv;
 
-    fd_set readfds, active_fs;
-    tv.tv_sec = 0;
-    tv.tv_usec = 10000;
-    FD_ZERO(&readfds);
-    FD_SET(SendSockfd, &readfds);
+    poll_fd[0].fd = SendSockfd;
+    poll_fd[0].events = POLLIN | POLLPRI;
+   
 
     while(1){
         printf("Before entering session!\n");
-        active_fs = readfds;
         
-        int i =  select(SendSockfd+1, &active_fs, NULL, NULL, &tv);
+        int i = poll(poll_fd, 1, 1);
         printf("after select session!\n");
 
-        if( FD_ISSET(SendSockfd, &active_fs) && (update_ack !=1) ){  
+        if(i==1){  
             m = recvfrom(SendSockfd,recvsendmsg,1400,0,NULL,NULL);
-
 
             int action = RecvHeaderPointer->action;
             int sequenceNumber = RecvHeaderPointer->sequenceNum;
             printf("Action is and sequence number is and seq number is %d and %d \n", action, sequenceNumber);
 
-
-            sendto(sockfd,recvsendmsg,m,0,(struct sockaddr *) cliAddr,sizeof(struct sockaddr_in ));
-            printf("Is it update sync ack? relaying packet again and the length is %d\n", m );
-
-            if(update_ack ==1){
+            if(update_ack !=1){
+                sendto(sockfd,recvsendmsg,m,0,(struct sockaddr *) cliAddr,sizeof(struct sockaddr_in ));
+                printf("Is it update sync ack? relaying packet again and the length is %d\n", m );
+            } else {
                 printf("Packet is been acked, so we can exit this loop now!\n");
                 break;
-            }
-            else {
-                printf("No Ack yet!\n");
             }
         }
         else{
