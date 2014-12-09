@@ -368,6 +368,7 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
     FD_SET(SendSockfd, &readfds);
 
     while(1){
+        printf("Before entering session!\n");
         active_fs = readfds;
         
         int i =  select(SendSockfd+1, &active_fs, NULL, NULL, &tv);
@@ -375,8 +376,9 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
         printf(" select value is %d\n", i);
         if( FD_ISSET(SendSockfd, &active_fs) && (update_ack !=1) ){  
             m = recvfrom(SendSockfd,recvsendmsg,1400,0,NULL,NULL);
+
             sendto(sockfd,recvsendmsg,m,0,(struct sockaddr *) cliAddr,sizeof(struct sockaddr_in ));
-            printf("Is is update sync ack? relaying packet again\n" );
+            printf("Is is update sync ack? relaying packet again and the length is %d\n", m );
 
             if(update_ack ==1){
                 printf("Packet is been acked, so we can exit this loop now!\n");
@@ -385,7 +387,8 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
             else {
                 printf("No Ack yet!\n");
             }
-        } else{
+        }
+        else{
             usleep(10000);
         }
     }
