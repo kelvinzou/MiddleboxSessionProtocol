@@ -337,7 +337,7 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
     SendServaddr.sin_family = AF_INET;
     struct in_addr addr = *(struct in_addr*) (request + sizeof(header) +4);
     char * IPStr = inet_ntoa(addr);
-    
+
     printf("the destination is %s\n", IPStr);
     SendServaddr.sin_addr.s_addr=inet_addr(IPStr); 
 
@@ -348,13 +348,15 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
     //receiving ACK from the receiver
     int m ;
     m = recvfrom(SendSockfd,recvsendmsg,1400,0,NULL,NULL);
+
+    m = recvfrom(SendSockfd,recvsendmsg,1400,0,NULL,NULL);
     
     header * RecvHeaderPointer = (header *) recvsendmsg;
     
     int action = RecvHeaderPointer->action;
     int sequenceNumber = RecvHeaderPointer->sequenceNum;
 
-    printf("Action is and sequence number is and port number is %d and %d \n", action, sequenceNumber);
+    printf("Action is and sequence number is and seq number is %d and %d \n", action, sequenceNumber);
 
     gettimeofday(&t1, NULL);
     //receivd the message from the next hop, and reply the message back to the last hop, it is basically a repeated sending, until it is terminate. 
@@ -370,15 +372,13 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
 
     while(1){
         active_fs = readfds;
-
+        sendto(sockfd,recvsendmsg,m,0,(struct sockaddr *) cliAddr,sizeof(struct sockaddr_in ));
         int i =  select(SendSockfd+1, &active_fs, NULL, NULL, &tv);
         printf("%d select value", i);
         if( FD_ISSET(SendSockfd, &active_fs) ){  
             m = recvfrom(SendSockfd,recvsendmsg,1400,0,NULL,NULL);
 
             printf("Is is update sync ack? relaying packet again\n" );
-
-            sendto(sockfd,recvsendmsg,m,0,(struct sockaddr *) cliAddr,sizeof(struct sockaddr_in ));
 
             if(update_ack ==1){
                 printf("Packet is been acked, so we can exit this loop now!\n");
