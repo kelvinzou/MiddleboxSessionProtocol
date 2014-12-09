@@ -404,7 +404,7 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
 
             int action = RecvHeaderPointer->action;
             int sequenceNumber = RecvHeaderPointer->sequenceNum;
-            printf("Action is and sequence number is and seq number is %d and %d \n", action, sequenceNumber);
+            printf("Action is and sequence number is and seq number is %d and %d and ack value is %d \n", action, sequenceNumber, update_ack);
 
             if(update_ack !=1){
                 sendto(sockfd,recvsendmsg,m,0,(struct sockaddr *) cliAddr,sizeof(struct sockaddr_in ));
@@ -650,8 +650,8 @@ int main(int argc, char *argv[])
         }
     }
     close(netlink_socket_fd);
-    free(mesg);
-    free(clientAddressPtr);
+    //free(mesg);
+    //free(clientAddressPtr);
 	return 0;
 }
 
