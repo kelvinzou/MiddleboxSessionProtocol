@@ -633,6 +633,18 @@ int main(int argc, char *argv[])
             }  
               
          }
+          else if(msgheader->action  == 6){
+            if(retv!=NULL && retv->sequenceNumber == sequenceNum){
+                printf("Acknowledge for a correct sequence number\n");
+                update_ack =1;
+            }  else if (retv==NULL){
+                printf("Cannot ACK NULL entry\n");
+            } else{
+                printf("Cannot ACK for an out-of-order ack packet%d\n",sequenceNum );
+            }
+            free(mesg);
+            free(clientAddressPtr);
+        }
         gettimeofday(&t2, NULL);
         elapsedTime =(t2.tv_sec - t1.tv_sec);
         if (elapsedTime>600){
