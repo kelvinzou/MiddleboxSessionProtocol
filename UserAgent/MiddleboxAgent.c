@@ -364,7 +364,7 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
     tv.tv_sec = 0;
     tv.tv_usec = 3000;
     FD_ZERO(&readfds);
-    FD_SET(sockfd, &readfds);
+    FD_SET(SendSockfd, &readfds);
 
     while(1){
         active_fs = readfds;
