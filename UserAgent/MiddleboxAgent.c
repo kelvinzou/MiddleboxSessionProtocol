@@ -371,6 +371,7 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
         active_fs = readfds;
         
         int i =  select(SendSockfd+1, &active_fs, NULL, NULL, &tv);
+
         printf(" select value is %d\n", i);
         if( FD_ISSET(SendSockfd, &active_fs) && (update_ack !=1) ){  
             m = recvfrom(SendSockfd,recvsendmsg,1400,0,NULL,NULL);
@@ -638,8 +639,7 @@ int main(int argc, char *argv[])
             }  else{
                 printf("Cannot ACK for an out-of-order ack packet%d\n",sequenceNum );
             }
-            free(mesg);
-            free(clientAddressPtr);
+           
         }
         gettimeofday(&t2, NULL);
         elapsedTime =(t2.tv_sec - t1.tv_sec);
