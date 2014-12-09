@@ -635,12 +635,10 @@ int main(int argc, char *argv[])
               
          }
           else if(msgheader->action  == 6){
-            if(retv!=NULL && retv->sequenceNumber == sequenceNum){
+            if( retv->sequenceNumber == sequenceNum){
                 printf("Acknowledge for a correct sequence number\n");
                 update_ack = 1;
-            }  else if (retv==NULL){
-                printf("Cannot ACK NULL entry\n");
-            } else{
+            }  else{
                 printf("Cannot ACK for an out-of-order ack packet%d\n",sequenceNum );
             }
             free(mesg);

@@ -136,6 +136,8 @@ int main(int argc, char**argv)
 		gettimeofday(&t2, NULL);
 		elapsedTime =(t2.tv_usec - t1.tv_usec) + (t2.tv_sec - t1.tv_sec)*1000000;
 		printf("Time is %f\n",elapsedTime);
+		//just random key
+
 		sendto(sockfd,AckMesg,sizeof(header),0,(struct sockaddr *) &servaddr,sizeof(struct sockaddr_in ));
 		/*
 		Here we add keep alive messages to show the mobility can be handled for packets on the fly
