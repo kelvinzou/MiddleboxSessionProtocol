@@ -84,7 +84,7 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     p=NULL;
     //get_random_bytes ( &i, sizeof (int) );
     l.key.dst =iph->daddr ;
-    l.key.dport = ntohs(tcph->dest) ;
+    l.key.sport = ntohs(tcph->source) ;
     read_lock(&my_rwlock) ;
     HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p) ;
     read_unlock(&my_rwlock) ;
@@ -104,7 +104,7 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
         return  skb ;
     }
     else {
-    	if ( ntohs(tcph->dest)  == 5001 )
+    	if ( ntohs(tcph->source)  == 5001 )
         	printk( KERN_ALERT "No hash found, do nothing \n");
         return skb;
         }

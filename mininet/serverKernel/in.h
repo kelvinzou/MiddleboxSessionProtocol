@@ -76,7 +76,7 @@ struct sk_buff * tcp_header_write_prerouting(struct sk_buff *skb){
     p=NULL ;
 
     l.key.src = iph->saddr ;
-    l.key.sport = ntohs(tcph->source) ;
+    l.key.dport = ntohs(tcph->dest) ;
     read_lock(&my_rwlock) ;
     HASH_FIND(hh, records, &l.key, sizeof( record_key_t ), p) ;
     read_unlock(&my_rwlock) ;
@@ -86,7 +86,7 @@ struct sk_buff * tcp_header_write_prerouting(struct sk_buff *skb){
         iph->saddr = p->src ;
         return skb ;
     } else{
-    	if ( ntohs(tcph->source)  == 5001 )
+    	if ( ntohs(tcph->dest)  == 5001 )
 			printk( KERN_ALERT "No hash found, do nothing \n") ;
     	return skb ;
     	}
