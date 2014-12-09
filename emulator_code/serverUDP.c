@@ -1,5 +1,6 @@
 /*
 Author: Kelvin Xuan Zou
+Princeton University
 This is the middlebox user-space agent for Middlebox session protocol 
 
 
@@ -24,7 +25,7 @@ This is the middlebox user-space agent for Middlebox session protocol
 /* Sample UDP server */
 int hashport =1025;
 int sequenceNumber = 0;
-int thread_iterator =0;
+int thread_iterator = 0;
 int sockfd;
 struct sockaddr_in servaddr;
 struct timeval t1, t2;
@@ -243,7 +244,7 @@ int main(int argc, char**argv)
 	//select(sockfd+1, &readfds, NULL, NULL, &tv);
 
 	int counter  = 0;
-   	pthread_t thread[10];
+   	pthread_t thread[100];
    	char * mesg;
    	struct sockaddr_in * clientAddressPtr;
 	int drop =0;
