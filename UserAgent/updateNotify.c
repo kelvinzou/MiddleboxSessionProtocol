@@ -125,7 +125,7 @@ int main(int argc, char**argv)
 	int seq = *(int *) (recvline +4);
 	int port = *(int *) (recvline+20);
 	printf("Is is sync ack? %d and %d and the port number is %d\n", ack, seq, port);
-	if (ack==5 && seq == SEQUENCENUM && n ==24)
+	if (ack==5 && seq == SEQUENCENUM)
 	{
 
 		int HeaderLength = sizeof(header);
