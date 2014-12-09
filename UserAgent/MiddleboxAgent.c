@@ -390,7 +390,7 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
     struct timeval tv;
 
     poll_fd[0].fd = SendSockfd;
-    poll_fd[0].events = POLLIN | POLLPRI;
+    poll_fd[0].events = POLLIN;
    
 
     while(1){
@@ -415,7 +415,7 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
             }
         }
         else{
-            usleep(10000);
+            usleep(100000);
         }
     }
 }

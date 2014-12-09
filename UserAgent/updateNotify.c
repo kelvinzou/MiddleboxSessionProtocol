@@ -123,8 +123,8 @@ int main(int argc, char**argv)
 
 	int ack = *(int *) recvline;
 	int seq = *(int *) (recvline +4);
-	int port = *(int *) (recvline+20);
-	printf("Is is sync ack? %d and %d and the port number is %d\n", ack, seq, port);
+	int end = *(int *) (recvline+20);
+	printf("Is is sync ack? %d and %d and the end number is %d\n", ack, seq, end);
 	if (ack==5 && seq == SEQUENCENUM)
 	{
 
