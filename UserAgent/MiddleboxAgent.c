@@ -611,7 +611,7 @@ int main(int argc, char *argv[])
                 printf("Updates are out of date, simply ignore the packet!\n");
                 free(mesg);
                 free(clientAddressPtr);
-            }   
+            } else{
                 printf("IP and port is %lu and %u \n", ip_dst , dstPort);
                 printf("Update item with a sequence number %d!\n", sequenceNum);
                 addItem((int) ip_src,(int) ip_dst,(__u16)srcPort,(__u16) dstPort ,sequenceNum);
@@ -630,6 +630,8 @@ int main(int argc, char *argv[])
                     thread_iterator=0;
                 }   
 
+            }  
+              
          }
         gettimeofday(&t2, NULL);
         elapsedTime =(t2.tv_sec - t1.tv_sec);

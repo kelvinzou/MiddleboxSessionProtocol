@@ -42,7 +42,7 @@ int sync_packet(int fd, char * writeBuffer, struct sockaddr_in * servaddr ){
 
 	header * hdr_ptr = (header*) writeBuffer;
 
-	hdr_ptr->action = 1 ;
+	hdr_ptr->action = 4 ;
 	hdr_ptr->sequenceNum  = SEQUENCENUM ;
 	struct in_addr addr;
 
