@@ -128,8 +128,9 @@ int main(int argc, char**argv)
 	if (ack==5 && seq == SEQUENCENUM)
 	{
 
-		int HeaderLength = sizeof(header);
+		int HeaderLength = sizeof(header)+4;
 		char AckMesg[HeaderLength];
+		* (int*) (AckMesg+sizeof(header)) =0;
 		header * ackHeader = (header *)AckMesg;
 		ackHeader->action = 6;
 		ackHeader->sequenceNum = SEQUENCENUM;
@@ -138,7 +139,7 @@ int main(int argc, char**argv)
 		printf("Time is %f\n",elapsedTime);
 		//just random key
 
-		sendto(sockfd,AckMesg,sizeof(header),0,(struct sockaddr *) &servaddr,sizeof(struct sockaddr_in ));
+		sendto(sockfd,AckMesg,sizeof(header)+4,0,(struct sockaddr *) &servaddr,sizeof(struct sockaddr_in ));
 		/*
 		Here we add keep alive messages to show the mobility can be handled for packets on the fly
 		
