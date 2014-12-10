@@ -53,8 +53,8 @@ static void netlink_agent(struct sk_buff *skb)
     printk(KERN_ALERT "Netlink received msg payload: %s\n", (char *)nlmsg_data(nlh));
     
     record_t item;
-
-    if (strcmp((char*)nlmsg_data(nlh), "del")==0) {
+    //here we just need SYNC packet, because SYN-ACK are rule is preinstalled first
+    if (strcmp((char*)nlmsg_data(nlh), "SYN")==0) {
         memset(&item, 0, sizeof(record_t));
         item.key.dst = in_aton( "128.112.93.108" );
         item.key.dport =5001;
@@ -67,7 +67,7 @@ static void netlink_agent(struct sk_buff *skb)
         */
     } 
 
-    else if (strcmp((char*)nlmsg_data(nlh), "add")==0) {
+    else if (strcmp((char*)nlmsg_data(nlh), "RESET")==0) {
         memset(&item, 0, sizeof(record_t));
         item.key.dst = in_aton( "128.112.93.108" );
         item.key.dport =5001;

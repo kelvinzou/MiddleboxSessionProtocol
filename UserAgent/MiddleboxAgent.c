@@ -316,6 +316,8 @@ void updateBack(char * request, int n,  struct sockaddr_in * cliAddr){
         
         sendto(sockfd,response,n-4,0,(struct sockaddr *)cliAddr,sizeof(struct sockaddr_in ));
         printf("SYN-ACK\n");
+        char * netlink_message = "SYNACK";
+        send_netlink(netlink_message);
         if (count>=1000){
             printf("Timeout!\n");
             break;
@@ -438,6 +440,8 @@ int main(int argc, char *argv[])
 
 
                 printf(" SYN!\n");
+                char * netlink_message = "SYN";
+                send_netlink(netlink_message);
                 addItem((int) ip_src,(int) ip_dst,(__u16)srcPort,(__u16) dstPort ,sequenceNum);
 
                 void * para = malloc(sizeof(parameter));
