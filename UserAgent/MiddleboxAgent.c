@@ -343,7 +343,7 @@ void * handleRequest(void * ptr){
 
 
 
-void settingAck(char * AckMesg){
+void settingAck(char * AckMesg, int sequenceNumber){
 
     
     * (int*) ((char *)AckMesg + sizeof(header) ) =0;
