@@ -244,18 +244,8 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
         printf("after select session!\n");
 
         if(i==1){  
-            printf("SYN-ACK\n");
-            m = recvfrom(SendSockfd,recvsendmsg,1400,0,NULL,NULL);
-  
-            int action = RecvHeaderPointer->action;
-            int sequenceNumber = RecvHeaderPointer->sequenceNum;
-            printf("Action is and sequence number is %d and %d and ack value is %d \n", action, sequenceNumber, update_ack);
             pthread_mutex_lock(&lock);
-
             if(update_ack !=1){
-                sendto(sockfd,recvsendmsg,m,0,(struct sockaddr *) cliAddr,sizeof(struct sockaddr_in ));
-                printf("Is it update sync ack? relaying packet again and the length is %d\n", m );
-            } else {
                 int HeaderLength = sizeof(header)+4;
                 char AckMesg[HeaderLength];
                 settingAck(AckMesg, sequenceNumber);
@@ -264,6 +254,17 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
                 break;
             }
             pthread_mutex_unlock(&lock);
+
+            m = recvfrom(SendSockfd,recvsendmsg,1400,0,NULL,NULL);
+            printf("SYN-ACK\n");
+        
+            int action = RecvHeaderPointer->action;
+            int sequenceNumber = RecvHeaderPointer->sequenceNum;
+            //printf("Action is and sequence number is %d and %d and ack value is %d \n", action, sequenceNumber, update_ack);
+
+            sendto(sockfd,recvsendmsg,m,0,(struct sockaddr *) cliAddr,sizeof(struct sockaddr_in ));
+            //printf("Is it update sync ack? relaying packet again and the length is %d\n", m );
+
 
         }
         else{
@@ -303,20 +304,22 @@ void updateBack(char * request, int n,  struct sockaddr_in * cliAddr){
     int count = 0;
     while(1){
         count++;
-        printf("SYN-ACK\n");
-        
-        sendto(sockfd,response,n-4,0,(struct sockaddr *)cliAddr,sizeof(struct sockaddr_in ));
         pthread_mutex_lock(&lock);
        
         if (update_ack ==1){
             printf("Packet is ACKed!\n");
             break;
         }
+        pthread_mutex_unlock(&lock);
+        
+        printf("SYN-ACK\n");
+        
+        sendto(sockfd,response,n-4,0,(struct sockaddr *)cliAddr,sizeof(struct sockaddr_in ));
+
         if (count>=1000){
             printf("Timeout!\n");
             break;
         }
-        pthread_mutex_unlock(&lock);
 
         usleep(1000);
     }
