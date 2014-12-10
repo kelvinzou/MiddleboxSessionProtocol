@@ -53,6 +53,9 @@ int netlink_socket_fd;
 struct msghdr netlink_msg;
 
 
+pthread_mutex_t lock;
+
+
 int hashport =2000;
 int sequenceNumber = 0;
 int thread_iterator = 0;
@@ -409,6 +412,7 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
             int action = RecvHeaderPointer->action;
             int sequenceNumber = RecvHeaderPointer->sequenceNum;
             printf("Action is and sequence number is and seq number is %d and %d and ack value is %d \n", action, sequenceNumber, update_ack);
+            pthread_mutex_lock(&lock);
 
             if(update_ack !=1){
                 sendto(sockfd,recvsendmsg,m,0,(struct sockaddr *) cliAddr,sizeof(struct sockaddr_in ));
@@ -417,6 +421,8 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
                 printf("Packet is been acked, so we can exit this loop now!\n");
                 break;
             }
+            pthread_mutex_unlock(&lock);
+
         }
         else{
             usleep(100000);
@@ -456,7 +462,8 @@ void updateBack(char * request, int n,  struct sockaddr_in * cliAddr){
         if(count%40==1){
             sendto(sockfd,response,n-4,0,(struct sockaddr *)cliAddr,sizeof(struct sockaddr_in ));
         }
-        
+        pthread_mutex_lock(&lock);
+
         if (update_ack ==1){
             printf("Packet is acked!\n");
             break;
@@ -467,6 +474,8 @@ void updateBack(char * request, int n,  struct sockaddr_in * cliAddr){
             printf("Timeout!\n");
             break;
         }
+        pthread_mutex_unlock(&lock);
+
         usleep(3000);
     }
     gettimeofday(&t2, NULL);
@@ -512,15 +521,20 @@ void * handleUpdate(void * ptr){
 int main(int argc, char *argv[])
 {
     //interrupt handler
-    //if (signal(SIGINT, sig_handler) == SIG_ERR)
+    /*if (signal(SIGINT, sig_handler) == SIG_ERR)
     { 
         printf("\ncan't catch SIGINT\n");
     }
+    */
    // readConfig();
 
     //configure the netlink
    init_netlink();
-
+    if (pthread_mutex_init(&lock, NULL) != 0)
+    {
+        printf("\n mutex init failed\n");
+        return 1;
+    }
 /*
    //set up the message
     char input [MAX_PAYLOAD-1];
@@ -641,7 +655,11 @@ int main(int argc, char *argv[])
           else if(msgheader->action  == 6){
             if( retv->sequenceNumber == sequenceNum){
                 printf("Acknowledge for a correct sequence number\n");
-                update_ack = 1;
+                pthread_mutex_lock(&lock);
+
+                update_ack = 1; 
+                pthread_mutex_unlock(&lock);
+
             }  else{
                 printf("Cannot ACK for an out-of-order ack packet%d\n",sequenceNum );
             }
@@ -653,9 +671,11 @@ int main(int argc, char *argv[])
             break;
         }
     }
+    pthread_mutex_destroy(&lock);
+
     close(netlink_socket_fd);
-    //free(mesg);
-    //free(clientAddressPtr);
+    free(mesg);
+    free(clientAddressPtr);
 	return 0;
 }
 
