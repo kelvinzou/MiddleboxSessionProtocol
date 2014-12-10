@@ -7,13 +7,16 @@ static struct sock *nl_sk = NULL;
 
 void addHash(record_t * item){
     record_t  *r;
-
-    r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
-    memcpy((char *)r, (char *)item, sizeof(record_t));
-    write_lock(&my_rwlock);
-    HASH_ADD(hh, records, key, sizeof(record_key_t), r);
-    write_unlock(&my_rwlock);
-     printk(KERN_ALERT "Kernel insertion happens!\n");
+    record_t *p=NULL;
+    HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
+    if(p==NULL){
+        r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
+        memcpy((char *)r, (char *)item, sizeof(record_t));
+        write_lock(&my_rwlock);
+        HASH_ADD(hh, records, key, sizeof(record_key_t), r);
+        write_unlock(&my_rwlock);
+         printk(KERN_ALERT "Kernel insertion happens!\n");
+    }
 }
 
 static void hello_nl_recv_msg(struct sk_buff *skb)
@@ -48,17 +51,19 @@ static void hello_nl_recv_msg(struct sk_buff *skb)
    
     
     record_t l, *p;
-
+    
     if (strcmp((char*)nlmsg_data(nlh), "del")==0) {
 
         memset(&l, 0, sizeof(record_t));
         l.key.dst = in_aton( "128.112.93.107" );
         l.key.sport =5001;
-        write_lock(&my_rwlock);
+        
         HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
-        HASH_DEL(records, p);
-        write_unlock(&my_rwlock);
+        
         if (p)  {
+            write_lock(&my_rwlock);
+            HASH_DEL(records, p);
+            write_unlock(&my_rwlock);
 	        printk(KERN_ALERT "Kernel eviction happens!\n");
 	        kfree(p);
         }
