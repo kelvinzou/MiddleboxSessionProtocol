@@ -689,7 +689,7 @@ int main(int argc, char *argv[])
 
 
                 pthread_mutex_unlock(&lock);
-                reset =0;
+                reset =1;
             }  else{
                 printf("Cannot ACK for an out-of-order ack packet%d\n",sequenceNum );
             }
