@@ -479,10 +479,12 @@ void updateBack(char * request, int n,  struct sockaddr_in * cliAddr){
     int count = 0;
     while(1){
         count++;
-
+        
+        printf("Check point A \n");
         sendto(sockfd,response,n-4,0,(struct sockaddr *)cliAddr,sizeof(struct sockaddr_in ));
 
         pthread_mutex_lock(&lock);
+        printf("Check point B \n");
 
         if (update_ack ==1){
             printf("Packet is acked!\n");
@@ -525,7 +527,7 @@ void * handleUpdate(void * ptr){
     } else{
        updateBack(request, n, cliAddr);
     }
-
+    printf("debug, finish up the old trhead!\n");
     free(request);
     free(cliAddr);
     free(ptr);
@@ -597,7 +599,7 @@ int main(int argc, char *argv[])
         flow * retv = NULL;
         int sequenceNum  = msgheader->sequenceNum;
         findItem( (int) ip_src,(int) ip_dst,(__u16)srcPort,(__u16) dstPort,&retv);
-        printf("count how many times I see packet%d\n", counter ++ );
+        printf("count how many times I see packet %d\n", ++counter );
 
         //The first part is to check whether the it is a sync request
         /*
