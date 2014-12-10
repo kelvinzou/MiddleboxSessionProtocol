@@ -343,6 +343,29 @@ void * handleRequest(void * ptr){
 
 
 
+void settingAck(char * AckMesg){
+
+    
+    * (int*) ((char *)AckMesg + sizeof(header) ) =0;
+    header * ackHeader = (header *)AckMesg;
+    ackHeader->action = 6;
+    ackHeader->sequenceNum = sequenceNumber;
+    int  srcPort =1 , dstPort=1;
+    struct in_addr addr;
+    char * srcIP = "10.0.0.1";
+    char * dstIP = "10.0.0.5";
+
+    inet_aton(srcIP, &addr);
+    ackHeader->src_IP =(int) addr.s_addr;
+    inet_aton(dstIP, &addr);
+    ackHeader->dst_IP =(int) addr.s_addr;
+    
+    ackHeader->srcPort = srcPort;
+    ackHeader->dstPort = dstPort;
+
+}
+
+
 //this notifies the update, it is UPDATE-SYN to next hop and SYN to back 
 void updateForward(char * request, int n, int * port_num, struct sockaddr_in * cliAddr){
     struct timeval t1, t2;
@@ -407,13 +430,17 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
   
             int action = RecvHeaderPointer->action;
             int sequenceNumber = RecvHeaderPointer->sequenceNum;
-            printf("Action is and sequence number is and seq number is %d and %d and ack value is %d \n", action, sequenceNumber, update_ack);
+            printf("Action is and sequence number is %d and %d and ack value is %d \n", action, sequenceNumber, update_ack);
             pthread_mutex_lock(&lock);
 
             if(update_ack !=1){
                 sendto(sockfd,recvsendmsg,m,0,(struct sockaddr *) cliAddr,sizeof(struct sockaddr_in ));
                 printf("Is it update sync ack? relaying packet again and the length is %d\n", m );
             } else {
+                int HeaderLength = sizeof(header)+4;
+                char AckMesg[HeaderLength];
+                settingAck(AckMesg);
+                sendto(SendSockfd,AckMesg,HeaderLength,0,(struct sockaddr *)&SendServaddr,sizeof(struct sockaddr_in ));
                 printf("Packet is been acked, so we can exit this loop now!\n");
                 break;
             }
@@ -425,7 +452,6 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
         }
     }
 }
-
 
 
 void updateBack(char * request, int n,  struct sockaddr_in * cliAddr){
