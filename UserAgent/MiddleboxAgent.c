@@ -395,20 +395,16 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
     poll_fd[0].fd = SendSockfd;
     poll_fd[0].events = POLLIN;
    
-    int flag =0;
     i =0;
     while(1){
         printf("Before entering session!\n");
-        if(flag==0){
-            i = poll(poll_fd, 1, 1);
-        }
+        i = poll(poll_fd, 1, 1);
+
         printf("after select session!\n");
 
         if(i==1){  
-            if(flag ==0){
-                m = recvfrom(SendSockfd,recvsendmsg,1400,0,NULL,NULL);
-                flag =1;
-            }
+            m = recvfrom(SendSockfd,recvsendmsg,1400,0,NULL,NULL);
+  
             int action = RecvHeaderPointer->action;
             int sequenceNumber = RecvHeaderPointer->sequenceNum;
             printf("Action is and sequence number is and seq number is %d and %d and ack value is %d \n", action, sequenceNumber, update_ack);
@@ -425,7 +421,7 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
 
         }
         else{
-            usleep(100000);
+            usleep(1000);
         }
     }
 }
@@ -459,9 +455,9 @@ void updateBack(char * request, int n,  struct sockaddr_in * cliAddr){
     int count = 0;
     while(1){
         count++;
-        if(count%40==1){
-            sendto(sockfd,response,n-4,0,(struct sockaddr *)cliAddr,sizeof(struct sockaddr_in ));
-        }
+
+        sendto(sockfd,response,n-4,0,(struct sockaddr *)cliAddr,sizeof(struct sockaddr_in ));
+
         pthread_mutex_lock(&lock);
 
         if (update_ack ==1){
@@ -476,7 +472,7 @@ void updateBack(char * request, int n,  struct sockaddr_in * cliAddr){
         }
         pthread_mutex_unlock(&lock);
 
-        usleep(3000);
+        usleep(1000);
     }
     gettimeofday(&t2, NULL);
     elapsedTime =(t2.tv_usec - t1.tv_usec) + (t2.tv_sec - t1.tv_sec)*1000000;
