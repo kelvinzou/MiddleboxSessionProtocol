@@ -70,7 +70,6 @@ static int __init pkt_mangle_init(void)
 
     if (!nl_sk)
     {
-
         printk(KERN_ALERT "Error creating socket.\n");
         return -10;
 
