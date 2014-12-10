@@ -52,7 +52,6 @@ struct iovec iov;
 int netlink_socket_fd;
 struct msghdr netlink_msg;
 
-int reset =0;
 pthread_mutex_t lock;
 
 
@@ -449,6 +448,7 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
             usleep(1000);
         }
     }
+    update_ack=0;
 }
 
 
@@ -487,8 +487,6 @@ void updateBack(char * request, int n,  struct sockaddr_in * cliAddr){
         if (update_ack ==1){
             printf("Packet is acked!\n");
             break;
-        } else  {
-            //printf("Not acked yet!\n");
         }
         if (count>=1000){
             printf("Timeout!\n");
@@ -500,6 +498,7 @@ void updateBack(char * request, int n,  struct sockaddr_in * cliAddr){
     }
     gettimeofday(&t2, NULL);
     elapsedTime =(t2.tv_usec - t1.tv_usec) + (t2.tv_sec - t1.tv_sec)*1000000;
+    update_ack =0;
     printf("3. Elapse Time is %f\n",elapsedTime);
 
 }
@@ -652,12 +651,6 @@ int main(int argc, char *argv[])
                 free(mesg);
                 free(clientAddressPtr);
             } else{
-
-                     if(reset){
-                    update_ack = 0; 
-                    reset = 0;
-                }
-
                 gettimeofday(&t1, NULL);
                 printf("IP and port is %lu and %u \n", ip_dst , dstPort);
                 printf("Update item with a sequence number %d!\n", sequenceNum);
@@ -689,9 +682,7 @@ int main(int argc, char *argv[])
                 //reset a bunch of stuff:
                 clearHash();
 
-
                 pthread_mutex_unlock(&lock);
-                reset =1;
             }  else{
                 printf("Cannot ACK for an out-of-order ack packet%d\n",sequenceNum );
             }
