@@ -652,6 +652,12 @@ int main(int argc, char *argv[])
                 free(mesg);
                 free(clientAddressPtr);
             } else{
+
+                     if(reset){
+                    update_ack = 0; 
+                    reset = 0;
+                }
+
                 gettimeofday(&t1, NULL);
                 printf("IP and port is %lu and %u \n", ip_dst , dstPort);
                 printf("Update item with a sequence number %d!\n", sequenceNum);
@@ -670,11 +676,7 @@ int main(int argc, char *argv[])
                 if(thread_iterator>=THREAD_NUM){
                     thread_iterator=0;
                 }   
-                 if(reset){
-                    update_ack = 0; 
-                    reset = 0;
-                }
-
+            
             }  
               
          }
