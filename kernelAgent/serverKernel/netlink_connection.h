@@ -5,7 +5,16 @@
 #include "uthash.h"
 static struct sock *nl_sk = NULL;
 
-static int counter = 0;
+void addHash(record_t * item){
+    record_t  *r;
+
+    r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
+    memcpy((char *)r, (char *)item, sizeof(record_t));
+    write_lock(&my_rwlock);
+    HASH_ADD(hh, records, key, sizeof(record_key_t), r);
+    write_unlock(&my_rwlock);
+     printk(KERN_ALERT "Kernel insertion happens!\n");
+}
 
 static void hello_nl_recv_msg(struct sk_buff *skb)
 { 
@@ -40,38 +49,33 @@ static void hello_nl_recv_msg(struct sk_buff *skb)
     NETLINK_CB(skb_out).dst_group = 0; /* not in mcast group */
     
     record_t l, *p;
-     printk(KERN_ALERT "Kernel eviction starts!\n");
-   // write_lock(&my_rwlock);
-    if (counter ==0){
-        counter ++;
-        memset(&l, 0, sizeof(record_t));
-	    l.key.dst = in_aton( "128.112.93.107" );
-	    l.key.dport =5001;
+    printk(KERN_ALERT "Kernel eviction starts!\n");
+    if (strcmp((char*)nlmsg_data(nlh), "del")==0) {
+    
+    
 
-	    HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
-	    HASH_DEL(records, p);
-	    if (p)  {
-		    printk(KERN_ALERT "Kernel eviction happens!\n");
-		    kfree(p);
-	    }
+    memset(&l, 0, sizeof(record_t));
+    l.key.dst = in_aton( "128.112.93.107" );
+    l.key.sport =5001;
+    write_lock(&my_rwlock);
+    HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
+    HASH_DEL(records, p);
+    write_unlock(&my_rwlock);
+    if (p)  {
+	    printk(KERN_ALERT "Kernel eviction happens!\n");
+	    kfree(p);
     }
-	else if (counter ==1 ){
-	counter ++;
-        memset(&l, 0, sizeof(record_t));
-	    l.key.src = in_aton( "128.112.93.106" );
-	    l.key.sport =5001;
-
-	    HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
-	    HASH_DEL(records, p);
-	    if (p) {
-		    printk(KERN_ALERT "Kernel eviction happens!\n");
-		    kfree(p);
-	    }  
-	}
-	
-    //write_unlock(&my_rwlock);
-
-    printk(KERN_ALERT "Kernel eviction finished!\n");
+    } else if (strcmp((char*)nlmsg_data(nlh), "add")==0){
+         memset(&l, 0, sizeof(record_t));
+        l.key.dst = in_aton( "128.112.93.107" );
+        l.key.sport =5001;
+        l.dst= in_aton("128.112.93.106");
+        addHash(&l);
+    }
+    
+    
+    
+    printk(KERN_ALERT "Unlocked\n");
 
     strncpy(nlmsg_data(nlh), msg, msg_size);
 
