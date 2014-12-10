@@ -254,6 +254,10 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
             if(update_ack !=1){
                 sendto(sockfd,recvsendmsg,m,0,(struct sockaddr *) cliAddr,sizeof(struct sockaddr_in ));
                 printf("SYN-ACK\n");
+                
+                char * netlink_message = "SYNACK";
+                send_netlink(netlink_message);
+
 
                 printf("Is it update sync ack? relaying packet again and the length is %d\n", m );
             } else {
