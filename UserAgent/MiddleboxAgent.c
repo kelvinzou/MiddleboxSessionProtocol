@@ -52,7 +52,7 @@ struct iovec iov;
 int netlink_socket_fd;
 struct msghdr netlink_msg;
 
-
+int reset =0;
 pthread_mutex_t lock;
 
 
@@ -586,7 +586,7 @@ int main(int argc, char *argv[])
         socklen_t len = sizeof(struct sockaddr_in) ;
         mesg =(char *) malloc(1400);
         clientAddressPtr = (struct sockaddr_in *) malloc(sizeof(struct sockaddr_in));
-        
+       
         int n = recvfrom(sockfd,mesg,1400,0,(struct sockaddr *)clientAddressPtr,&len);
         header * msgheader =  (header * ) mesg;
         //check the item in the hash table and then check the sequence number
@@ -670,6 +670,10 @@ int main(int argc, char *argv[])
                 if(thread_iterator>=THREAD_NUM){
                     thread_iterator=0;
                 }   
+                 if(reset){
+                    update_ack = 0; 
+                    reset = 0;
+                }
 
             }  
               
@@ -685,7 +689,7 @@ int main(int argc, char *argv[])
 
 
                 pthread_mutex_unlock(&lock);
-
+                reset =0;
             }  else{
                 printf("Cannot ACK for an out-of-order ack packet%d\n",sequenceNum );
             }
