@@ -439,7 +439,7 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
             } else {
                 int HeaderLength = sizeof(header)+4;
                 char AckMesg[HeaderLength];
-                settingAck(AckMesg);
+                settingAck(AckMesg, sequenceNumber);
                 sendto(SendSockfd,AckMesg,HeaderLength,0,(struct sockaddr *)&SendServaddr,sizeof(struct sockaddr_in ));
                 printf("Packet is been acked, so we can exit this loop now!\n");
                 break;
