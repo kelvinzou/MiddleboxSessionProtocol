@@ -130,7 +130,7 @@ int main(int argc, char**argv)
 
 		int HeaderLength = sizeof(header)+4;
 		char AckMesg[HeaderLength];
-		* (int*) (AckMesg+sizeof(header)) =0;
+		* (int*) ((char *)AckMesg + sizeof(header) ) =0;
 		header * ackHeader = (header *)AckMesg;
 		ackHeader->action = 6;
 		ackHeader->sequenceNum = SEQUENCENUM;
@@ -139,7 +139,23 @@ int main(int argc, char**argv)
 		printf("Time is %f\n",elapsedTime);
 		//just random key
 
-		sendto(sockfd,AckMesg,sizeof(header)+4,0,(struct sockaddr *) &servaddr,sizeof(struct sockaddr_in ));
+		int  srcPort =1 , dstPort=1;
+
+		struct in_addr addr;
+
+		char * srcIP = "10.0.0.1";
+
+		char * dstIP = "10.0.0.5";
+
+		inet_aton(srcIP, &addr);
+		ackHeader->src_IP =(int) addr.s_addr;
+		inet_aton(dstIP, &addr);
+		ackHeader->dst_IP =(int) addr.s_addr;
+		
+		ackHeader->srcPort = srcPort;
+		ackHeader->dstPort = dstPort;
+	
+		sendto(sockfd,AckMesg,HeaderLength,0,(struct sockaddr *) &servaddr,sizeof(struct sockaddr_in ));
 		/*
 		Here we add keep alive messages to show the mobility can be handled for packets on the fly
 		

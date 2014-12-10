@@ -581,7 +581,7 @@ int main(int argc, char *argv[])
         flow * retv = NULL;
         int sequenceNum  = msgheader->sequenceNum;
         findItem( (int) ip_src,(int) ip_dst,(__u16)srcPort,(__u16) dstPort,&retv);
-        
+        printf("count how many times I see packet%d\n", counter ++ );
 
         //The first part is to check whether the it is a sync request
         if (msgheader->action == 1){
