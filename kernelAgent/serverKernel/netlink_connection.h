@@ -51,8 +51,8 @@ static void hello_nl_recv_msg(struct sk_buff *skb)
    
     
     record_t l, *p;
-    
-    if (strcmp((char*)nlmsg_data(nlh), "del")==0) {
+    //here we only activate the SYN_ACK rule, SYN rule was installed way before
+    if (strcmp((char*)nlmsg_data(nlh), "SYNACK")==0) {
 
         memset(&l, 0, sizeof(record_t));
         l.key.dst = in_aton( "128.112.93.107" );
@@ -67,7 +67,7 @@ static void hello_nl_recv_msg(struct sk_buff *skb)
 	        printk(KERN_ALERT "Kernel eviction happens!\n");
 	        kfree(p);
         }
-    } else if (strcmp((char*)nlmsg_data(nlh), "add")==0){
+    } else if (strcmp((char*)nlmsg_data(nlh), "RESET")==0){
          memset(&l, 0, sizeof(record_t));
         l.key.dst = in_aton( "128.112.93.107" );
         l.key.sport =5001;
