@@ -393,7 +393,7 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
     poll_fd[0].events = POLLIN;
    
     int flag =0;
-    int i =0;
+    i =0;
     while(1){
         printf("Before entering session!\n");
         if(flag==0){
