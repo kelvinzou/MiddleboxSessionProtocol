@@ -6,11 +6,13 @@
 static struct sock *nl_sk = NULL;
 
 void deleteHash(record_t * item){
-    write_lock(&my_rwlock);
+    
     record_t * p=NULL;
     HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
-    HASH_DEL(records, p);
-    if (p)  {
+
+    write_lock(&my_rwlock);
+    if (p!=NULL) {
+    	HASH_DEL(records, p);
         printk(KERN_ALERT "Kernel eviction happens!\n");
         kfree(p);
     }
@@ -19,13 +21,17 @@ void deleteHash(record_t * item){
 
 void addHash(record_t * item){
     record_t  *r;
-
-    r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
-    memcpy((char *)r, (char *)item, sizeof(record_t));
-    write_lock(&my_rwlock);
-    HASH_ADD(hh, records, key, sizeof(record_key_t), r);
-    write_unlock(&my_rwlock);
-     printk(KERN_ALERT "Kernel insertion happens!\n");
+    record_t * p=NULL;
+    HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
+    if(p==NULL){
+    	r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
+	    memcpy((char *)r, (char *)item, sizeof(record_t));
+	    write_lock(&my_rwlock);
+	    HASH_ADD(hh, records, key, sizeof(record_key_t), r);
+	    write_unlock(&my_rwlock);
+	    printk(KERN_ALERT "Kernel insertion happens!\n");
+    }
+    
 }
 
 static void netlink_agent(struct sk_buff *skb)
