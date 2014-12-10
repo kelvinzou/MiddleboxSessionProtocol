@@ -244,6 +244,7 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
         printf("after select session!\n");
 
         if(i==1){  
+            printf("SYN-ACK\n");
             m = recvfrom(SendSockfd,recvsendmsg,1400,0,NULL,NULL);
   
             int action = RecvHeaderPointer->action;
@@ -302,15 +303,13 @@ void updateBack(char * request, int n,  struct sockaddr_in * cliAddr){
     int count = 0;
     while(1){
         count++;
+        printf("SYN-ACK\n");
         
-        printf("Check point A \n");
         sendto(sockfd,response,n-4,0,(struct sockaddr *)cliAddr,sizeof(struct sockaddr_in ));
-        printf("Check point B \n");
         pthread_mutex_lock(&lock);
-        printf("Check point C \n");
        
         if (update_ack ==1){
-            printf("Packet is acked!\n");
+            printf("Packet is ACKed!\n");
             break;
         }
         if (count>=1000){
@@ -432,8 +431,10 @@ int main(int argc, char *argv[])
                 free(clientAddressPtr);
             } else{
                 gettimeofday(&t1, NULL);
-                printf("IP and port is %lu and %u \n", ip_dst , dstPort);
-                printf("Update item with a sequence number %d!\n", sequenceNum);
+                printf("IP and port and sequenceNumber is %lu and %u and %lu\n", ip_dst , dstPort, sequenceNum);
+
+
+                printf(" SYN!\n");
                 addItem((int) ip_src,(int) ip_dst,(__u16)srcPort,(__u16) dstPort ,sequenceNum);
 
                 void * para = malloc(sizeof(parameter));
@@ -455,7 +456,7 @@ int main(int argc, char *argv[])
          }
           else if(msgheader->action  == 6){
             if( retv->sequenceNumber == sequenceNum){
-                printf("Acknowledge for a correct sequence number\n");
+                printf("ACK\n");
                 pthread_mutex_lock(&lock);
 
                 update_ack = 1; 
