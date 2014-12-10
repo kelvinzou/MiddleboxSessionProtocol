@@ -45,26 +45,23 @@ static void hello_nl_recv_msg(struct sk_buff *skb)
 		return;
     }
 
-    nlh = nlmsg_put(skb_out, 0, 0, NLMSG_DONE, msg_size, 0);
-    NETLINK_CB(skb_out).dst_group = 0; /* not in mcast group */
+   
     
     record_t l, *p;
-    printk(KERN_ALERT "Kernel eviction starts!\n");
-    if (strcmp((char*)nlmsg_data(nlh), "del")==0) {
-    
-    
 
-    memset(&l, 0, sizeof(record_t));
-    l.key.dst = in_aton( "128.112.93.107" );
-    l.key.sport =5001;
-    write_lock(&my_rwlock);
-    HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
-    HASH_DEL(records, p);
-    write_unlock(&my_rwlock);
-    if (p)  {
-	    printk(KERN_ALERT "Kernel eviction happens!\n");
-	    kfree(p);
-    }
+    if (strcmp((char*)nlmsg_data(nlh), "del")==0) {
+
+        memset(&l, 0, sizeof(record_t));
+        l.key.dst = in_aton( "128.112.93.107" );
+        l.key.sport =5001;
+        write_lock(&my_rwlock);
+        HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
+        HASH_DEL(records, p);
+        write_unlock(&my_rwlock);
+        if (p)  {
+	        printk(KERN_ALERT "Kernel eviction happens!\n");
+	        kfree(p);
+        }
     } else if (strcmp((char*)nlmsg_data(nlh), "add")==0){
          memset(&l, 0, sizeof(record_t));
         l.key.dst = in_aton( "128.112.93.107" );
@@ -73,7 +70,8 @@ static void hello_nl_recv_msg(struct sk_buff *skb)
         addHash(&l);
     }
     
-    
+    nlh = nlmsg_put(skb_out, 0, 0, NLMSG_DONE, msg_size, 0);
+    NETLINK_CB(skb_out).dst_group = 0; /* not in mcast group */
     
     printk(KERN_ALERT "Unlocked\n");
 
