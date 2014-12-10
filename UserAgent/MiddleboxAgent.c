@@ -168,7 +168,7 @@ void sig_handler(int signo)
 Those are UDP messages that are designed to handle the control part of the protocol
 
 */
-
+/*
 void sendBack(char * request, int n,  struct sockaddr_in * cliAddr){
 
     double elapsedTime;
@@ -341,7 +341,7 @@ void * handleRequest(void * ptr){
     return NULL;
 }
 
-
+*/
 
 void settingAck(char * AckMesg, int sequenceNumber){
 
@@ -406,8 +406,6 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
     int m ;
     
     header * RecvHeaderPointer = (header *) recvsendmsg;
-    
-   
 
     gettimeofday(&t1, NULL);
     //receivd the message from the next hop, and reply the message back to the last hop, it is basically a repeated sending, until it is terminate. 
@@ -508,9 +506,6 @@ void updateBack(char * request, int n,  struct sockaddr_in * cliAddr){
 
 
 
-
-
-
 void * handleUpdate(void * ptr){
     printf("Debug, get in HandleUpdate?\n");
     parameter * passingparameter = (parameter *) ptr;
@@ -606,6 +601,7 @@ int main(int argc, char *argv[])
         printf("count how many times I see packet%d\n", counter ++ );
 
         //The first part is to check whether the it is a sync request
+        /*
         if (msgheader->action == 1){
             if (retv!=NULL && retv->sequenceNumber >= sequenceNum){
                 printf("SYN are out of date, simply ignore the packet!\n");
@@ -645,14 +641,18 @@ int main(int argc, char *argv[])
             }
             free(mesg);
             free(clientAddressPtr);
-        }
+        }*/
         // UPDATE-SYN
-         else if (msgheader->action ==4){
+
+
+        if (msgheader->action ==4){
+
             if (retv!=NULL && retv->sequenceNumber >= sequenceNum){
                 printf("Updates are out of date, simply ignore the packet!\n");
                 free(mesg);
                 free(clientAddressPtr);
             } else{
+                gettimeofday(&t1, NULL);
                 printf("IP and port is %lu and %u \n", ip_dst , dstPort);
                 printf("Update item with a sequence number %d!\n", sequenceNum);
                 addItem((int) ip_src,(int) ip_dst,(__u16)srcPort,(__u16) dstPort ,sequenceNum);
@@ -680,6 +680,10 @@ int main(int argc, char *argv[])
                 pthread_mutex_lock(&lock);
 
                 update_ack = 1; 
+                //reset a bunch of stuff:
+                clearHash();
+
+
                 pthread_mutex_unlock(&lock);
 
             }  else{
@@ -689,7 +693,7 @@ int main(int argc, char *argv[])
         }
         gettimeofday(&t2, NULL);
         elapsedTime =(t2.tv_sec - t1.tv_sec);
-        if (elapsedTime>600){
+        if (elapsedTime>60){
             break;
         }
     }
