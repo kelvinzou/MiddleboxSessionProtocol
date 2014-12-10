@@ -245,7 +245,7 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
 
         if(i==1){  
             pthread_mutex_lock(&lock);
-            if(update_ack !=1){
+            if(update_ack ==1){
                 int HeaderLength = sizeof(header)+4;
                 char AckMesg[HeaderLength];
                 settingAck(AckMesg, sequenceNumber);
