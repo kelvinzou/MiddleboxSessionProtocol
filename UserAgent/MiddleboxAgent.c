@@ -270,6 +270,8 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
         }
     }
     update_ack=0;
+    pthread_mutex_unlock(&lock);
+
 }
 
 
@@ -307,7 +309,6 @@ void updateBack(char * request, int n,  struct sockaddr_in * cliAddr){
         pthread_mutex_lock(&lock);
         printf("Check point C \n");
        
-
         if (update_ack ==1){
             printf("Packet is acked!\n");
             break;
@@ -324,7 +325,7 @@ void updateBack(char * request, int n,  struct sockaddr_in * cliAddr){
     elapsedTime =(t2.tv_usec - t1.tv_usec) + (t2.tv_sec - t1.tv_sec)*1000000;
     update_ack =0;
     printf("3. Elapse Time is %f\n",elapsedTime);
-
+    pthread_mutex_unlock(&lock);
 }
 
 
@@ -460,8 +461,8 @@ int main(int argc, char *argv[])
                 update_ack = 1; 
                 //reset a bunch of stuff:
                 clearHash();
-
                 pthread_mutex_unlock(&lock);
+
             }  else{
                 printf("Cannot ACK for an out-of-order ack packet%d\n",sequenceNum );
             }
