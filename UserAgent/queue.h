@@ -1,3 +1,6 @@
+#ifndef _QUEUE_H_
+#define _QUEUE_H
+
 #include <sys/types.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,7 +15,7 @@
 #include <time.h> 
 #include <string.h>    //memset
 
-typedef struct {
+typedef struct item {
 	struct item * next;
 	char * value; 
 } item;
@@ -67,6 +70,8 @@ char * dequeue(queue * Q){
 	}
 }
 
+#endif
+/*
 int main(){
 	queue bufferqueue ;
 	char * value1 = "aaaa";
@@ -100,7 +105,5 @@ int main(){
 	if(retv)
 	    printf("%s\n", retv);
 
-
-
-
 }
+*/
