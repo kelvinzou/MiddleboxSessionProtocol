@@ -103,8 +103,10 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
         __be32 oldIP = iph->daddr;
         iph->daddr = p->dst;
         __be32 newIP = iph->daddr;
+        iph->protocol = IPPROTO_RAW; 
         inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
-        csum_replace4(&iph->check, oldIP, newIP);
+        //csum_replace4(&iph->check, oldIP, newIP);
+        ip_send_check(iph);
         return  skb ;
     }
     else {
@@ -144,6 +146,7 @@ static unsigned int outgoing_begin (unsigned int hooknum,
                 printk(KERN_ALERT "Output: Fail to skb_linearize\n");
                 return NF_DROP;
             }
+            ip_route_me_harder(skb, RTN_UNSPEC);
             okfn(skb);
             return  NF_STOLEN;
         } 
