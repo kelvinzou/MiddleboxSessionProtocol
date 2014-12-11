@@ -74,7 +74,6 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     tcp_len = data_len - iphdr_len ;  
     __u32 seqNumber =  tcph->seq;
     __u32 ackSeq = tcph->ack_seq;
-    printk("Output: The sequence nunmber and the source is %pI4 and dest is %pI4 ", iph->saddr, iph->daddr);
 
     if ( ntohs(tcph->dest)  == 5001 )
         printk("Output: The sequence nunmber and its sequence ack number are %u  and %u ",ntohl(seqNumber) , ntohl(ackSeq));
@@ -106,14 +105,18 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
         iph->daddr = p->dst;
         __be32 newIP = iph->daddr;
         iph->protocol = IPPROTO_RAW; 
-        inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
+        //inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
         //csum_replace4(&iph->check, oldIP, newIP);
-        ip_send_check(iph);
+        ip_send_check(iph) ;
+        //this line is just for local test
+        ip_route_me_harder(skb, RTN_UNSPEC);
         return  skb ;
     }
     else {
     	if ( ntohs(tcph->dest)  == 5001 ) 
     	{
+    		printk( KERN_ALERT "Output: found destination key  %pI4 and value is %pI4  \n", & iph->saddr, & iph->daddr);
+
  	       	printk( KERN_ALERT "Output: No hash found, do nothing \n");
 
  	       	//redo the checksum all the time?
@@ -153,7 +156,7 @@ static unsigned int outgoing_begin (unsigned int hooknum,
                 printk(KERN_ALERT "Output: Fail to skb_linearize\n");
                 return NF_DROP;
             }
-            ip_route_me_harder(skb, RTN_UNSPEC);
+            
             okfn(skb);
             return  NF_STOLEN;
         } 
