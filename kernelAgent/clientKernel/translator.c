@@ -88,9 +88,9 @@ static int __init pkt_mangle_init(void)
 	r->key.dst = in_aton("128.112.93.108");
 	r->key.dport =5001;
     //this is for testing raw socket
-    r->dst =  in_aton("128.112.93.107");
+    //r->dst =  in_aton("128.112.93.107");
     //this is for testing MBP
-    //r->dst =  in_aton("128.112.93.106");
+    r->dst =  in_aton("128.112.93.106");
 
     //r->dport = 5001;
     write_lock(&my_rwlock);
