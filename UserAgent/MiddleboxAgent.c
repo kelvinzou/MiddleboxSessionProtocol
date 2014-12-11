@@ -44,6 +44,9 @@ This is the user space agent of the middlebox protocol
 #define UDP_PORT 1025
 
 #define THREAD_NUM 100
+
+#define NETLINK_ON true
+
 using namespace std;
 
 struct sockaddr_nl netlink_src, netlink_dest;
@@ -254,11 +257,11 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
             if(update_ack !=1){
                 sendto(sockfd,recvsendmsg,m,0,(struct sockaddr *) cliAddr,sizeof(struct sockaddr_in ));
                 printf("SYN-ACK\n");
+                if(NETLINK_ON){
+                    char * netlink_message = "SYNACK";
+                    send_netlink(netlink_message);
+                }
                 
-                char * netlink_message = "SYNACK";
-                send_netlink(netlink_message);
-
-
                 printf("Is it update sync ack? relaying packet again and the length is %d\n", m );
             } else {
                 int HeaderLength = sizeof(header)+4;
@@ -320,8 +323,12 @@ void updateBack(char * request, int n,  struct sockaddr_in * cliAddr){
         
         sendto(sockfd,response,n-4,0,(struct sockaddr *)cliAddr,sizeof(struct sockaddr_in ));
         printf("SYN-ACK\n");
-        char * netlink_message = "SYNACK";
-        send_netlink(netlink_message);
+
+        if(NETLINK_ON){
+            char * netlink_message = "SYNACK";
+            send_netlink(netlink_message);
+        }
+        
         if (count>=1000){
             printf("Timeout!\n");
             break;
@@ -442,10 +449,13 @@ int main(int argc, char *argv[])
                 gettimeofday(&t1, NULL);
                 printf("IP and port and sequenceNumber is %lu and %u and %lu\n", ip_dst , dstPort, sequenceNum);
 
-
                 printf(" SYN!\n");
-                char * netlink_message = "SYN";
-                send_netlink(netlink_message);
+
+                if(NETLINK_ON){
+                    char * netlink_message = "SYN";
+                    send_netlink(netlink_message);
+                }
+               
                 addItem((int) ip_src,(int) ip_dst,(__u16)srcPort,(__u16) dstPort ,sequenceNum);
 
                 void * para = malloc(sizeof(parameter));

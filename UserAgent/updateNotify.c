@@ -37,7 +37,10 @@ int  srcPort =1 , dstPort=1;
 
 int sync_packet(int fd, char * writeBuffer, struct sockaddr_in * servaddr ){
 	
+	//this is where to define the middlebox update 
+
 	char * MBox[] ={"128.112.93.108", "128.112.93.107"} ;
+	
 	int ByteStreamCount = sizeof(header) + 4 + 4 *( sizeof(MBox) / sizeof(char * )) ;
 
 	header * hdr_ptr = (header*) writeBuffer;
@@ -66,6 +69,7 @@ int sync_packet(int fd, char * writeBuffer, struct sockaddr_in * servaddr ){
 	gettimeofday(&t1, NULL);
 	
 	sendto(fd,writeBuffer,ByteStreamCount,0,(struct sockaddr *)servaddr,sizeof(struct sockaddr_in ));
+	
 	return 0;
 }
 
