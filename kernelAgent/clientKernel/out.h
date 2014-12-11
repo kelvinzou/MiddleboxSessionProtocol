@@ -74,6 +74,8 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     tcp_len = data_len - iphdr_len ;  
     __u32 seqNumber =  tcph->seq;
     __u32 ackSeq = tcph->ack_seq;
+    printk("Output: The sequence nunmber and the source is %pI4 and dest is %pI4 ", iph->saddr, iph->daddr);
+
     if ( ntohs(tcph->dest)  == 5001 )
         printk("Output: The sequence nunmber and its sequence ack number are %u  and %u ",ntohl(seqNumber) , ntohl(ackSeq));
 
@@ -95,7 +97,7 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     if (p){
 
         //the following is the header rewriting
-		if (unlikely(skb_linearize(skb) != 0))
+		if ( unlikely(skb_linearize(skb) != 0) )
 			return NULL;
         
         printk( KERN_ALERT "Output: found destination key  %pI4 and value is %pI4  \n", &p->key.dst , &p->dst);
@@ -110,8 +112,13 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
         return  skb ;
     }
     else {
-    	if ( ntohs(tcph->dest)  == 5001 )
-        	printk( KERN_ALERT "Output: No hash found, do nothing \n");
+    	if ( ntohs(tcph->dest)  == 5001 ) 
+    	{
+ 	       	printk( KERN_ALERT "Output: No hash found, do nothing \n");
+
+ 	       	//redo the checksum all the time?
+ 	       	//tcph->check = ~tcp_v4_check(tcp_len, iph->saddr, iph->daddr,0);
+    	}
         return skb;
         }
     }

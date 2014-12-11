@@ -12,10 +12,15 @@
 #include <time.h> 
 #include <string.h>    //memset
 
-
+//#include <queue>
 #include "queue.h"
 
 #define TCP_FLAG false
+
+struct iphdr *ip;
+struct tcphdr *tcp;
+struct sockaddr_in source, dest;
+int sock, sendSocket, on = 1, one=1;
 
  
 /* 
@@ -58,23 +63,74 @@ unsigned short csum(unsigned short *ptr,int nbytes)
 }
 
 
+
+void sendback(char * recv_buffer,  unsigned int ipaddr, struct iphdr * ip, struct tcphdr * tcp){
+
+
+    printf("We send the traffic via sendSocket\n");
+    struct pseudo_header psh;
+    
+    ip->daddr  = ipaddr;// inet_addr("128.112.93.106");
+    ip->protocol = IPPROTO_TCP;
+    ip->check = csum( (unsigned short *) recv_buffer, ntohs(ip->tot_len) );
+    
+    memset(&dest, 0, sizeof(struct sockaddr_in));
+    dest.sin_addr.s_addr = ip->daddr ;
+
+
+    psh.source_address = ip->saddr;
+    psh.dest_address = ip->daddr;
+    psh.placeholder = 0;
+    psh.protocol = IPPROTO_TCP;
+    psh.tcp_length = ntohs(ip->tot_len)- sizeof(struct iphdr);
+    int psize = sizeof(struct pseudo_header) + ntohs(ip->tot_len) - ip->ihl*4;
+
+    void * pseudogram  = malloc(psize);
+    
+    memcpy((char *)pseudogram, (char*) & psh, sizeof(struct pseudo_header));
+    memcpy((char*)pseudogram+sizeof(struct pseudo_header), tcp, ntohs(ip->tot_len) - ip->ihl*4 );
+
+    tcp->check = 0;// csum((unsigned short*) pseudogram , psize);
+    free(pseudogram);
+
+    if (sendto (sendSocket, recv_buffer,ntohs(ip->tot_len) ,  0, (struct sockaddr *) &dest, sizeof (dest)) < 0)
+    {
+        perror("sendto failed");
+        printf ("Packet Send. Length : %d \n" , ntohs(ip->tot_len));
+    }
+    //Data send successfully
+    else
+    {
+        printf ("Packet Send. Length : %d \n" , ntohs(ip->tot_len));
+    }
+}
+
+void reinjectBuffer(queue * Q ){
+    while (Q->size >0){
+        char * packet = dequeue(Q);
+
+        struct iphdr *ip = (struct iphdr *) packet;
+        unsigned short  iphdrlen =ip->ihl*4;
+        struct tcphdr *tcp = (struct tcphdr *) (packet + iphdrlen);
+        sendback(packet,inet_addr("128.112.93.106"), ip, tcp );
+
+        free (packet);
+    }
+}
+
 int main(int argc, char *argv[]) {
     //init all the headers
-    struct iphdr *ip;
-    struct tcphdr *tcp;
-    struct sockaddr_in source, dest;
-    struct pseudo_header psh;
+    queue BufferedQueue;
 
-    int sock, on = 1, one=1;
-    
-    int sendSocket = socket (PF_INET, SOCK_RAW, IPPROTO_TCP) ;
+    queue_init(&BufferedQueue);
 
+
+    sendSocket = socket (PF_INET, SOCK_RAW, IPPROTO_TCP) ;
      if (setsockopt (sendSocket, IPPROTO_IP, IP_HDRINCL, &one, sizeof (one)) < 0)
     {
         perror("Error setting IP_HDRINCL");
         exit(0);
     }
-
 
     //build socket
     if(TCP_FLAG){
@@ -90,7 +146,6 @@ int main(int argc, char *argv[]) {
         printf("socket() ok\n");
     }
 
-
     //&on is to set the SO_REUSEADDR to true
     if (setsockopt(sock, IPPROTO_IP, IP_HDRINCL, &on, sizeof(on)) == -1) {
         perror("setsockopt() failed");
@@ -99,72 +154,71 @@ int main(int argc, char *argv[]) {
         printf("setsockopt() ok\n");
     }
 
-    char recv_buffer[65536];
+    //select initilize, to avoid recvfrom blocking call
+    struct timeval tv;
+    fd_set readfds, active_fs;
+    tv.tv_sec = 0;
+    tv.tv_usec = 1000;
+    FD_ZERO(&readfds);
+    FD_SET(sock, &readfds);
+
+    char * recv_buffer;
+    int select_print =1;
+
 	while(1){
-		//sleep(1000);
-		
         struct sockaddr_in from;
         socklen_t fromlen;
+
         fromlen = sizeof from;
-        recvfrom(sock, recv_buffer, sizeof(recv_buffer), 0,(struct sockaddr*) &from, &fromlen);
-       
+        
+        active_fs = readfds;
+        select(sock+1, &active_fs, NULL, NULL, &tv);
+        
+        if(FD_ISSET(sock, &active_fs)){
 
-        //recvfrom(sock, recv_buffer, sizeof(recv_buffer), 0,NULL, NULL);
-		struct iphdr *ip = (struct iphdr *) recv_buffer;
-
-        memset(&source, 0, sizeof(source));
-        source.sin_addr.s_addr = ip->saddr;
-         
-        memset(&dest, 0, sizeof(dest));
-        dest.sin_addr.s_addr = ip->daddr;
-        unsigned short  iphdrlen =ip->ihl*4;
-        struct tcphdr *tcp = (struct tcphdr *) (recv_buffer + iphdrlen);
-        if(ntohs(tcp->dest) ==5001){
+            recv_buffer = (char *) malloc(1500);
+            recvfrom(sock, recv_buffer, 1500, 0,(struct sockaddr*) &from, &fromlen);
             printf("\nThe source address for receive from is %s\n", inet_ntoa( *(struct in_addr* ) &from.sin_addr.s_addr));
-            printf("TTL= %d\n", ip->ttl);
-            printf("Window= %d\n", tcp->window);
-            printf("ACK= %lu\n", tcp->ack);
-            printf("IP field the total length is %d\n", ntohs(ip->tot_len)) ;
-            printf("%s:%d\t",  inet_ntoa(source.sin_addr), ntohs(tcp->source)); 
-            printf(" --> \t%s:%d \tSeq: %lu \tAck: %lu\n", inet_ntoa(dest.sin_addr), ntohs(tcp->dest), ntohl(tcp->seq), ntohl(tcp->ack_seq));
+           
 
-            printf("We send the traffic via sendSocket\n");
-            
-            //seems like we dont need to redo checksum for the TCP header, but we do need to redo it for the IP header.
+            //recvfrom(sock, recv_buffer, sizeof(recv_buffer), 0,NULL, NULL);
+    		struct iphdr *ip = (struct iphdr *) recv_buffer;
 
-            ip->daddr  =  inet_addr("128.112.93.106");
-            ip->protocol = IPPROTO_TCP;
-            ip->check = csum( (unsigned short *) recv_buffer, ntohs(ip->tot_len) );
+            memset(&source, 0, sizeof(source));
+            source.sin_addr.s_addr = ip->saddr;
+             
             memset(&dest, 0, sizeof(dest));
-            dest.sin_addr.s_addr = ip->daddr ;
+            dest.sin_addr.s_addr = ip->daddr;
+            unsigned short  iphdrlen =ip->ihl*4;
+            struct tcphdr *tcp = (struct tcphdr *) (recv_buffer + iphdrlen);
+            if(ntohs(tcp->dest) ==5001){
+                printf("\nThe source address for receive from is %s\n", inet_ntoa( *(struct in_addr* ) &from.sin_addr.s_addr));
+                printf("TTL= %d\n", ip->ttl);
+                printf("Window= %d\n", tcp->window);
+                printf("ACK= %lu\n", tcp->ack);
+                printf("IP field the total length is %d\n", ntohs(ip->tot_len)) ;
+                printf("%s:%d\t",  inet_ntoa(source.sin_addr), ntohs(tcp->source)); 
+                printf(" --> \t%s:%d \tSeq: %lu \tAck: %lu\n", inet_ntoa(dest.sin_addr), ntohs(tcp->dest), ntohl(tcp->seq), ntohl(tcp->ack_seq));
+                enqueue(&BufferedQueue, recv_buffer);
+                printf("The item number is %d\n", BufferedQueue.size);
 
-
-            psh.source_address = ip->saddr;
-            psh.dest_address = ip->daddr;
-            psh.placeholder = 0;
-            psh.protocol = IPPROTO_TCP;
-            psh.tcp_length = ntohs(ip->tot_len)- sizeof(struct iphdr);
-            int psize = sizeof(struct pseudo_header) + ntohs(ip->tot_len) - sizeof(struct iphdr);
-            void * pseudogram  = malloc(psize);
-            
-            memcpy((char *)pseudogram, (char*) & psh, sizeof(struct pseudo_header));
-            memcpy((char*)pseudogram+sizeof(struct pseudo_header), tcp, ntohs(ip->tot_len) - sizeof(struct iphdr) );
-            tcp->check = csum((unsigned short*) pseudogram , psize);
-            free(pseudogram);
-
-            if (sendto (sendSocket, recv_buffer,ntohs(ip->tot_len) ,  0, (struct sockaddr *) &dest, sizeof (dest)) < 0)
-            {
-                perror("sendto failed");
-                 printf ("Packet Send. Length : %d \n" , ntohs(ip->tot_len));
+                //sendback(sendSocket, recv_buffer, inet_addr("128.112.93.106"),  ip, tcp,  &dest );
+                
+            } else{
+                free(recv_buffer);
             }
-            //Data send successfully
-            else
-            {
-                printf ("Packet Send. Length : %d \n" , ntohs(ip->tot_len));
+        } else{
+            usleep(1000);
+            select_print++;
+            if(select_print%100==0)
+                {
+                    //printf("poll at every 100 ms print\n");
+                }
+            if(BufferedQueue.size >=4){
+            reinjectBuffer( & BufferedQueue);
+            //break;
             }
-
-
-        }
+        }   
        
         //printf("dest IP is %s and the port number is %d\n",inet_ntoa(dest.sin_addr), ntohs(tcp->dest));
 	}
