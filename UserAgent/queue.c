@@ -81,9 +81,24 @@ int main(){
 	enqueue(&bufferqueue, value2);
 
 	enqueue(&bufferqueue, value3);
+		
+	enqueue(&bufferqueue, value1);
+
+	enqueue(&bufferqueue, value2);
+
+	enqueue(&bufferqueue, value3);
+	
 	printf("%s\n", dequeue(&bufferqueue));
 	printf("%s\n", dequeue(&bufferqueue));
 	printf("%s\n", dequeue(&bufferqueue));
+	
+	printf("%s\n", dequeue(&bufferqueue));
+	printf("%s\n", dequeue(&bufferqueue));
+	printf("%s\n", dequeue(&bufferqueue));
+	
+	char * retv = dequeue(&bufferqueue);
+	if(retv)
+	    printf("%s\n", retv);
 
 
 
