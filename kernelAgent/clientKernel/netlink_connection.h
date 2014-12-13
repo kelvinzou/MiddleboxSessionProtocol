@@ -54,7 +54,7 @@ static void netlink_agent(struct sk_buff *skb)
     
     record_t item;
     //here we just need SYNC packet, because SYN-ACK are rule is preinstalled first
-    if (strcmp((char*)nlmsg_data(nlh), "SYN")==0) {
+    if (strcmp((char*)nlmsg_data(nlh), "ACK")==0) {
         memset(&item, 0, sizeof(record_t));
         item.key.dst = in_aton( "128.112.93.108" );
         item.key.dport =5001;
@@ -68,6 +68,20 @@ static void netlink_agent(struct sk_buff *skb)
     } 
 
     else if (strcmp((char*)nlmsg_data(nlh), "RESET")==0) {
+        memset(&item, 0, sizeof(record_t));
+        item.key.dst = in_aton( "128.112.93.108" );
+        item.key.dport =5001;
+        item.dst = in_aton("128.112.93.106");
+        addHash(& item);
+        
+        memset(&item, 0, sizeof(record_t));
+        item.key.src = in_aton( "128.112.93.106" );
+        item.key.sport =5001;
+        item.src =  in_aton("128.112.93.108");;
+        addHash(& item);
+    } 
+
+    else if (strcmp((char*)nlmsg_data(nlh), "BUFFER")==0) {
         memset(&item, 0, sizeof(record_t));
         item.key.dst = in_aton( "128.112.93.108" );
         item.key.dport =5001;
@@ -109,3 +123,7 @@ static void netlink_agent(struct sk_buff *skb)
     if (res < 0)
         printk(KERN_ALERT "Error while sending bak to user\n");
 }
+
+MODULE_AUTHOR("Kelvin Zou: <xuanz@cs.princeton.edu>");
+MODULE_DESCRIPTION("Interacting with user space function calls, atomic operations are done at kernel space");
+MODULE_LICENSE("GPL");

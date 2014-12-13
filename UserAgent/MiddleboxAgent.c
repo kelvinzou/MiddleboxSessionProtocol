@@ -6,8 +6,6 @@ Princeotn university
 This is the user space agent of the middlebox protocol
 */
 
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -44,6 +42,11 @@ This is the user space agent of the middlebox protocol
 #define UDP_PORT 1025
 
 #define THREAD_NUM 100
+
+#define NETLINK_FLAG false
+
+#define RETRANSMIT_TIMER 20000 //minimum is 1000 since poll only supports down to 1 ms
+
 using namespace std;
 
 struct sockaddr_nl netlink_src, netlink_dest;
@@ -234,12 +237,12 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
     struct timeval tv;
 
     poll_fd[0].fd = SendSockfd;
-    poll_fd[0].events = POLLIN;
+    poll_fd[0].events = POLLIN|POLLPRI;
    
     i =0;
     while(1){
         printf("Before entering session!\n");
-        i = poll(poll_fd, 1, 1);
+        i = poll(poll_fd, 1, RETRANSMIT_TIMER/1000);
 
         printf("after select session!\n");
 
@@ -254,11 +257,10 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
             if(update_ack !=1){
                 sendto(sockfd,recvsendmsg,m,0,(struct sockaddr *) cliAddr,sizeof(struct sockaddr_in ));
                 printf("SYN-ACK\n");
-                
-                char * netlink_message = "SYNACK";
-                send_netlink(netlink_message);
-
-
+                if(NETLINK_FLAG){
+                    char * netlink_message = "SYNACK";
+                    send_netlink(netlink_message);
+                }
                 printf("Is it update sync ack? relaying packet again and the length is %d\n", m );
             } else {
                 int HeaderLength = sizeof(header)+4;
@@ -272,10 +274,21 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
 
         }
         else{
-            usleep(1000);
+            usleep(RETRANSMIT_TIMER);
         }
     }
-    update_ack=0;
+    while(1){
+        //the point here is to block everything and retransmit the ACK if we see an SYN-ACK
+        m = recvfrom(SendSockfd,recvsendmsg,1400,0,NULL,NULL);
+        usleep(RETRANSMIT_TIMER);
+        printf("We see retransmission of the ack packets!\n");
+        int HeaderLength = sizeof(header)+4;
+        char AckMesg[HeaderLength];
+        settingAck(AckMesg, sequenceNumber);
+        sendto(SendSockfd,AckMesg,HeaderLength,0,(struct sockaddr *)&SendServaddr,sizeof(struct sockaddr_in ));
+    }
+
+    //update_ack=0;
     pthread_mutex_unlock(&lock);
 
 }
@@ -320,14 +333,13 @@ void updateBack(char * request, int n,  struct sockaddr_in * cliAddr){
         
         sendto(sockfd,response,n-4,0,(struct sockaddr *)cliAddr,sizeof(struct sockaddr_in ));
         printf("SYN-ACK\n");
-        char * netlink_message = "SYNACK";
-        send_netlink(netlink_message);
-        if (count>=1000){
-            printf("Timeout!\n");
-            break;
+        if (NETLINK_FLAG){
+            char * netlink_message = "SYNACK";
+            send_netlink(netlink_message);   
         }
+       
 
-        usleep(1000);
+        usleep(RETRANSMIT_TIMER);
     }
     gettimeofday(&t2, NULL);
     elapsedTime =(t2.tv_usec - t1.tv_usec) + (t2.tv_sec - t1.tv_sec)*1000000;
@@ -430,7 +442,6 @@ int main(int argc, char *argv[])
         flow * retv = NULL;
         int sequenceNum  = msgheader->sequenceNum;
         findItem( (int) ip_src,(int) ip_dst,(__u16)srcPort,(__u16) dstPort,&retv);
-        printf("count how many times I see packet %d\n", ++counter );
 
         if (msgheader->action ==4){
 
@@ -444,8 +455,11 @@ int main(int argc, char *argv[])
 
 
                 printf(" SYN!\n");
-                char * netlink_message = "SYN";
-                send_netlink(netlink_message);
+                if(NETLINK_FLAG){
+                    char * netlink_message = "SYN";
+                    send_netlink(netlink_message);
+                }
+                
                 addItem((int) ip_src,(int) ip_dst,(__u16)srcPort,(__u16) dstPort ,sequenceNum);
 
                 void * para = malloc(sizeof(parameter));
@@ -472,13 +486,10 @@ int main(int argc, char *argv[])
 
                 update_ack = 1; 
                 //reset a bunch of stuff:
-                clearHash();
+                //clearHash();
                 pthread_mutex_unlock(&lock);
 
-            }  else{
-                printf("Cannot ACK for an out-of-order ack packet%d\n",sequenceNum );
-            }
-           
+            } 
         }
         gettimeofday(&t2, NULL);
         elapsedTime =(t2.tv_sec - t1.tv_sec);

@@ -971,7 +971,11 @@ typedef struct {
     int dst;
     uint16_t sport;
     uint16_t dport;
+    uint16_t Buffer;
+    uint16_t Migrate;
+    int Seq;
     UT_hash_handle hh;
+
 } record_t;
 
 static record_t  *records = NULL;

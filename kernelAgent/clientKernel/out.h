@@ -44,14 +44,13 @@ struct sk_buff * header_rewrite(struct sk_buff *skb){
         skbOld = skb;
         skb = skb_realloc_headroom(skbOld, iphdr_len+udphdr_len);
         if (!skb) {
-                printk(KERN_ERR "vlan: failed to realloc headroom\n");
+                printk(KERN_ERR "failed to realloc headroom\n");
                 return NULL;
         }
          if(skbOld->sk){
             skb_set_owner_w(skb, skbOld->sk);
         }
     }   
-
     return  skb ;
 }
 
@@ -104,21 +103,27 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
         __be32 oldIP = iph->daddr;
         iph->daddr = p->dst;
         __be32 newIP = iph->daddr;
-        iph->protocol = IPPROTO_RAW; 
-        //inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
-        //csum_replace4(&iph->check, oldIP, newIP);
-        ip_send_check(iph) ;
-        //this line is just for local test
-        ip_route_me_harder(skb, RTN_UNSPEC);
-        return  skb ;
+
+        printk("Output: found the packet buffer and migrate bool flags are %u and %u\n", p->Buffer, p->Migrate);
+
+        if(p->Migrate ==1){
+
+        	iph->protocol = IPPROTO_RAW; 
+        	ip_send_check(iph) ;
+        	ip_route_me_harder(skb, RTN_UNSPEC);
+        	return skb;
+        }
+        else{
+        	inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
+	        csum_replace4(&iph->check, oldIP, newIP);
+	        return  skb ;
+        }
     }
     else {
     	if ( ntohs(tcph->dest)  == 5001 ) 
     	{
     		printk( KERN_ALERT "Output: found destination key  %pI4 and value is %pI4  \n", & iph->saddr, & iph->daddr);
-
  	       	printk( KERN_ALERT "Output: No hash found, do nothing \n");
-
  	       	//redo the checksum all the time?
  	       	//tcph->check = ~tcp_v4_check(tcp_len, iph->saddr, iph->daddr,0);
     	}

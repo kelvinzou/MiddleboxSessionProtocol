@@ -1,7 +1,10 @@
-"""Custom topology example
-Author Kelvin Xuan Zou. 
-This is the python mininet start script, and it generates the network and xterminal. 
+"""
 
+Custom topology example
+
+Author Kelvin Xuan Zou. 
+
+This is the python mininet start script, and it generates the network and xterminal. 
 
 """
 

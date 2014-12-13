@@ -1,9 +1,11 @@
 
-/* Author:
-Kelvin Zou
-Princeton University 
+/*
+Kelvin Xuan Zou
 
- */
+Princeotn university
+
+This is the user space agent of the middlebox protocol
+*/
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -16,7 +18,7 @@ Princeton University
 #include <sys/types.h>
 #include <sys/time.h> 
 #include <asm/types.h>
-
+#include <poll.h>
 #define INTI_TO 10000
 #define UDP_PORT 1025
 #define SEQUENCENUM 100
@@ -37,7 +39,8 @@ int  srcPort =1 , dstPort=1;
 
 int sync_packet(int fd, char * writeBuffer, struct sockaddr_in * servaddr ){
 	
-	char * MBox[] ={"128.112.93.108", "128.112.93.107"} ;
+	//char * MBox[] ={"128.112.93.108", "128.112.93.107"} ;
+	char * MBox[] ={"10.0.0.3", "10.0.0.4",  "10.0.0.5"} ;
 	int ByteStreamCount = sizeof(header) + 4 + 4 *( sizeof(MBox) / sizeof(char * )) ;
 
 	header * hdr_ptr = (header*) writeBuffer;
@@ -63,7 +66,7 @@ int sync_packet(int fd, char * writeBuffer, struct sockaddr_in * servaddr ){
 		inet_aton(MBox[i], &addr);
 		memcpy(writeBuffer+sizeof(header)+ 4*i, &addr.s_addr, 4);
 	} 
-	gettimeofday(&t1, NULL);
+	
 	
 	sendto(fd,writeBuffer,ByteStreamCount,0,(struct sockaddr *)servaddr,sizeof(struct sockaddr_in ));
 	return 0;
@@ -116,9 +119,29 @@ int main(int argc, char**argv)
 	char sendline[1400];
 	char recvline[1400];
 	memset(sendline, 0,1400);
+	
+
+   
 	sync_packet(sockfd, sendline, &servaddr);
+	gettimeofday(&t1, NULL);
+	struct pollfd poll_fd[1] ;
+	poll_fd[0].fd = sockfd;
+    poll_fd[0].events = POLLIN|POLLPRI;
 	printf("Before ACK \n");
-	n=recvfrom(sockfd,recvline,1400,0,NULL,NULL);
+
+    while(1)
+    {
+    	int i = poll(poll_fd, 1, 1);
+
+    	if(i==1){
+    		n=recvfrom(sockfd,recvline,1400,0,NULL,NULL);
+    		break;
+    	} else{
+			sync_packet(sockfd, sendline, &servaddr);
+    	}
+    }
+
+	
 			//fputs(recvline,stdout);
 
 	int ack = *(int *) recvline;

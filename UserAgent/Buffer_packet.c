@@ -1,3 +1,11 @@
+/*
+Kelvin Xuan Zou
+
+Princeotn university
+
+This is the user space agent of the middlebox protocol
+*/
+
 #include <sys/types.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -97,7 +105,7 @@ void sendback(char * recv_buffer,  unsigned int ipaddr, struct iphdr * ip, struc
     
     tcp->check = (csum( (unsigned short*) pseudogram , psize) )  ;
     
-    printf("The pseudogram size is %d\n", psize);
+    printf("The total size is %d\n",  ntohs(ip->tot_len));
 
     free(pseudogram);
 
@@ -121,7 +129,6 @@ void reinjectBuffer(queue * Q ){
         unsigned short  iphdrlen =ip->ihl*4;
         struct tcphdr *tcp = ( struct tcphdr *) ( packet + iphdrlen );
         sendback( packet, inet_addr("128.112.93.106"), ip, tcp );
-
         free (packet);
     }
 }
@@ -147,7 +154,7 @@ int main(int argc, char *argv[]) {
     queue_init(&BufferedQueue);
 
 
-    sendSocket = socket (PF_INET, SOCK_RAW, IPPROTO_TCP) ;
+    sendSocket = socket (PF_PACKET, SOCK_RAW, IPPROTO_TCP) ;
      if (setsockopt (sendSocket, IPPROTO_IP, IP_HDRINCL, &one, sizeof (one)) < 0)
     {
         perror("Error setting IP_HDRINCL");
@@ -156,9 +163,9 @@ int main(int argc, char *argv[]) {
 
     //build socket
     if(TCP_FLAG){
-        sock = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
+        sock = socket(AF_PACKET, SOCK_RAW, IPPROTO_TCP);
     } else{
-        sock = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
+        sock = socket(AF_PACKET, SOCK_RAW, IPPROTO_RAW);
     }
     
     if (sock == -1) {
@@ -214,28 +221,15 @@ int main(int argc, char *argv[]) {
             unsigned short  iphdrlen =ip->ihl*4;
             struct tcphdr *tcp = (struct tcphdr *) (recv_buffer + iphdrlen);
             if(ntohs(tcp->dest) ==5001){
-                printf("\nThe source address for receive from is %s\n", inet_ntoa( *(struct in_addr* ) &from.sin_addr.s_addr));
-                printf("TTL= %d\n", ip->ttl);
-                printf("Window= %d\n", tcp->window);
-                printf("ACK= %lu\n", tcp->ack);
-                printf("IP field the total length is %d\n", ntohs(ip->tot_len)) ;
-                printf("%s:%d\t",  inet_ntoa(source.sin_addr), ntohs(tcp->source)); 
-                printf(" --> \t%s:%d \tSeq: %lu \tAck: %lu\n", inet_ntoa(dest.sin_addr), ntohs(tcp->dest), ntohl(tcp->seq), ntohl(tcp->ack_seq));
                 enqueue(&BufferedQueue, recv_buffer);
                 printf("The item number is %d\n", BufferedQueue.size);
-
-                //sendback(sendSocket, recv_buffer, inet_addr("128.112.93.106"),  ip, tcp,  &dest );
                 
             } else{
                 free(recv_buffer);
             }
         } else{
             usleep(1000);
-            select_print++;
-            if(select_print%100==0)
-                {
-                    //printf("poll at every 100 ms print\n");
-                }
+
             if(BufferedQueue.size >=4){
             reinjectBuffer( & BufferedQueue);
             //break;
