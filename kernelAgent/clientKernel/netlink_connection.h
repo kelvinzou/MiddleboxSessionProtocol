@@ -26,19 +26,33 @@ static void netlink_agent(struct sk_buff *skb)
     
     record_t item;
     //here we just need SYNC packet, because SYN-ACK are rule is preinstalled first
+    if (strcmp((char*)nlmsg_data(nlh), "SYN")==0){
+        memset(&item, 0, sizeof(record_t));
+        item.key.dst = in_aton( "128.112.93.108" );
+        item.key.dport =5001;
+        
+        HashMigrate(&item);
+    }
+    if(strcmp((char*)nlmsg_data(nlh), "ACK")==0){
+        memset(&item, 0, sizeof(record_t));
+        item.key.dst = in_aton( "128.112.93.108" );
+        item.key.dport =5001;
+        HashReleaseBuffer(&item);
+    }
+    /*
     if (strcmp((char*)nlmsg_data(nlh), "ACK")==0) {
         memset(&item, 0, sizeof(record_t));
         item.key.dst = in_aton( "128.112.93.108" );
         item.key.dport =5001;
         deleteHash(&item);
-/*
+
         memset(&item, 0, sizeof(record_t));
         item.key.src = in_aton( "128.112.93.106" );
         item.key.sport =5001;
         deleteHash(&item);
-        */
+        
     } 
-
+    */
     else if (strcmp((char*)nlmsg_data(nlh), "RESET")==0) {
         memset(&item, 0, sizeof(record_t));
         item.key.dst = in_aton( "128.112.93.108" );

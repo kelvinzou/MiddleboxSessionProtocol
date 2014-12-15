@@ -82,20 +82,13 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     //0x200 is bits set is set for SYN
     //0x1000 is bit set for ACK
     //0x2000 is bit set for urgent
-    __u16 result = reserved_field& 0x200 ;
     /*
+    __u16 result = reserved_field& 0x200 ;
+
     if (result == 0x200){
     	printk("SYN packet\n");
     } 
-     result = reserved_field& 0x1000 ;
-    if (result == 0x1000 ) {
-    	printk("ACK packet \n");
-    }
-    result = reserved_field& 0x2000 ;
-    if(result ==0x2000){
-    	printk("Urgent packet \n");
-    }
-    */
+	*/
     //tcph->check = 0;
     //tcph->check = ~csum_tcpudp_magic( iph->saddr, iph->daddr,tcp_len, IPPROTO_TCP, 0);
     bool FLAG = true ;
@@ -126,23 +119,34 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
 
         if(p->Migrate ==1){
         	if(p->Buffer ==1){
+        		printk("So we are buffering packets now!\n");
         		iph->protocol = IPPROTO_RAW; 
 	        	ip_send_check(iph) ;
 	        	ip_route_me_harder(skb, RTN_UNSPEC);
 	        	return skb;
         	} else {
+        		printk("No buffer is needed, release and reset migrate flag\n");
         		//just mark one special packet, and this is the end of the buffering
         		// need to change both migrate and buffer flags to false.
         		__u16  * mark_end =  (__u16 *) (((char *) tcph) + 12);
         		//this basically set the urgent flag. 
-        		* mark_end = (*mark_end) | 0x2000;
+        		
+        		reserved_field = reserved_field | 0x2000;
+				*mark_end = reserved_field;
+    			printk("The reserved_field is %x\n", (reserved_field));
+    			__u16 result = reserved_field & 0x2000 ;
 
+			    if (result == 0x2000){
+			    	printk("URG packet\n");
+			    } 
         		iph->protocol = IPPROTO_RAW; 
 	        	ip_send_check(iph) ;
 	        	ip_route_me_harder(skb, RTN_UNSPEC);
+
+	        	HashResetMigration(&l);
+
 	        	return skb;
         	}
-        	
         }
         else 
         { 
@@ -154,8 +158,8 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     else {
     	if ( ntohs(tcph->dest)  == 5001 ) 
     	{
-    		printk( KERN_ALERT "Output: found destination key  %pI4 and value is %pI4  \n", & iph->saddr, & iph->daddr);
- 	       	printk( KERN_ALERT "Output: No hash found, do nothing \n");
+    		printk( "Output: found destination key  %pI4 and value is %pI4  \n", & iph->saddr, & iph->daddr);
+ 	       	printk( "Output: No hash found, do nothing \n");
  	       	//redo the checksum all the time?
  	       	//tcph->check = ~tcp_v4_check(tcp_len, iph->saddr, iph->daddr,0);
     	}

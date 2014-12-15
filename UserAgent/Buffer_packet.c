@@ -31,7 +31,7 @@ struct tcphdr *tcp;
 struct sockaddr_in source, dest;
 int sock, sendSocket, on = 1, one=1;
 volatile bool flag = true;
- 
+volatile bool releaseFlag = false;
 /* 
     96 bit (12 bytes) pseudo header needed for tcp header checksum calculation 
 */
@@ -144,6 +144,7 @@ void sig_handler(int signo)
 
 
 int main(int argc, char *argv[]) {
+
     if (signal(SIGINT, sig_handler) == SIG_ERR)
     { 
         printf("\ncan't catch SIGINT\n");
@@ -154,7 +155,7 @@ int main(int argc, char *argv[]) {
     queue_init(&BufferedQueue);
 
 
-    sendSocket = socket (PF_PACKET, SOCK_RAW, IPPROTO_TCP) ;
+    sendSocket = socket (PF_INET, SOCK_RAW, IPPROTO_TCP) ;
      if (setsockopt (sendSocket, IPPROTO_IP, IP_HDRINCL, &one, sizeof (one)) < 0)
     {
         perror("Error setting IP_HDRINCL");
@@ -163,9 +164,9 @@ int main(int argc, char *argv[]) {
 
     //build socket
     if(TCP_FLAG){
-        sock = socket(AF_PACKET, SOCK_RAW, IPPROTO_TCP);
+        sock = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
     } else{
-        sock = socket(AF_PACKET, SOCK_RAW, IPPROTO_RAW);
+        sock = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
     }
     
     if (sock == -1) {
@@ -190,7 +191,12 @@ int main(int argc, char *argv[]) {
     tv.tv_usec = 1000;
     FD_ZERO(&readfds);
     FD_SET(sock, &readfds);
-
+      /*  
+        active_fs = readfds;
+        select(sock+1, &active_fs, NULL, NULL, &tv);
+        
+        if(FD_ISSET(sock, &active_fs)){
+*/
     char * recv_buffer;
     int select_print =1;
 
@@ -200,48 +206,62 @@ int main(int argc, char *argv[]) {
 
         fromlen = sizeof from;
         
-        active_fs = readfds;
-        select(sock+1, &active_fs, NULL, NULL, &tv);
+        recv_buffer = (char *) malloc(9000);
+        recvfrom(sock, recv_buffer, 9000, 0,(struct sockaddr*) &from, &fromlen);
+        printf("\nThe source address for receive from is %s\n", inet_ntoa( *(struct in_addr* ) &from.sin_addr.s_addr));
+       
+
+        //recvfrom(sock, recv_buffer, sizeof(recv_buffer), 0,NULL, NULL);
+		struct iphdr *ip = (struct iphdr *) recv_buffer;
+
+        memset(&source, 0, sizeof(source));
+        source.sin_addr.s_addr = ip->saddr;
+         
+        memset(&dest, 0, sizeof(dest));
+        dest.sin_addr.s_addr = ip->daddr;
+        unsigned short  iphdrlen =ip->ihl*4;
+        struct tcphdr *tcp = (struct tcphdr *) (recv_buffer + iphdrlen);
+
         
-        if(FD_ISSET(sock, &active_fs)){
+        if(ntohs(tcp->dest) ==5001){
+            //check the urgent pointer
+            __u16  reserved_field =  * (__u16 *) (((char *) tcp) + 12);
+            printf("The reserved_field is %x\n", reserved_field);
 
-            recv_buffer = (char *) malloc(1500);
-            recvfrom(sock, recv_buffer, 1500, 0,(struct sockaddr*) &from, &fromlen);
-            printf("\nThe source address for receive from is %s\n", inet_ntoa( *(struct in_addr* ) &from.sin_addr.s_addr));
-           
+            __u16  result = reserved_field & 0x2000 ;
+            if(result == 0x2000){
+                printf("Urgent packet \n");
+                flag = false;
+                reserved_field = reserved_field & 0xdfff;
+                //reset the urgent pointer
+                printf("The reserved_field is %x\n", reserved_field);
 
-            //recvfrom(sock, recv_buffer, sizeof(recv_buffer), 0,NULL, NULL);
-    		struct iphdr *ip = (struct iphdr *) recv_buffer;
-
-            memset(&source, 0, sizeof(source));
-            source.sin_addr.s_addr = ip->saddr;
-             
-            memset(&dest, 0, sizeof(dest));
-            dest.sin_addr.s_addr = ip->daddr;
-            unsigned short  iphdrlen =ip->ihl*4;
-            struct tcphdr *tcp = (struct tcphdr *) (recv_buffer + iphdrlen);
-            if(ntohs(tcp->dest) ==5001){
-                enqueue(&BufferedQueue, recv_buffer);
-                printf("The item number is %d\n", BufferedQueue.size);
-                
-            } else{
-                free(recv_buffer);
+                __u16 * value  = (__u16 *) (((char *) tcp) + 12);
+                * value = reserved_field;
             }
+            
+
+            enqueue(&BufferedQueue, recv_buffer);
+            printf("The item number is %d\n", BufferedQueue.size);
+            
+        } else{
+            free(recv_buffer);
+        }
+            /* disable the select
         } else{
             usleep(1000);
 
-            if(BufferedQueue.size >=4){
+            if(BufferedQueue.size >=10){
             reinjectBuffer( & BufferedQueue);
             //break;
             }
         }   
-       
+       */
         //printf("dest IP is %s and the port number is %d\n",inet_ntoa(dest.sin_addr), ntohs(tcp->dest));
 	} 
-     while (BufferedQueue.size >0){
-        char * packet = dequeue(&BufferedQueue);
-        free (packet);
+    if(BufferedQueue.size >=0){
+            reinjectBuffer( & BufferedQueue);
     }
-
+     
     return 0;
 }
