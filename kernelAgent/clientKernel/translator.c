@@ -79,6 +79,7 @@ static int __init pkt_mangle_init(void)
 
     //create a hash table
     //getnstimeofday(&ts_start);
+    // this is to initilize the rules in the hash table
     record_t  *r;
 
     //add hash entry in the hash table    

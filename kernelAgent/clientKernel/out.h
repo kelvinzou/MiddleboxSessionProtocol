@@ -77,7 +77,25 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     if ( ntohs(tcph->dest)  == 5001 )
         printk("Output: The sequence nunmber and its sequence ack number are %u  and %u ",ntohl(seqNumber) , ntohl(ackSeq));
 
-
+    __u16  reserved_field =  * (__u16 *) (((char *) tcph) + 12);
+    //printk("The reserved_field is %x\n", (reserved_field));
+    //0x200 is bits set is set for SYN
+    //0x1000 is bit set for ACK
+    //0x2000 is bit set for urgent
+    __u16 result = reserved_field& 0x200 ;
+    /*
+    if (result == 0x200){
+    	printk("SYN packet\n");
+    } 
+     result = reserved_field& 0x1000 ;
+    if (result == 0x1000 ) {
+    	printk("ACK packet \n");
+    }
+    result = reserved_field& 0x2000 ;
+    if(result ==0x2000){
+    	printk("Urgent packet \n");
+    }
+    */
     //tcph->check = 0;
     //tcph->check = ~csum_tcpudp_magic( iph->saddr, iph->daddr,tcp_len, IPPROTO_TCP, 0);
     bool FLAG = true ;
@@ -107,13 +125,27 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
         printk("Output: found the packet buffer and migrate bool flags are %u and %u\n", p->Buffer, p->Migrate);
 
         if(p->Migrate ==1){
+        	if(p->Buffer ==1){
+        		iph->protocol = IPPROTO_RAW; 
+	        	ip_send_check(iph) ;
+	        	ip_route_me_harder(skb, RTN_UNSPEC);
+	        	return skb;
+        	} else {
+        		//just mark one special packet, and this is the end of the buffering
+        		// need to change both migrate and buffer flags to false.
+        		__u16  * mark_end =  (__u16 *) (((char *) tcph) + 12);
+        		//this basically set the urgent flag. 
+        		* mark_end = (*mark_end) | 0x2000;
 
-        	iph->protocol = IPPROTO_RAW; 
-        	ip_send_check(iph) ;
-        	ip_route_me_harder(skb, RTN_UNSPEC);
-        	return skb;
+        		iph->protocol = IPPROTO_RAW; 
+	        	ip_send_check(iph) ;
+	        	ip_route_me_harder(skb, RTN_UNSPEC);
+	        	return skb;
+        	}
+        	
         }
-        else{
+        else 
+        { 
         	inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
 	        csum_replace4(&iph->check, oldIP, newIP);
 	        return  skb ;

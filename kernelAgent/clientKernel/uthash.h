@@ -973,12 +973,44 @@ typedef struct {
     uint16_t dport;
     uint16_t Buffer;
     uint16_t Migrate;
+   // uint16_t ReleaseBuffer;
     int Seq;
     UT_hash_handle hh;
 
 } record_t;
 
+
 static record_t  *records = NULL;
 rwlock_t my_rwlock;
+
+void deleteHash(record_t * item){
+    
+    record_t * p=NULL;
+    HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
+
+    write_lock(&my_rwlock);
+    if (p!=NULL) {
+      HASH_DEL(records, p);
+        printk(KERN_ALERT "Kernel eviction happens!\n");
+        kfree(p);
+    }
+    write_unlock(&my_rwlock);
+}
+
+void addHash(record_t * item){
+    record_t  *r;
+    record_t * p=NULL;
+    HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
+    if(p==NULL){
+      r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
+      memcpy((char *)r, (char *)item, sizeof(record_t));
+      write_lock(&my_rwlock);
+      HASH_ADD(hh, records, key, sizeof(record_key_t), r);
+      write_unlock(&my_rwlock);
+      printk(KERN_ALERT "Kernel insertion happens!\n");
+    }
+    
+}
+
 
 #endif /* UTHASH_H */
