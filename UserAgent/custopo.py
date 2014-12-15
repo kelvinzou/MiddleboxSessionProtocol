@@ -74,8 +74,8 @@ topos = { 'custopo': ( lambda: TestTopo() ) }
 def bootMininet():
     #create mininet with the topology
     host = custom(CPULimitedHost, cpu=0.3)
-     
-    link = custom(TCLink, bw=10, loss=1)
+     #, loss=1
+    link = custom(TCLink, bw=10)
     #link = custom(TCLink, bw=100, delay='5ms')
     topo = TestTopo()
     #OVSSwitch, KernelSwitch controller=  RemoteController,

@@ -29,11 +29,11 @@ This is the user space agent of the middlebox protocol
 #include <sys/types.h>
 #include <signal.h>
 #include <poll.h>
-
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <asm/types.h>
 #include <linux/genetlink.h>
-
-#include "hash.h"
-#include "flowhash.h"
 
 #define NETLINK_USER 31
 
@@ -45,7 +45,7 @@ This is the user space agent of the middlebox protocol
 
 #define NETLINK_FLAG false
 
-#define RETRANSMIT_TIMER 20000 //minimum is 1000 since poll only supports down to 1 ms
+#define RETRANSMIT_TIMER 1000 //minimum is 1000 since poll only supports down to 1 ms
 
 using namespace std;
 
@@ -64,12 +64,23 @@ int thread_iterator = 0;
 int sockfd;
 struct sockaddr_in servaddr;
 struct timeval t1, t2;
+struct sockaddr_in * replyAddr[2];
+
+
+/*
+The following variables are for interaction between two different connections both at the first and the last hop
+*/
+int old_syn_ack = 0;
+int new_syn_ack = 0;
+
+int old_syn = 0;
+int new_syn = 0;
 
 volatile int flag =1;
 
 volatile int update_ack =0;
 
-typedef struct {
+typedef struct parameter{
     char * request;
     int n;
     int port_num;
@@ -77,14 +88,14 @@ typedef struct {
     struct sockaddr_in * cliAddr;
 }parameter;
 
-typedef struct{
+
+typedef struct header {
     int action;
     int sequenceNum;
-    int src_IP;
-    int dst_IP;
-    __u16 srcPort;
-    __u16 dstPort;
+    int oldMboxLength;
+    int newMboxLength;
 } header;
+
 
 /*read function for future use, now hard configure the source code*/
 
@@ -153,69 +164,56 @@ int send_netlink(char * input){
 end of netlink building block
 */
 
-/*
-Interrupt handler
-
-*/
-void sig_handler(int signo)
-{
-  if (signo == SIGINT)
-  {
-    printf("received SIGINT\n");
-    flag =0;
-  }
-}
-
 void settingAck(char * AckMesg, int sequenceNumber){
 
-    
+   //TODO 
     * (int*) ((char *)AckMesg + sizeof(header) ) =0;
     header * ackHeader = (header *)AckMesg;
     ackHeader->action = 6;
     ackHeader->sequenceNum = sequenceNumber;
-    int  srcPort =1 , dstPort=1;
-    struct in_addr addr;
-    char * srcIP = "10.0.0.1";
-    char * dstIP = "10.0.0.5";
 
-    inet_aton(srcIP, &addr);
-    ackHeader->src_IP =(int) addr.s_addr;
-    inet_aton(dstIP, &addr);
-    ackHeader->dst_IP =(int) addr.s_addr;
-    
-    ackHeader->srcPort = srcPort;
-    ackHeader->dstPort = dstPort;
+    ackHeader->oldMboxLength =0;
+    ackHeader->newMboxLength =0;
 
 }
 
 
 //this notifies the update, it is UPDATE-SYN to next hop and SYN to back 
-void updateForward(char * request, int n, int * port_num, struct sockaddr_in * cliAddr){
-    struct timeval t1, t2;
-    double elapsedTime;
+void relayMsg(char * request, int n, int * port_num, struct sockaddr_in * cliAddr){
     char recvsendmsg [1400];
-
     //send to next hop
     int SendSockfd ;
     struct pollfd poll_fd[1] ;
     struct sockaddr_in SendServaddr, SendCliaddr;
     int i ;
+    
     for (i=sizeof(header); i<n-4 ; i+=4){
         struct in_addr addr = *(struct in_addr*) (request + i);
         printf("middlebox address for receive from is %s\n",inet_ntoa(addr));
     }
 
     char sendmsg [n-4];
-    memcpy(sendmsg+4, request+4, 16);
-    memcpy(sendmsg+sizeof(header), request+sizeof(header)+4, n-sizeof(header)-4);
+    memcpy(sendmsg, request, sizeof(header) );
+    memcpy(sendmsg + sizeof(header), request + sizeof(header)+4,  n - sizeof(header) - 4);
+    free(request);
+    header * sendmsgHeader = (header *) sendmsg;
+
+    //decrease the middlebox list middlebox count
+    if(sendmsgHeader->oldMboxLength >0)
+    {
+        sendmsgHeader->oldMboxLength = sendmsgHeader->oldMboxLength -1;
+    } else{
+        sendmsgHeader->newMboxLength = sendmsgHeader->newMboxLength -1;
+    }
+
     //Building a sync packet, and it sends to the next hop infinitely!
-    *( (int *)sendmsg) = 4;
+    
     SendSockfd=socket(AF_INET,SOCK_DGRAM,0);
     bzero(&SendServaddr,sizeof(SendServaddr));
     printf("The SendSockfd is %d \n", SendSockfd);
 
     SendServaddr.sin_family = AF_INET;
-    struct in_addr addr = *(struct in_addr*) (request + sizeof(header) +4);
+    struct in_addr addr = *(struct in_addr*) (sendmsg + sizeof(header));
     char * IPStr = inet_ntoa(addr);
 
     printf("the destination is %s\n", IPStr);
@@ -225,15 +223,11 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
 
     sendto(SendSockfd,sendmsg,n-4,0,(struct sockaddr *)&SendServaddr,sizeof(struct sockaddr_in ));
     
-    //receiving ACK from the receiver
+    //receiving SYN-ACK from the receiver
     int m ;
     
     header * RecvHeaderPointer = (header *) recvsendmsg;
 
-    gettimeofday(&t1, NULL);
-    //receivd the message from the next hop, and reply the message back to the last hop, it is basically a repeated sending, until it is terminate. 
-    //the repeated sending are from the last hop ack, so we simply relay the message
-    
     struct timeval tv;
 
     poll_fd[0].fd = SendSockfd;
@@ -241,114 +235,101 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
    
     i =0;
     while(1){
-        printf("Before entering session!\n");
+        //printf("Before entering session!\n");
         i = poll(poll_fd, 1, RETRANSMIT_TIMER/1000);
+        //printf("after select session!\n");
 
-        printf("after select session!\n");
-
-        if(i==1){  
-            m = recvfrom(SendSockfd,recvsendmsg,1400,0,NULL,NULL);
-  
-            int action = RecvHeaderPointer->action;
-            int sequenceNumber = RecvHeaderPointer->sequenceNum;
-            printf("Action is and sequence number is %d and %d and ack value is %d \n", action, sequenceNumber, update_ack);
-            pthread_mutex_lock(&lock);
-
-            if(update_ack !=1){
-                sendto(sockfd,recvsendmsg,m,0,(struct sockaddr *) cliAddr,sizeof(struct sockaddr_in ));
-                printf("SYN-ACK\n");
-                if(NETLINK_FLAG){
-                    char * netlink_message = "SYNACK";
-                    send_netlink(netlink_message);
-                }
-                printf("Is it update sync ack? relaying packet again and the length is %d\n", m );
-            } else {
-                int HeaderLength = sizeof(header)+4;
-                char AckMesg[HeaderLength];
-                settingAck(AckMesg, sequenceNumber);
-                sendto(SendSockfd,AckMesg,HeaderLength,0,(struct sockaddr *)&SendServaddr,sizeof(struct sockaddr_in ));
-                printf("Packet is been acked, so we can exit this loop now!\n");
-                break;
-            }
-            pthread_mutex_unlock(&lock);
-
+        if(i==1){   
+            //see a syn-ack and then stop retransmitting the syn packet 
+            printf("Receive SYN-ACK, we can exit the first SYN loop now\n");
+            
+            break;
         }
         else{
+            sendto(SendSockfd,sendmsg,n-4,0,(struct sockaddr *)&SendServaddr,sizeof(struct sockaddr_in ));
             usleep(RETRANSMIT_TIMER);
         }
     }
     while(1){
-        //the point here is to block everything and retransmit the ACK if we see an SYN-ACK
         m = recvfrom(SendSockfd,recvsendmsg,1400,0,NULL,NULL);
-        usleep(RETRANSMIT_TIMER);
-        printf("We see retransmission of the ack packets!\n");
+        int action = RecvHeaderPointer->action;
+        int sequenceNumber = RecvHeaderPointer->sequenceNum;
+        printf("Action is and sequence number is %d and %d and ack value is %d \n", action, sequenceNumber, update_ack);
+        pthread_mutex_lock(&lock);
+        if(update_ack !=1){
+            if(sendmsgHeader->oldMboxLength >0 ){
+                //it is the old path message and we have to make sure the new path is also set up
+                old_syn_ack = 1;
+                if( new_syn_ack==1 ){
+                    sendto(sockfd,recvsendmsg,m,0,(struct sockaddr *) cliAddr,sizeof(struct sockaddr_in ));
+                    printf("Old SYN-ACK\n");
+                    if(NETLINK_FLAG){
+                        char * netlink_message = "SYNACK";
+                        send_netlink(netlink_message);
+                    }
+                } else{
+                    printf("waiting for the new path's syn-ack being received\n");
+                }
+                
+            } 
+            else {
+                new_syn_ack =1;
+                if(old_syn_ack ==1){
+                    sendto(sockfd,recvsendmsg,m,0,(struct sockaddr *) cliAddr,sizeof(struct sockaddr_in ));
+                    printf("New SYN-ACK\n");
+                    if(NETLINK_FLAG){
+                        char * netlink_message = "SYNACK";
+                        send_netlink(netlink_message);
+                    }
+                } else{
+                    printf("waiting for the old path's syn-ack being received\n");
+                }
+            }
+        } else {
+            printf("Packet is been acked, so we can exit syn-ack loop now!\n");
+            break;
+        }
+        pthread_mutex_unlock(&lock);
+    }
+    pthread_mutex_unlock(&lock);
+    while(1){
+        //free(cliAddr);
+        //the point here is to block everything and retransmit the ACK if we see an SYN-ACK
         int HeaderLength = sizeof(header)+4;
         char AckMesg[HeaderLength];
         settingAck(AckMesg, sequenceNumber);
         sendto(SendSockfd,AckMesg,HeaderLength,0,(struct sockaddr *)&SendServaddr,sizeof(struct sockaddr_in ));
-    }
+        m = recvfrom(SendSockfd,recvsendmsg,1400,0,NULL,NULL);
+        printf("We see retransmission of the ack packets!\n");
 
-    //update_ack=0;
-    pthread_mutex_unlock(&lock);
+    }
 
 }
+void * handleACK(void * ptr){
+    char syn_ack_old [sizeof(header) + 4 ];
+    header * syn_ack_hdr = (header *) syn_ack_old;
+    syn_ack_hdr->action =5;
+    syn_ack_hdr->sequenceNum = sequenceNumber;
 
-
-void updateBack(char * request, int n,  struct sockaddr_in * cliAddr){
-    double elapsedTime;
-    
-    header * hdr = (header *) request;
-    
-    int action = hdr->action;
-    int SeqNum = hdr->sequenceNum;
-
-    printf("The action is %d and %d \n",  action, SeqNum);
-    int i ;
-    for (i=sizeof(header); i<n-4 ; i+=4){
-        struct in_addr addr = *(struct in_addr*) (request + i);
-        printf("middlebox address for receive from is %s\n",inet_ntoa(addr));
-    }
-
-    char response[n-4];
-    header * replyHdr = (header *) response;
-    memcpy(response+4, request+4, sizeof(header)-4); 
-    //this is UPDATE-SYN-AC
-    replyHdr->action =5;
-    * (int *)(response + sizeof(header)) = 0;
-
-    printf("The socket fd is %d \n",  sockfd);
-
-    int count = 0;
+    syn_ack_hdr->newMboxLength = 0;
+    syn_ack_hdr->oldMboxLength = 1;
+    * ((int *) (syn_ack_old + sizeof(header))) = 0;
     while(1){
-        count++;
+        sendto(sockfd, syn_ack_old, sizeof(header) + 4 , 0, (struct sockaddr *) replyAddr[0], sizeof(struct sockaddr_in ) );
+        sendto(sockfd, syn_ack_old, sizeof(header) + 4 , 0, (struct sockaddr *) replyAddr[1], sizeof(struct sockaddr_in ) );
+
+        usleep(RETRANSMIT_TIMER);
         pthread_mutex_lock(&lock);
-       
-        if (update_ack ==1){
-            printf("Packet is ACKed!\n");
+
+        if(update_ack==1){
             break;
         }
         pthread_mutex_unlock(&lock);
-        
-       
-        
-        sendto(sockfd,response,n-4,0,(struct sockaddr *)cliAddr,sizeof(struct sockaddr_in ));
-        printf("SYN-ACK\n");
-        if (NETLINK_FLAG){
-            char * netlink_message = "SYNACK";
-            send_netlink(netlink_message);   
-        }
-       
 
-        usleep(RETRANSMIT_TIMER);
     }
-    gettimeofday(&t2, NULL);
-    elapsedTime =(t2.tv_usec - t1.tv_usec) + (t2.tv_sec - t1.tv_sec)*1000000;
-    update_ack =0;
-    printf("3. Elapse Time is %f\n",elapsedTime);
     pthread_mutex_unlock(&lock);
+
 }
-
-
 
 void * handleUpdate(void * ptr){
     printf("Debug, get in HandleUpdate?\n");
@@ -360,54 +341,27 @@ void * handleUpdate(void * ptr){
 
     int action = *( (int *) request);
     int SeqNum = *(int *)(request + 4); 
-    if ( SeqNum <= sequenceNumber)
-    {
-        //Ignore the messge since it is after the current sequence number
-        return NULL;
-    } 
-    if (n>sizeof(header) +8){
-       updateForward(request, n, &port_num, cliAddr);
-    } else{
-       updateBack(request, n, cliAddr);
-    }
-    printf("debug, finish up the old thread!\n");
-    free(request);
-    free(cliAddr);
     free(ptr);
+
+    if (n>sizeof(header) +8){
+       relayMsg(request, n, &port_num, cliAddr);
+    } 
+    printf("debug, finish up the old thread!\n");
+
     return NULL;
 
 }
 
-
 int main(int argc, char *argv[])
 {
-    //interrupt handler
-    /*if (signal(SIGINT, sig_handler) == SIG_ERR)
-    { 
-        printf("\ncan't catch SIGINT\n");
-    }
-    */
-   // readConfig();
 
-    //configure the netlink
-   init_netlink();
-    if (pthread_mutex_init(&lock, NULL) != 0)
-    {
+    init_netlink();
+
+    if (pthread_mutex_init(&lock, NULL) != 0) {
         printf("\n mutex init failed\n");
         return 1;
     }
-/*
-   //set up the message
-    char input [MAX_PAYLOAD-1];
-    strcpy(input, "add");
-    //send_netlink(input);
 
-    //receive message
-    printf("Waiting for message from kernel\n");
-   // recvmsg(netlink_socket_fd, &netlink_msg, 0);
-    printf("Received message payload: %s\n", (char * ) NLMSG_DATA(nlh));
-*/
-//the following is for UDP packet handling
     double elapsedTime;
     gettimeofday(&t1, NULL);
 
@@ -424,7 +378,6 @@ int main(int argc, char *argv[])
     char * mesg;
     struct sockaddr_in * clientAddressPtr;
     int drop =0;
-
     while(flag==1){
 
         socklen_t len = sizeof(struct sockaddr_in) ;
@@ -433,69 +386,183 @@ int main(int argc, char *argv[])
        
         int n = recvfrom(sockfd,mesg,1400,0,(struct sockaddr *)clientAddressPtr,&len);
         header * msgheader =  (header * ) mesg;
-        //check the item in the hash table and then check the sequence number
-        unsigned long ip_dst = msgheader->dst_IP;
-        unsigned short dstPort = msgheader-> dstPort;
-        unsigned long ip_src = msgheader -> src_IP;// servaddr.sin_addr.s_addr;
-        unsigned short srcPort = msgheader-> srcPort;//servaddr.sin_port;
-        
-        flow * retv = NULL;
+
         int sequenceNum  = msgheader->sequenceNum;
-        findItem( (int) ip_src,(int) ip_dst,(__u16)srcPort,(__u16) dstPort,&retv);
 
         if (msgheader->action ==4){
-
-            if (retv!=NULL && retv->sequenceNumber >= sequenceNum){
-                printf("Updates are out of date, simply ignore the packet!\n");
+            if(sequenceNumber >= sequenceNum){
+                printf("Old update, ignore\n");
                 free(mesg);
                 free(clientAddressPtr);
             } else{
                 gettimeofday(&t1, NULL);
-                printf("IP and port and sequenceNumber is %lu and %u and %lu\n", ip_dst , dstPort, sequenceNum);
-
-
-                printf(" SYN!\n");
+                printf("SYN\n");
                 if(NETLINK_FLAG){
                     char * netlink_message = "SYN";
                     send_netlink(netlink_message);
                 }
-                
-                addItem((int) ip_src,(int) ip_dst,(__u16)srcPort,(__u16) dstPort ,sequenceNum);
 
-                void * para = malloc(sizeof(parameter));
-                parameter * passingparameter = (parameter *) para;
-                passingparameter->request = mesg;
-                passingparameter->cliAddr = clientAddressPtr;
-                passingparameter->n = n;
-                passingparameter->port_num = UDP_PORT;
-                pthread_create(&(thread[thread_iterator]), NULL, handleUpdate, para);
-                thread_iterator++;
+                if (msgheader->oldMboxLength ==0 &&msgheader->newMboxLength >1 ){
+                    //it is the new path, middle point
+                    //no need to wait for old path syn-ack
+                    sequenceNumber = sequenceNum;
 
-                //right now I dont recycle threads in thread pool yet, should be fixed soon!
-                if(thread_iterator>=THREAD_NUM){
-                    thread_iterator=0;
-                }   
-            
-            }  
+                    printf("New msg\n");
+                    old_syn_ack =1;
+                    void * para = malloc(sizeof(parameter));
+                    parameter * passingparameter = (parameter *) para;
+                    passingparameter->request = mesg;
+                    passingparameter->cliAddr = clientAddressPtr;
+
+                    passingparameter->n = n;
+                    passingparameter->port_num = UDP_PORT;
+                    pthread_create(&(thread[thread_iterator]), NULL, handleUpdate, para);
+                    thread_iterator++;
+
+                    if(thread_iterator>=THREAD_NUM){
+                        thread_iterator=0;
+                    }  
+                } 
+
+                else if (msgheader->oldMboxLength >1 &&msgheader->newMboxLength ==0 ){
+                    //it is the old path, middle point
+                    //no need to wait for new path syn-ack
+                    sequenceNumber = sequenceNum;
+
+                    printf("Old msg\n");
+                    new_syn_ack =1;
+                    void * para = malloc(sizeof(parameter));
+                    parameter * passingparameter = (parameter *) para;
+                    passingparameter->request = mesg;
+                    passingparameter->cliAddr = clientAddressPtr;
+
+                    passingparameter->n = n;
+                    passingparameter->port_num = UDP_PORT;
+                    pthread_create(&(thread[thread_iterator]), NULL, handleUpdate, para);
+                    thread_iterator++;
+
+                    if(thread_iterator>=THREAD_NUM){
+                        thread_iterator=0;
+                    }  
+                    
+                } 
+
+                else if (msgheader->oldMboxLength >1 && msgheader->newMboxLength >1 ) {
+                    // it is the beginning of split, at the first hop
+                    sequenceNumber = sequenceNum;
+                    
+                    printf("This is for split\n");
+                    int oldMesgLen = sizeof(header) + 4*msgheader->oldMboxLength +4 ;
+                    int newMesgLen = sizeof(header) + 4*msgheader->newMboxLength +4 ;
+                    
+                    char * oldMesg = (char *) malloc(oldMesgLen);
+                    char * newMesg = (char *) malloc(newMesgLen);
+
+                    memcpy(oldMesg, mesg, sizeof(header));
+                    memcpy(newMesg, mesg, sizeof(header));
+
+                    header * oldMesgHeader = (header *) oldMesg;
+                    header * newMesgHeader = (header *) newMesg;
+
+                    oldMesgHeader->newMboxLength = 0;
+                    newMesgHeader-> oldMboxLength = 0;
+
+                    printf("The length for middlebox lists are %d and %d\n", oldMesgHeader->oldMboxLength, newMesgHeader->newMboxLength);
+
+                    memcpy(oldMesg + sizeof(header), mesg + sizeof(header) , 4*oldMesgHeader->oldMboxLength );
+                    memset(oldMesg + sizeof(header)+ 4 * oldMesgHeader->oldMboxLength, 0, 4);
+
+                    memcpy(newMesg + sizeof(header), mesg + sizeof(header) + 4*msgheader->oldMboxLength, 4 * newMesgHeader->newMboxLength  );
+                    memset(newMesg + sizeof(header) + 4* newMesgHeader->newMboxLength, 0, 4 );
+
+                    int itr =0;
+                    for (itr = 0; itr<oldMesgHeader->oldMboxLength ; itr++){
+                        struct in_addr addr = *(struct in_addr*) ( oldMesg + itr*4 + sizeof(header));
+                        printf("old middlebox list is %s\n",inet_ntoa(addr));
+                    }
+
+                    for (itr = 0; itr<newMesgHeader->newMboxLength ; itr++){
+                        struct in_addr addr = *(struct in_addr*) ( newMesg + itr*4 + sizeof(header));
+                        printf("new middlebox list is %s\n",inet_ntoa(addr));
+                    }
+
+                    void * oldPara = malloc(sizeof(parameter));
+                    parameter * old_passing_parameter = (parameter *) oldPara;
+                    old_passing_parameter->request = oldMesg;
+                    old_passing_parameter->cliAddr = clientAddressPtr;
+                    old_passing_parameter->n = oldMesgLen;
+                    old_passing_parameter->port_num = UDP_PORT;
+
+                    void * newPara = malloc(sizeof(parameter));
+                    parameter * new_passing_parameter = (parameter *) newPara;
+                    new_passing_parameter->request = newMesg;
+                    new_passing_parameter->cliAddr = clientAddressPtr;
+                    new_passing_parameter->n = oldMesgLen;
+                    new_passing_parameter->port_num = UDP_PORT;
+
+                    pthread_create(&(thread[thread_iterator]), NULL, handleUpdate, oldPara);
+                    thread_iterator++;
+
+                    pthread_create( &(thread[thread_iterator]), NULL, handleUpdate, newPara );
+                    thread_iterator++;
+
+                    if(thread_iterator>=THREAD_NUM){
+                        thread_iterator=0;
+                    }
+                    free (mesg);
+
+                }
+                else if (msgheader->oldMboxLength == 1 || msgheader->newMboxLength == 1 ) {
+                    printf("This is for merge\n");
+                    
+                    if(msgheader->oldMboxLength == 1){
+                        old_syn = 1;
+                        if(new_syn ==1){
+                            sequenceNumber = sequenceNum;
+                            replyAddr[0] = clientAddressPtr;
+
+                            printf("Ready for SYN-ACK\n");
+                            
+                            pthread_create(&(thread[thread_iterator]), NULL, handleACK, NULL);
+                            thread_iterator++;
+                        } else{
+                            replyAddr[0] = clientAddressPtr;
+                            printf("See only old syn and not new syn yet!\n");
+                        }
+                        
+
+                    } else{
+                        new_syn = 1;
+                        if(old_syn ==1){
+                            replyAddr[1] = clientAddressPtr;
+                            sequenceNumber = sequenceNum;
+
+                            printf("Ready for SYN-ACK\n");
+                            pthread_create(&(thread[thread_iterator]), NULL, handleACK, NULL);
+                            thread_iterator++;
+
+                        } else{
+                            replyAddr[1] = clientAddressPtr;
+
+                            printf("See only new syn and not old syn yet!\n");
+                        }
+
+                    }
+
+                }
+            }
               
          }
           else if(msgheader->action  == 6){
-            if( retv->sequenceNumber == sequenceNum){
+            if( sequenceNumber == sequenceNum){
                 printf("ACK\n");
                 pthread_mutex_lock(&lock);
-
                 update_ack = 1; 
-                //reset a bunch of stuff:
-                //clearHash();
                 pthread_mutex_unlock(&lock);
-
             } 
         }
         gettimeofday(&t2, NULL);
         elapsedTime =(t2.tv_sec - t1.tv_sec);
-        if (elapsedTime>60){
-            break;
-        }
     }
     pthread_mutex_destroy(&lock);
 

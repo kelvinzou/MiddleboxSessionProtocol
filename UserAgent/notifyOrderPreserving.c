@@ -42,8 +42,6 @@ OldMiddlebox List
 NewMiddlebox List
 */
 
-int  srcPort =1 , dstPort=1;
-
 int sync_packet(int fd, char * writeBuffer, struct sockaddr_in * servaddr ){
 	
 	//char * MBox[] ={"128.112.93.108", "128.112.93.107"} ;
@@ -51,10 +49,10 @@ int sync_packet(int fd, char * writeBuffer, struct sockaddr_in * servaddr ){
 	char * newMBox[] = {"10.0.0.3", "10.0.0.6",  "10.0.0.5"};
 
 	header * hdr_ptr = (header*) writeBuffer;	
-	hdr_ptr->oldMboxLength = 4 * ( sizeof (oldMBox) / sizeof(char *) );
-	hdr_ptr->newMboxLength = 4 * ( sizeof (newMBox) / sizeof(char *) );
+	hdr_ptr->oldMboxLength =  ( sizeof (oldMBox) / sizeof(char *) );
+	hdr_ptr->newMboxLength = ( sizeof (newMBox) / sizeof(char *) );
 
-	int ByteStreamCount = sizeof(header) +  hdr_ptr->newMboxLength + hdr_ptr->oldMboxLength  + 4;
+	int ByteStreamCount = sizeof(header) +  4* (hdr_ptr->newMboxLength + hdr_ptr->oldMboxLength + 1 ) ;
 
 	//this is UPDATE-SYN
 	hdr_ptr->action = 4 ;
@@ -64,17 +62,27 @@ int sync_packet(int fd, char * writeBuffer, struct sockaddr_in * servaddr ){
 
 	int i = 0;
 
-	for (i=0; i< sizeof (oldMBox) / sizeof(char *) ; i++ ){
+	for (i=0; i< hdr_ptr->oldMboxLength; i++ ){
 		inet_aton(oldMBox[i], &addr);
 		memcpy(writeBuffer+ sizeof(header) + 4*i, &addr.s_addr, 4);
 	} 
 	
-	for (i=0; i< sizeof (newMBox) / sizeof(char *) ; i++ ){
+	for (i=0; i< hdr_ptr->newMboxLength ; i++ ){
 		inet_aton(newMBox[i], &addr);
-		memcpy( writeBuffer + sizeof(header) +  hdr_ptr->oldMboxLength  + 4*i, &addr.s_addr, 4);
+		memcpy( writeBuffer + sizeof(header) +  hdr_ptr->oldMboxLength*4  + 4*i, &addr.s_addr, 4);
 	} 
-	
-	
+	int itr =0;
+	for (itr = 0; itr<hdr_ptr->oldMboxLength ; itr++){
+        struct in_addr addr = *(struct in_addr*) ( writeBuffer + itr*4 + sizeof(header));
+        printf("old middlebox list is %s\n",inet_ntoa(addr));
+    }
+
+    for (itr = 0; itr<hdr_ptr->newMboxLength ; itr++){
+        struct in_addr addr = *(struct in_addr*) ( writeBuffer + itr*4 + hdr_ptr->oldMboxLength *4 + sizeof(header));
+        printf("new middlebox list is %s\n",inet_ntoa(addr));
+    }
+
+    printf("\n");
 	sendto(fd,writeBuffer,ByteStreamCount,0,(struct sockaddr *)servaddr,sizeof(struct sockaddr_in ));
 	return 0;
 }
@@ -122,16 +130,15 @@ int main(int argc, char**argv)
     while(1)
     {
     	int i = poll(poll_fd, 1, 1);
-
     	if(i==1){
+    		//this means you have seen syn-ack
     		n=recvfrom(sockfd,recvline,1400,0,NULL,NULL);
     		break;
     	} else{
+    		usleep(1000);
 			sync_packet(sockfd, sendline, &servaddr);
     	}
     }
-
-	
 			//fputs(recvline,stdout);
 
 	int ack = *(int *) recvline;
@@ -147,19 +154,20 @@ int main(int argc, char**argv)
 		header * ackHeader = (header *)AckMesg;
 		ackHeader->action = 6;
 		ackHeader->sequenceNum = SEQUENCENUM;
+		
+
 		gettimeofday(&t2, NULL);
 		elapsedTime =(t2.tv_usec - t1.tv_usec) + (t2.tv_sec - t1.tv_sec)*1000000;
 		printf("Time is %f\n",elapsedTime);
-		//just random key
+		
+		//this is to send back the final ack and so that the other side of the update can send packets
 		sendto(sockfd,AckMesg,HeaderLength,0,(struct sockaddr *) &servaddr,sizeof(struct sockaddr_in ));
-		/*
-		Here we add keep alive messages to show the mobility can be handled for packets on the fly
 		
 		while(1){
-			sleep(5);
-			keepalive(sockfd, (struct sockaddr *)&servaddr);
+			n=recvfrom(sockfd,recvline,1400,0,NULL,NULL);
+			sendto(sockfd,AckMesg,HeaderLength,0,(struct sockaddr *) &servaddr,sizeof(struct sockaddr_in ));
 		}
-		*/
+		
 		return 0;
 	}
 	
