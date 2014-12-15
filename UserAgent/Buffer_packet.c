@@ -205,7 +205,7 @@ int main(int argc, char *argv[]) {
         socklen_t fromlen;
 
         fromlen = sizeof from;
-        
+
         recv_buffer = (char *) malloc(9000);
         recvfrom(sock, recv_buffer, 9000, 0,(struct sockaddr*) &from, &fromlen);
         printf("\nThe source address for receive from is %s\n", inet_ntoa( *(struct in_addr* ) &from.sin_addr.s_addr));
@@ -243,6 +243,9 @@ int main(int argc, char *argv[]) {
 
             enqueue(&BufferedQueue, recv_buffer);
             printf("The item number is %d\n", BufferedQueue.size);
+            if(!flag){
+                break;
+            }
             
         } else{
             free(recv_buffer);
