@@ -4,19 +4,49 @@
 #include <linux/skbuff.h>
 #include "uthash.h"
 static struct sock *nl_sk = NULL;
+void HashMigrate(record_t * item){
+    
+    record_t * p=NULL;
 
-void addHash(record_t * item){
-    record_t  *r;
-    record_t *p=NULL;
+    write_lock(&my_rwlock);
     HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
-    if(p==NULL){
-        r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
-        memcpy((char *)r, (char *)item, sizeof(record_t));
-        write_lock(&my_rwlock);
-        HASH_ADD(hh, records, key, sizeof(record_key_t), r);
-        write_unlock(&my_rwlock);
-         printk(KERN_ALERT "Kernel insertion happens!\n");
+
+    if (p!=NULL) {
+        p->Migrate = 1;
+        p->Buffer =  1;
+        printk(KERN_ALERT "HASH migration modification happens!\n");
     }
+    p->dst =  in_aton("127.0.0.1");
+    write_unlock(&my_rwlock);
+}
+
+
+void HashReleaseBuffer(record_t * item){
+    
+    record_t * p=NULL;
+    
+
+    write_lock(&my_rwlock);
+    HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
+    if (p!=NULL) {
+        p->Buffer = 0;
+        printk(KERN_ALERT "HASH buffer modification happens!\n");
+    }
+    write_unlock(&my_rwlock);
+}
+
+void HashResetMigration(record_t * item){
+    record_t * p=NULL;
+    
+    write_lock(&my_rwlock);
+    HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
+
+    if (p!=NULL) {
+        p->Migrate =0;
+        printk(KERN_ALERT "HASH buffer reset happens!\n");
+        p->dst =  in_aton("128.112.93.106");
+    }
+    write_unlock(&my_rwlock);
 }
 
 static void hello_nl_recv_msg(struct sk_buff *skb)
@@ -37,9 +67,38 @@ static void hello_nl_recv_msg(struct sk_buff *skb)
 
     printk(KERN_ALERT "Netlink received msg payload: %s\n", (char *)nlmsg_data(nlh));
     
+    
+
+    record_t item;
+    //here we just need SYNC packet, because SYN-ACK are rule is preinstalled first
+    if (strcmp((char*)nlmsg_data(nlh), "SYN")==0){
+        memset(&item, 0, sizeof(record_t));
+        item.key.dst = in_aton( "128.112.93.107" );
+        item.key.sport =5001;
+
+        HashMigrate(&item);
+    }
+    if (strcmp((char*)nlmsg_data(nlh), "LOCK")==0){
+        write_lock(&release_lock);
+    }
+    if (strcmp((char*)nlmsg_data(nlh), "UNLOCK")==0){
+        write_unlock(&release_lock);
+    }
+    if(strcmp((char*)nlmsg_data(nlh), "ACK")==0){
+        memset(&item, 0, sizeof(record_t));
+        item.key.dst = in_aton( "128.112.93.107" );
+        item.key.sport =5001;
+        HashReleaseBuffer(&item);
+    }
+    if(strcmp((char*)nlmsg_data(nlh), "REL")==0){
+        write_unlock(&release_lock);
+    }
+
+
+
+
+
     pid = nlh->nlmsg_pid; /*pid of sending process */
-
-
     skb_out = nlmsg_new(msg_size, 0);
 
     if (!skb_out)
@@ -48,33 +107,6 @@ static void hello_nl_recv_msg(struct sk_buff *skb)
 		return;
     }
 
-   
-    
-    record_t l, *p;
-    //here we only activate the SYN_ACK rule, SYN rule was installed way before
-    if (strcmp((char*)nlmsg_data(nlh), "SYNACK")==0) {
-
-        memset(&l, 0, sizeof(record_t));
-        l.key.dst = in_aton( "128.112.93.107" );
-        l.key.sport =5001;
-        
-        HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
-        
-        if (p)  {
-            write_lock(&my_rwlock);
-            HASH_DEL(records, p);
-            write_unlock(&my_rwlock);
-	        printk(KERN_ALERT "Kernel eviction happens!\n");
-	        kfree(p);
-        }
-    } else if (strcmp((char*)nlmsg_data(nlh), "RESET")==0){
-         memset(&l, 0, sizeof(record_t));
-        l.key.dst = in_aton( "128.112.93.107" );
-        l.key.sport =5001;
-        l.dst= in_aton("128.112.93.106");
-        addHash(&l);
-    }
-    
     nlh = nlmsg_put(skb_out, 0, 0, NLMSG_DONE, msg_size, 0);
     NETLINK_CB(skb_out).dst_group = 0; /* not in mcast group */
     

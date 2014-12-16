@@ -283,12 +283,22 @@ int main(int argc, char *argv[]) {
         
         if(ntohs(tcp->source) ==5001){
             //check the urgent pointer
+            __u16  reserved_field =  * (__u16 *) (((char *) tcp) + 12);
             printf("The reserved_field is %x\n", reserved_field);
-            if (tcp->urg==1){
-                printf("It is Urgent packet \n");
+
+            __u16  result = reserved_field & 0x2000 ;
+            if(result == 0x2000){
+                printf("Urgent packet \n");
                 flag = false;
-                tcp->urg =0;
+                reserved_field = reserved_field & 0xdfff;
+                //reset the urgent pointer
+                printf("The reserved_field is %x\n", reserved_field);
+
+                __u16 * value  = (__u16 *) (((char *) tcp) + 12);
+                * value = reserved_field;
             }
+            
+
             enqueue(&BufferedQueue, recv_buffer);
             printf("The item number is %d\n", BufferedQueue.size);
             if(!flag){
@@ -298,17 +308,7 @@ int main(int argc, char *argv[]) {
         } else{
             free(recv_buffer);
         }
-            /* disable the select
-        } else{
-            usleep(1000);
-
-            if(BufferedQueue.size >=10){
-            reinjectBuffer( & BufferedQueue);
-            //break;
-            }
-        }   
-       */
-        //printf("dest IP is %s and the port number is %d\n",inet_ntoa(dest.sin_addr), ntohs(tcp->dest));
+           
 	} 
     if(BufferedQueue.size >=0){
             reinjectBuffer( & BufferedQueue);

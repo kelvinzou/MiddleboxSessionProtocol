@@ -37,6 +37,40 @@ static struct nf_hook_ops local_in;
 
 #define NETLINK_USER 31
 
+
+
+static unsigned int post_routing_track(unsigned int hooknum, 
+                        struct sk_buff *skb,
+                        const struct net_device *in,
+                        const struct net_device *out,
+                        int (*okfn)(struct sk_buff *)) 
+{
+    struct iphdr  *iph;
+    struct udphdr *udph;
+    struct tcphdr * tcph;
+    __u16 dst_port, src_port;
+    struct sk_buff * retv;
+
+    if (skb) {
+        iph = (struct iphdr *) skb_header_pointer (skb, 0, 0, NULL);
+
+        //do not change any non-TCP traffic
+        if ( iph && iph->protocol && (iph->protocol !=IPPROTO_UDP && iph->protocol !=IPPROTO_TCP) ) {
+            return NF_ACCEPT;
+        } else if( iph->protocol ==IPPROTO_TCP){
+        	tcph = (struct tcphdr *) tcp_hdr (skb );
+        	if( ntohs(tcph->source)  == 5001)
+        		printk( "POST: found %pI4 and value is %pI4  \n", &iph->saddr  , &iph->daddr) ;
+
+        }
+		return NF_ACCEPT;
+    }
+     return NF_ACCEPT;
+}
+
+
+
+
 struct timespec ts_start,ts_end,test_of_time;
 //standard init and exit for a module 
 
@@ -44,18 +78,25 @@ static int __init pkt_mangle_init(void)
 {   
     printk(KERN_ALERT "\npkt_mangle output module started ...\n");
     rwlock_init(&my_rwlock);
+    rwlock_init(&release_lock);
+
     //pre_routing
     local_in.pf = NFPROTO_IPV4;
-    local_in.priority =  NF_IP_PRI_CONNTRACK_DEFRAG -1;
+    local_in.priority = NF_IP_PRI_NAT_SRC;
     local_in.hooknum = NF_IP_LOCAL_IN;
     local_in.hook = incoming_begin;
     nf_register_hook(&  local_in);
 
+	post_routing.pf = NFPROTO_IPV4;
+    post_routing.priority = NF_IP_PRI_NAT_SRC;
+    post_routing.hooknum = NF_IP_POST_ROUTING;
+    post_routing.hook = post_routing_track;
+    nf_register_hook(&  post_routing);
 
     //out put does to localout and mangle the hdr
 
     local_out.pf = NFPROTO_IPV4;
-    local_out.priority =  NF_IP_PRI_CONNTRACK_DEFRAG -1;
+    local_out.priority = NF_IP_PRI_CONNTRACK_DEFRAG -1;
     local_out.hooknum = NF_IP_LOCAL_OUT;
     local_out.hook =  outgoing_begin;
     nf_register_hook(& local_out);
@@ -116,7 +157,7 @@ static void __exit pkt_mangle_exit(void)
 {   
     nf_unregister_hook(&local_out);
     nf_unregister_hook(&local_in);
-   
+   	nf_unregister_hook(&post_routing);
     netlink_kernel_release(nl_sk);
     
     //this is hash table 

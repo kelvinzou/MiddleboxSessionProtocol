@@ -72,6 +72,8 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     tcphdr_len = tcp_hdrlen(skb) ;
     unsigned int tcp_len ;
     tcp_len = data_len - iphdr_len ;  
+	__u32 seqNumber =  tcph->seq;
+    __u32 ackSeq = tcph->ack_seq;
 
 
     //tcph->check = 0;
@@ -83,7 +85,7 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     memset(&l, 0, sizeof(record_t) ) ;
     p=NULL;
     //get_random_bytes ( &i, sizeof (int) );
-    l.key.dst =iph->daddr ;
+    l.key.dst =iph->daddr ; 
     l.key.sport = ntohs(tcph->source) ;
     read_lock(&my_rwlock) ;
     HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p) ;
@@ -94,14 +96,46 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
 		if (unlikely(skb_linearize(skb) != 0))
 			return NULL;
         
-        printk( KERN_ALERT "found %pI4 and value is %pI4  \n", &p->key.dst , &p->dst);
+        printk( " Output: found %pI4 and value is %pI4  \n", &p->key.dst , &p->dst);
 
         __be32 oldIP = iph->daddr;
         iph->daddr = p->dst;
         __be32 newIP = iph->daddr;
-        inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
-        csum_replace4(&iph->check, oldIP, newIP);
-        return  skb ;
+
+
+
+        if(p->Migrate ==1){
+        	if(p->Buffer ==1) {
+        		printk("Buffering packets now\n");
+        		iph->protocol = IPPROTO_RAW; 
+	        	ip_send_check(iph) ;
+        	} else{
+        		printk("No buffer is needed, release and reset migrate flag\n");
+        		//just mark one special packet, and this is the end of the buffering
+        		// need to change both migrate and buffer flags to false.
+        		__u16  * mark_end =  (__u16 *) (((char *) tcph) + 12);
+        		//this basically set the urgent flag. 
+                tcph->urg =1;
+        		iph->protocol = IPPROTO_RAW; 
+	        	ip_send_check(iph) ;
+	        	write_lock(&my_rwlock);
+			    p->Migrate =0;
+			    p->dst =  in_aton("128.112.93.106");
+			    write_unlock(&my_rwlock);
+	        	
+	        	write_lock(&release_lock);
+	        	printk("Entering release lock and should not see any readlock msg unless after release\n");
+	        	return skb;
+        	}
+
+        }
+        else{
+        	inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
+		    csum_replace4(&iph->check, oldIP, newIP);
+		    printk( " Output: found dest is  %pI4 \n", &iph->daddr);
+		    return  skb ;
+    	}
+        
     }
     else {
     	if ( ntohs(tcph->source)  == 5001 )
@@ -140,6 +174,10 @@ static unsigned int outgoing_begin (unsigned int hooknum,
                 printk(KERN_ALERT "Output: Fail to skb_linearize\n");
                 return NF_DROP;
             }
+
+	        ip_route_me_harder(skb, RTN_UNSPEC);
+            
+            //return NF_ACCEPT;
             okfn(skb);
             return  NF_STOLEN;
         } 
