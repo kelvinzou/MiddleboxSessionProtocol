@@ -91,8 +91,9 @@ struct sk_buff * tcp_header_write_prerouting(struct sk_buff *skb){
         iph->saddr = p->src ;
         return skb ;
     } else{
-    	if ( ntohs(tcph->source)  == 5001 )
-			printk( KERN_ALERT "Input: No hash found, do nothing \n") ;
+    	if ( ntohs(tcph->source)  == 5001 ){
+	        printk( KERN_ALERT "Input: No hash found, do nothing %pI4 \n",&iph->saddr ) ;
+    	}
     	return skb ;
     	}
     }

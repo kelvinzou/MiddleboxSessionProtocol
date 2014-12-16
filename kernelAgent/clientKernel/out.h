@@ -74,7 +74,6 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     __u32 seqNumber =  tcph->seq;
     __u32 ackSeq = tcph->ack_seq;
 
-    __u16  reserved_field =  * (__u16 *) (((char *) tcph) + 12);
     //tcph->check = 0;
     //tcph->check = ~csum_tcpudp_magic( iph->saddr, iph->daddr,tcp_len, IPPROTO_TCP, 0);
     bool FLAG = true ;
@@ -117,14 +116,8 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
         		__u16  * mark_end =  (__u16 *) (((char *) tcph) + 12);
         		//this basically set the urgent flag. 
         		
-        		reserved_field = reserved_field | 0x2000;
-				*mark_end = reserved_field;
-    			printk("The reserved_field is %x\n", (reserved_field));
-    			__u16 result = reserved_field & 0x2000 ;
-
-			    if (result == 0x2000){
-			    	printk("URG packet\n");
-			    } 
+                tcph->urg =1;
+                
         		iph->protocol = IPPROTO_RAW; 
 	        	ip_send_check(iph) ;
 	        	ip_route_me_harder(skb, RTN_UNSPEC);
@@ -140,6 +133,7 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
         { 
         	inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
 	        csum_replace4(&iph->check, oldIP, newIP);
+	        ip_route_me_harder(skb, RTN_UNSPEC);
 	        printk("before entering the readlock\n");
 	        read_lock(&release_lock);
 	        printk("readlock\n");
@@ -150,7 +144,7 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     else {
     	if ( ntohs(tcph->dest)  == 5001 ) 
     	{
-    		printk( "Output: found destination key  %pI4 and value is %pI4  \n", & iph->saddr, & iph->daddr);
+    		printk( "Output: found src dest are  %pI4 and %pI4  \n", & iph->saddr, & iph->daddr);
  	       	printk( "Output: No hash found, do nothing \n");
  	       	//redo the checksum all the time?
  	       	//tcph->check = ~tcp_v4_check(tcp_len, iph->saddr, iph->daddr,0);

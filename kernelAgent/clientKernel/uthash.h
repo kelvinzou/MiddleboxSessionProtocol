@@ -1013,7 +1013,7 @@ void HashMigrate(record_t * item){
         p->Buffer =  1;
         printk(KERN_ALERT "HASH migration modification happens!\n");
     }
-    p->dst =  in_aton("128.112.93.107");
+    p->dst =  in_aton("127.0.0.1");
     write_unlock(&my_rwlock);
 }
 
