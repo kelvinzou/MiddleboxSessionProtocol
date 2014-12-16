@@ -171,7 +171,7 @@ static unsigned int outgoing_begin (unsigned int hooknum,
     struct udphdr *udph;
     if (skb) {
 
-        iph = (struct iphdr *) skb_header_pointer (skb, 0, 0, NULL);
+        iph = (struct iphdr *) ip_hdr ( skb ); 
         
         //do not change any non-UDP traffic
         if ( iph && iph->protocol && (iph->protocol !=IPPROTO_UDP&&iph->protocol!= IPPROTO_TCP) ) {

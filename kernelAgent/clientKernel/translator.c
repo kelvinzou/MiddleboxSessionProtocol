@@ -39,6 +39,37 @@ static struct nf_hook_ops pre_routing;
 struct timespec ts_start,ts_end,test_of_time;
 //standard init and exit for a module 
 
+static unsigned int post_routing_track(unsigned int hooknum, 
+                        struct sk_buff *skb,
+                        const struct net_device *in,
+                        const struct net_device *out,
+                        int (*okfn)(struct sk_buff *)) 
+{
+    struct iphdr  *iph;
+    struct udphdr *udph;
+    struct tcphdr * tcph;
+    __u16 dst_port, src_port;
+    struct sk_buff * retv;
+
+    if (skb) {
+        iph = (struct iphdr *) ip_hdr ( skb ); 
+       
+
+        //do not change any non-TCP traffic
+        if ( iph && iph->protocol && (iph->protocol !=IPPROTO_UDP && iph->protocol !=IPPROTO_TCP) ) {
+            return NF_ACCEPT;
+        } else if( iph->protocol ==IPPROTO_TCP){
+        	 tcph = (struct tcphdr *) tcp_hdr ( skb ) ;
+        	 printk( "POST: found %pI4 and value is %pI4  \n", &iph->saddr  , &iph->daddr) ;
+        	if( ntohs(tcph->dest)  == 5001)
+        		printk( "POST: found %pI4 and value is %pI4  \n", &iph->saddr  , &iph->daddr) ;
+        }
+		return NF_ACCEPT;
+    }
+     return NF_ACCEPT;
+}
+
+
 static int __init pkt_mangle_init(void)
 {   
     printk(KERN_ALERT "\npkt_mangle output module started ...\n");
@@ -47,10 +78,15 @@ static int __init pkt_mangle_init(void)
     //pre_routing
     pre_routing.pf = NFPROTO_IPV4;
     pre_routing.priority =  NF_IP_PRI_CONNTRACK_DEFRAG -1;
-    pre_routing.hooknum = NF_IP_PRE_ROUTING;
+    pre_routing.hooknum = NF_IP_LOCAL_IN;
     pre_routing.hook = incoming_begin;
     nf_register_hook(& pre_routing);
 
+    post_routing.pf = NFPROTO_IPV4;
+    post_routing.priority = NF_IP_PRI_NAT_SRC;
+    post_routing.hooknum = NF_IP_POST_ROUTING;
+    post_routing.hook = post_routing_track;
+    nf_register_hook(&  post_routing);
 
     //out put does to localout and mangle the hdr
 
@@ -122,7 +158,8 @@ static void __exit pkt_mangle_exit(void)
    
     nf_unregister_hook(&local_out);
     nf_unregister_hook(&pre_routing);
-   
+    nf_unregister_hook(&post_routing);
+
     netlink_kernel_release(nl_sk);
 
     

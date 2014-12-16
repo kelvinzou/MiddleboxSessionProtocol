@@ -45,11 +45,11 @@ int main(int argc, char *argv[])
 	int i =0;	
 	memset((char *)sendBuff, '0', blocksize*sizeof(char) ); 
 		
-	for (i=0; i<30; i++){
+	for (i=0; i<300; i++){
         printf("\n Write \n");
 	 int n = write(connfd, sendBuff, blocksize*sizeof(char) ); 
 	 read(connfd, sendBuff, n);
-	  sleep(1);
+	 // sleep(1);
 	  if (n<0){
 	    printf("\n Write error \n");
         printf("Error with write() is %s!\n", strerror(errno));
