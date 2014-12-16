@@ -45,8 +45,12 @@ int main(int argc, char *argv[])
 	int i =0;	
 	memset((char *)sendBuff, '0', blocksize*sizeof(char) ); 
 		
+<<<<<<< HEAD
 	for (i=0; i<3; i++){
         printf("\n Write \n");
+=======
+	for (i=0; i<300; i++){
+>>>>>>> c2657159a9d7da7669886201ed1306f72dd77eaa
 	 int n = write(connfd, sendBuff, blocksize*sizeof(char) ); 
 	 //read(connfd, sendBuff, n);
 	 // sleep(1);

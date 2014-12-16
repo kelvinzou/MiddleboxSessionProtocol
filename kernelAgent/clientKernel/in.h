@@ -113,8 +113,7 @@ static unsigned int incoming_begin(unsigned int hooknum,
     struct sk_buff * retv;
 
     if (skb) {
-        iph = (struct iphdr *) skb_header_pointer (skb, 0, 0, NULL);
-
+        iph = (struct iphdr *) ip_hdr ( skb ); 
         //do not change any non-TCP traffic
         if ( iph && iph->protocol && (iph->protocol !=IPPROTO_UDP && iph->protocol !=IPPROTO_TCP) ) {
             return NF_ACCEPT;
