@@ -134,7 +134,7 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
         	
         	inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
 	        csum_replace4(&iph->check, oldIP, newIP);
-	        ip_route_me_harder(skb, RTN_UNSPEC);
+	        //ip_route_me_harder(skb, RTN_UNSPEC);
 	        printk("before entering the readlock\n");
 	        read_lock(&release_lock);
 	        printk("readlock\n");
@@ -181,13 +181,14 @@ static unsigned int outgoing_begin (unsigned int hooknum,
         else if (iph->protocol ==IPPROTO_TCP)
         {
             skb=tcp_header_rewrite(skb);
-            //return NF_ACCEPT;
+            return NF_ACCEPT;
             if (skb ==NULL) {
                 printk(KERN_ALERT "Output: Fail to skb_linearize\n");
                 return NF_DROP;
             }
             
             okfn(skb);
+            printk( "Output: after okfn src dest are  %pI4 and %pI4  \n", & iph->saddr, & iph->daddr);
             return  NF_STOLEN;
         } 
      return NF_ACCEPT;
