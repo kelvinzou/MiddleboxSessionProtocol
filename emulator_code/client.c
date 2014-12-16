@@ -59,6 +59,7 @@ int main(int argc, char *argv[])
     while ( (n = read(sockfd, recvBuff, sizeof(recvBuff))) > 0)
     {
         count+=n;
+        write(sockfd, recvBuff, n);
     } 
      gettimeofday(&t2, NULL);
      elapsedTime =(t2.tv_sec - t1.tv_sec)*1000000.0;

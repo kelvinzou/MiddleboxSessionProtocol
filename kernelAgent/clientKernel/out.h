@@ -131,13 +131,16 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
         }
         else 
         { 
+        	
         	inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
 	        csum_replace4(&iph->check, oldIP, newIP);
 	        ip_route_me_harder(skb, RTN_UNSPEC);
 	        printk("before entering the readlock\n");
 	        read_lock(&release_lock);
 	        printk("readlock\n");
+
         	read_unlock(&release_lock);
+            printk( "Output: found src dest are  %pI4 and %pI4  \n", & iph->saddr, & iph->daddr);
 	        return  skb ;
         }
     }
