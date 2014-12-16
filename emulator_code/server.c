@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
 
     listen(listenfd, 10); 
     int blocksize = 100000000;
-    blocksize = 1000;
+    //blocksize = 1000;
     while(1)
     {
         connfd = accept(listenfd, (struct sockaddr*)NULL, NULL); 
@@ -45,10 +45,10 @@ int main(int argc, char *argv[])
 	int i =0;	
 	memset((char *)sendBuff, '0', blocksize*sizeof(char) ); 
 		
-	for (i=0; i<300; i++){
+	for (i=0; i<3; i++){
         printf("\n Write \n");
 	 int n = write(connfd, sendBuff, blocksize*sizeof(char) ); 
-	 read(connfd, sendBuff, n);
+	 //read(connfd, sendBuff, n);
 	 // sleep(1);
 	  if (n<0){
 	    printf("\n Write error \n");

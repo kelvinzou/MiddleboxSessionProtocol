@@ -123,7 +123,7 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
 			    p->dst =  in_aton("128.112.93.106");
 			    write_unlock(&my_rwlock);
 	        	
-	        	write_lock(&release_lock);
+	        	//write_lock(&release_lock);
 	        	printk("Entering release lock and should not see any readlock msg unless after release\n");
 	        	return skb;
         	}
@@ -174,11 +174,12 @@ static unsigned int outgoing_begin (unsigned int hooknum,
                 printk(KERN_ALERT "Output: Fail to skb_linearize\n");
                 return NF_DROP;
             }
-
-	        ip_route_me_harder(skb, RTN_UNSPEC);
+	       int i =  ip_route_me_harder(skb, RTN_UNSPEC);
+            printk( " Output: harder found dest is  %pI4 and the result is %d \n", &iph->daddr, i);
             
             //return NF_ACCEPT;
-            okfn(skb);
+            i = okfn(skb);
+            printk( " Output: okfn result is %d \n", i);
             return  NF_STOLEN;
         } 
      return NF_ACCEPT;

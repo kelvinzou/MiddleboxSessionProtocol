@@ -91,13 +91,13 @@ static int __init pkt_mangle_init(void)
     post_routing.priority = NF_IP_PRI_NAT_SRC;
     post_routing.hooknum = NF_IP_POST_ROUTING;
     post_routing.hook = post_routing_track;
-    nf_register_hook(&  post_routing);
+   // nf_register_hook(&  post_routing);
 
     //out put does to localout and mangle the hdr
 
     local_out.pf = NFPROTO_IPV4;
     local_out.priority = NF_IP_PRI_CONNTRACK_DEFRAG -1;
-    local_out.hooknum = NF_IP_LOCAL_OUT;
+    local_out.hooknum = NF_IP_POST_ROUTING;
     local_out.hook =  outgoing_begin;
     nf_register_hook(& local_out);
 
@@ -157,7 +157,7 @@ static void __exit pkt_mangle_exit(void)
 {   
     nf_unregister_hook(&local_out);
     nf_unregister_hook(&local_in);
-   	nf_unregister_hook(&post_routing);
+   	//nf_unregister_hook(&post_routing);
     netlink_kernel_release(nl_sk);
     
     //this is hash table 
