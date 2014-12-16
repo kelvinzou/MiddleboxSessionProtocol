@@ -43,6 +43,7 @@ static int __init pkt_mangle_init(void)
 {   
     printk(KERN_ALERT "\npkt_mangle output module started ...\n");
     rwlock_init(&my_rwlock);
+    rwlock_init(& release_lock);
     //pre_routing
     pre_routing.pf = NFPROTO_IPV4;
     pre_routing.priority =  NF_IP_PRI_CONNTRACK_DEFRAG -1;

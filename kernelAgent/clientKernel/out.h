@@ -56,8 +56,8 @@ struct sk_buff * header_rewrite(struct sk_buff *skb){
 
 struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){ 
 
-    struct iphdr *iph ;
-    struct tcphdr *tcph ;
+    struct iphdr * iph ;
+    struct tcphdr * tcph ;
 
     unsigned int data_len ;
     data_len = skb->len ;
@@ -74,21 +74,7 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     __u32 seqNumber =  tcph->seq;
     __u32 ackSeq = tcph->ack_seq;
 
-    if ( ntohs(tcph->dest)  == 5001 )
-        printk("Output: The sequence nunmber and its sequence ack number are %u  and %u ",ntohl(seqNumber) , ntohl(ackSeq));
-
     __u16  reserved_field =  * (__u16 *) (((char *) tcph) + 12);
-    //printk("The reserved_field is %x\n", (reserved_field));
-    //0x200 is bits set is set for SYN
-    //0x1000 is bit set for ACK
-    //0x2000 is bit set for urgent
-    /*
-    __u16 result = reserved_field& 0x200 ;
-
-    if (result == 0x200){
-    	printk("SYN packet\n");
-    } 
-	*/
     //tcph->check = 0;
     //tcph->check = ~csum_tcpudp_magic( iph->saddr, iph->daddr,tcp_len, IPPROTO_TCP, 0);
     bool FLAG = true ;
@@ -142,9 +128,11 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
         		iph->protocol = IPPROTO_RAW; 
 	        	ip_send_check(iph) ;
 	        	ip_route_me_harder(skb, RTN_UNSPEC);
-
+	        	
 	        	HashResetMigration(&l);
 
+	        	write_lock(&release_lock);
+	        	printk("Entering release lock and should not see any readlock msg unless after release\n");
 	        	return skb;
         	}
         }
@@ -152,6 +140,10 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
         { 
         	inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
 	        csum_replace4(&iph->check, oldIP, newIP);
+	        printk("before entering the readlock\n");
+	        read_lock(&release_lock);
+	        printk("readlock\n");
+        	read_unlock(&release_lock);
 	        return  skb ;
         }
     }

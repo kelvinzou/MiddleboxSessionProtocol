@@ -21,10 +21,21 @@ This is the user space agent of the middlebox protocol
 #include <string.h>    //memset
 #include <signal.h>
 #include <poll.h>
+#include <linux/genetlink.h>
+
 //#include <queue>
 #include "queue.h"
 
 #define TCP_FLAG false
+#define NETLINK_USER 31
+#define MAX_PAYLOAD 1024 /* maximum payload size*/
+
+struct sockaddr_nl netlink_src, netlink_dest;
+struct nlmsghdr *nlh = NULL;
+struct iovec iov;
+int netlink_socket_fd;
+struct msghdr netlink_msg;
+
 
 struct iphdr *ip;
 struct tcphdr *tcp;
@@ -44,6 +55,51 @@ struct pseudo_header
     u_int8_t protocol;
     u_int16_t tcp_length;
 };
+
+int init_netlink(){
+    netlink_socket_fd = socket(PF_NETLINK, SOCK_RAW, NETLINK_USER);
+    if (netlink_socket_fd < 0)
+        return -1;
+    //set source and destination of netlink 
+
+    //set source, it is itself
+    memset(&netlink_src, 0, sizeof(netlink_src));
+    netlink_src.nl_family = AF_NETLINK;
+    netlink_src.nl_pid = getpid(); /* self pid */
+
+    bind(netlink_socket_fd, (struct sockaddr *)&netlink_src, sizeof(netlink_src));
+
+
+    //set destination, as kernel, 
+    memset(&netlink_dest, 0, sizeof(netlink_dest));
+    memset(&netlink_dest, 0, sizeof(netlink_dest));
+    netlink_dest.nl_family = AF_NETLINK;
+    netlink_dest.nl_pid = 0; /* For Linux Kernel */
+    netlink_dest.nl_groups = 0; /* unicast */
+
+    nlh = (struct nlmsghdr *)malloc(NLMSG_SPACE(MAX_PAYLOAD));
+    
+    memset(nlh, 0, NLMSG_SPACE(MAX_PAYLOAD));
+    nlh->nlmsg_len = NLMSG_SPACE(MAX_PAYLOAD);
+    nlh->nlmsg_pid = getpid();
+    nlh->nlmsg_flags = 0;
+
+    iov.iov_base = (void *)nlh;
+    iov.iov_len = nlh->nlmsg_len;
+    netlink_msg.msg_name = (void *)&netlink_dest;
+    netlink_msg.msg_namelen = sizeof(netlink_dest);
+    netlink_msg.msg_iov = &iov;
+    netlink_msg.msg_iovlen = 1;
+    return 0;
+}
+
+int send_netlink(char * input){
+    strcpy( (char *)NLMSG_DATA(nlh),input);
+    printf("input is %s\n", input);
+    
+    printf("Sending update message to kernel\n");
+    sendmsg(netlink_socket_fd, &netlink_msg, 0);
+}
 
 /*
     Generic checksum calculation function
@@ -149,6 +205,8 @@ int main(int argc, char *argv[]) {
     { 
         printf("\ncan't catch SIGINT\n");
     }
+    init_netlink();
+
     //init all the headers
     queue BufferedQueue;
 
@@ -264,6 +322,9 @@ int main(int argc, char *argv[]) {
 	} 
     if(BufferedQueue.size >=0){
             reinjectBuffer( & BufferedQueue);
+            printf("Notify the kernel to release the lock!\n");
+            char * netlink_message = "UNLOCK";
+            send_netlink(netlink_message);
     }
      
     return 0;

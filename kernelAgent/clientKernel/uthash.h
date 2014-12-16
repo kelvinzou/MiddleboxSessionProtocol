@@ -982,13 +982,16 @@ typedef struct {
 
 static record_t  *records = NULL;
 rwlock_t my_rwlock;
+rwlock_t release_lock;
+
 
 void deleteHash(record_t * item){
     
     record_t * p=NULL;
-    HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
 
     write_lock(&my_rwlock);
+    HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
+    
     if (p!=NULL) {
       HASH_DEL(records, p);
         printk(KERN_ALERT "Kernel eviction happens!\n");
@@ -1001,9 +1004,10 @@ void deleteHash(record_t * item){
 void HashMigrate(record_t * item){
     
     record_t * p=NULL;
-    HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
 
     write_lock(&my_rwlock);
+    HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
+
     if (p!=NULL) {
         p->Migrate = 1;
         p->Buffer =  1;
@@ -1016,9 +1020,10 @@ void HashMigrate(record_t * item){
 void HashReleaseBuffer(record_t * item){
     
     record_t * p=NULL;
-    HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
+    
 
     write_lock(&my_rwlock);
+    HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
     if (p!=NULL) {
         p->Buffer = 0;
         printk(KERN_ALERT "HASH buffer modification happens!\n");
@@ -1028,9 +1033,10 @@ void HashReleaseBuffer(record_t * item){
 
 void HashResetMigration(record_t * item){
     record_t * p=NULL;
+    
+    write_lock(&my_rwlock);
     HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
 
-    write_lock(&my_rwlock);
     if (p!=NULL) {
         p->Migrate =0;
         printk(KERN_ALERT "HASH buffer reset happens!\n");

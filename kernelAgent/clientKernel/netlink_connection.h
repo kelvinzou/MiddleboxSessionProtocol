@@ -30,14 +30,23 @@ static void netlink_agent(struct sk_buff *skb)
         memset(&item, 0, sizeof(record_t));
         item.key.dst = in_aton( "128.112.93.108" );
         item.key.dport =5001;
-        
+
         HashMigrate(&item);
+    }
+    if (strcmp((char*)nlmsg_data(nlh), "LOCK")==0){
+        write_lock(&release_lock);
+    }
+    if (strcmp((char*)nlmsg_data(nlh), "UNLOCK")==0){
+        write_unlock(&release_lock);
     }
     if(strcmp((char*)nlmsg_data(nlh), "ACK")==0){
         memset(&item, 0, sizeof(record_t));
         item.key.dst = in_aton( "128.112.93.108" );
         item.key.dport =5001;
         HashReleaseBuffer(&item);
+    }
+    if(strcmp((char*)nlmsg_data(nlh), "REL")==0){
+        write_unlock(&release_lock);
     }
     /*
     if (strcmp((char*)nlmsg_data(nlh), "ACK")==0) {
@@ -52,7 +61,7 @@ static void netlink_agent(struct sk_buff *skb)
         deleteHash(&item);
         
     } 
-    */
+   
     else if (strcmp((char*)nlmsg_data(nlh), "RESET")==0) {
         memset(&item, 0, sizeof(record_t));
         item.key.dst = in_aton( "128.112.93.108" );
@@ -81,7 +90,7 @@ static void netlink_agent(struct sk_buff *skb)
         addHash(& item);
     }
     
-
+ */
 
     pid = nlh->nlmsg_pid; /*pid of sending process */
 

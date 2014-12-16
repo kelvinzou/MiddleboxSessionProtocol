@@ -45,8 +45,10 @@ NewMiddlebox List
 int sync_packet(int fd, char * writeBuffer, struct sockaddr_in * servaddr ){
 	
 	//char * MBox[] ={"128.112.93.108", "128.112.93.107"} ;
-	char * oldMBox[] ={"10.0.0.3", "10.0.0.4",  "10.0.0.5"} ;
-	char * newMBox[] = {"10.0.0.3", "10.0.0.6",  "10.0.0.5"};
+	char * oldMBox[] ={"128.112.93.108", "128.112.93.106", "128.112.93.107"} ;
+	char * newMBox[] ={"128.112.93.108", "128.112.93.107"} ;
+	//char * oldMBox[] ={"10.0.0.3", "10.0.0.4",  "10.0.0.5"} ;
+	//char * newMBox[] = {"10.0.0.3", "10.0.0.6",  "10.0.0.5"};
 
 	header * hdr_ptr = (header*) writeBuffer;	
 	hdr_ptr->oldMboxLength =  ( sizeof (oldMBox) / sizeof(char *) );
