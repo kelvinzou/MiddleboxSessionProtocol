@@ -281,8 +281,9 @@ int main(int argc, char *argv[]) {
         struct tcphdr *tcp = (struct tcphdr *) (recv_buffer + iphdrlen);
 
         
-        if(ntohs(tcp->source) ==5001){
+        if(ntohs(tcp->dest) ==5001){
             //check the urgent pointer
+            __u16  reserved_field =  * (__u16 *) (((char *) tcp) + 12);
             printf("The reserved_field is %x\n", reserved_field);
             if (tcp->urg==1){
                 printf("It is Urgent packet \n");
