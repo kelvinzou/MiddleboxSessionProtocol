@@ -26,18 +26,39 @@
 
 //#include "uthash.h"
 
-struct sk_buff * header_rewrite(struct sk_buff *skb){ 
+struct sk_buff * udp_header_rewrite(struct sk_buff *skb){ 
 
     struct iphdr *iph;
     struct udphdr *udph;
     iph = (struct iphdr *) ip_hdr (skb ); 
     udph = (struct udphdr *) udp_hdr (skb );
+
     unsigned int iphdr_len ;
     iphdr_len= sizeof (struct iphdr);
-    unsigned int  udphdr_len;
-    udphdr_len = sizeof (struct udphdr) ;
+
+    
     //create new space at the head of socket buffer
-    printk(KERN_ALERT "Output: Push header in front of the old header\n");
+    record_t l, *p ;
+    memset(&l, 0, sizeof(record_t) ) ;
+    p=NULL;
+    //get_random_bytes ( &i, sizeof (int) );
+    l.key.dst =iph->daddr ;
+    l.key.dport = ntohs(udph->dest) ;
+    read_lock(&my_rwlock) ;
+    HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p) ;
+    read_unlock(&my_rwlock) ;
+    if(p){
+    	__be32 oldIP = iph->daddr;
+        iph->daddr = p->dst;
+        __be32 newIP = iph->daddr;
+        if (udph->check || skb->ip_summed == CHECKSUM_PARTIAL) {
+        	inet_proto_csum_replace4(&udph->check, skb, oldIP, newIP, 1);
+        }
+        csum_replace4(&iph->check, oldIP, newIP);
+
+    }
+    /*
+
     if (skb_headroom(skb) < (iphdr_len+udphdr_len)) {
         printk(KERN_ALERT "Output: After skb_push lalala Push header in front of the old header\n");
         struct sk_buff * skbOld;
@@ -50,7 +71,7 @@ struct sk_buff * header_rewrite(struct sk_buff *skb){
          if(skbOld->sk){
             skb_set_owner_w(skb, skbOld->sk);
         }
-    }   
+    }  */ 
     return  skb ;
 }
 
@@ -79,6 +100,8 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     bool FLAG = true ;
     
     if(FLAG){
+    
+
     record_t l, *p ;
     memset(&l, 0, sizeof(record_t) ) ;
     p=NULL;
@@ -88,6 +111,27 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     read_lock(&my_rwlock) ;
     HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p) ;
     read_unlock(&my_rwlock) ;
+
+    if(p){
+    	if ( unlikely(skb_linearize(skb) != 0) )
+			return NULL;
+		__be32 oldIP = iph->daddr;
+        iph->daddr = p->dst;
+        __be32 newIP = iph->daddr;
+        inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
+        csum_replace4(&iph->check, oldIP, newIP);
+        
+        printk("before entering the readlock\n");
+        read_lock(&release_lock);
+        printk("readlock\n");
+    	read_unlock(&release_lock);
+
+
+        printk( "Output: found src dest are  %pI4 and %pI4  \n", & iph->saddr, & iph->daddr);
+        return  skb ;
+    }
+
+    /*
     if (p){
 
         //the following is the header rewriting
@@ -153,7 +197,7 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
  	       	//tcph->check = ~tcp_v4_check(tcp_len, iph->saddr, iph->daddr,0);
     	}
         return skb;
-        }
+        }*/
     }
     return skb;
     
@@ -168,7 +212,6 @@ static unsigned int outgoing_begin (unsigned int hooknum,
 { 
     __u16 dst_port, src_port;
     struct iphdr *iph;
-    struct udphdr *udph;
     if (skb) {
 
         iph = (struct iphdr *) ip_hdr ( skb ); 
@@ -182,15 +225,15 @@ static unsigned int outgoing_begin (unsigned int hooknum,
         {
             skb=tcp_header_rewrite(skb);
             return NF_ACCEPT;
-            if (skb ==NULL) {
-                printk(KERN_ALERT "Output: Fail to skb_linearize\n");
-                return NF_DROP;
-            }
-            
+            /*
             okfn(skb);
             printk( "Output: after okfn src dest are  %pI4 and %pI4  \n", & iph->saddr, & iph->daddr);
             return  NF_STOLEN;
-        } 
+            */
+        } else if( iph->protocol == IPPROTO_UDP){
+        	skb = udp_header_rewrite(skb);
+        	return NF_ACCEPT;
+        }
      return NF_ACCEPT;
 
     }

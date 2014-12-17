@@ -45,9 +45,7 @@ static void netlink_agent(struct sk_buff *skb)
         item.key.dport =5001;
         HashReleaseBuffer(&item);
     }
-    if(strcmp((char*)nlmsg_data(nlh), "REL")==0){
-        write_unlock(&release_lock);
-    }
+
     /*
     if (strcmp((char*)nlmsg_data(nlh), "ACK")==0) {
         memset(&item, 0, sizeof(record_t));

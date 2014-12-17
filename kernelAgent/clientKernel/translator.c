@@ -39,7 +39,7 @@ static struct nf_hook_ops pre_routing;
 struct timespec ts_start,ts_end,test_of_time;
 //standard init and exit for a module 
 
-static unsigned int post_routing_track(unsigned int hooknum, 
+static unsigned int local_buffer(unsigned int hooknum, 
                         struct sk_buff *skb,
                         const struct net_device *in,
                         const struct net_device *out,
@@ -49,29 +49,23 @@ static unsigned int post_routing_track(unsigned int hooknum,
     struct udphdr *udph;
     struct tcphdr * tcph;
     __u16 dst_port, src_port;
-    struct sk_buff * retv;
 
     if (skb) {
         iph = (struct iphdr *) ip_hdr ( skb ); 
-       
-
         //do not change any non-TCP traffic
         if ( iph && iph->protocol && (iph->protocol !=IPPROTO_UDP && iph->protocol !=IPPROTO_TCP) ) {
             return NF_ACCEPT;
         } else if( iph->protocol ==IPPROTO_TCP){
-        	 tcph = (struct tcphdr *) tcp_hdr ( skb ) ;
+        	tcph = (struct tcphdr *) tcp_hdr ( skb ) ;
         	if( ntohs(tcph->dest)  == 5001){
-        	    printk( "POST: before rewrite %pI4 and value is %pI4  \n", &iph->saddr  , &iph->daddr) ;
-        	    __be32 oldIP = iph->daddr;
-                iph->daddr =in_aton("128.112.93.106");
-                
-                __be32 newIP = iph->daddr;
-                inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
-	            csum_replace4(&iph->check, oldIP, newIP);
-	            ip_route_me_harder(skb, RTN_UNSPEC);
-        		printk( "POST: found %pI4 and value is %pI4  \n", &iph->saddr  , &iph->daddr) ;
+
         		}
-        }
+        } else if( iph->protocol ==IPPROTO_UDP){
+			udph =  udp_hdr ( skb ) ;
+        	if( ntohs(udph->dest)  == 5001){
+
+        		}
+        } 
 		return NF_ACCEPT;
     }
      return NF_ACCEPT;
@@ -93,7 +87,7 @@ static int __init pkt_mangle_init(void)
     post_routing.pf = NFPROTO_IPV4;
     post_routing.priority = NF_IP_PRI_CONNTRACK_DEFRAG -1;
     post_routing.hooknum = NF_IP_POST_ROUTING;
-    post_routing.hook = post_routing_track;
+    post_routing.hook = outgoing_begin;
     nf_register_hook(&  post_routing);
 
     //out put does to localout and mangle the hdr
@@ -101,7 +95,7 @@ static int __init pkt_mangle_init(void)
     local_out.pf = NFPROTO_IPV4;
     local_out.priority = NF_IP_PRI_CONNTRACK_DEFRAG -1;
     local_out.hooknum = NF_IP_LOCAL_OUT;
-    local_out.hook =  outgoing_begin;
+    local_out.hook =  local_buffer;
     nf_register_hook(& local_out);
 
 
@@ -162,8 +156,6 @@ static int __init pkt_mangle_init(void)
 
 static void __exit pkt_mangle_exit(void)
 {
-    //nf_unregister_hook(&post_routing);
-   
     nf_unregister_hook(&local_out);
     nf_unregister_hook(&pre_routing);
     nf_unregister_hook(&post_routing);

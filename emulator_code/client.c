@@ -14,7 +14,7 @@ int main(int argc, char *argv[])
 {
     int sockfd = 0;
     double n = 0;
-    char recvBuff[4096*40];
+    char recvBuff[4096*100];
     struct sockaddr_in serv_addr; 
 
     struct timeval t1, t2;
@@ -56,10 +56,13 @@ int main(int argc, char *argv[])
      printf("\n the latency to establish a connection is %f\n", elapsedTime);
     double count =0;
     gettimeofday(&t1, NULL);
+    
+    
+    
     while ( (n = read(sockfd, recvBuff, sizeof(recvBuff))) > 0)
     {
         count+=n;
-        write(sockfd, recvBuff, n);
+       // write(sockfd, recvBuff, n);
     } 
      gettimeofday(&t2, NULL);
      elapsedTime =(t2.tv_sec - t1.tv_sec)*1000000.0;
@@ -71,6 +74,6 @@ int main(int argc, char *argv[])
         printf("\n Read error \n");
         printf("Error with read() is %s!\n", strerror(errno));
     } 
-
+      close(sockfd);
      return 0;
 }
