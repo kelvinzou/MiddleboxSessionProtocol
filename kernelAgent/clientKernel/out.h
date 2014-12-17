@@ -52,7 +52,9 @@ struct sk_buff * udp_header_rewrite(struct sk_buff *skb){
         iph->daddr = p->dst;
         __be32 newIP = iph->daddr;
         if (udph->check || skb->ip_summed == CHECKSUM_PARTIAL) {
-        	inet_proto_csum_replace4(&udph->check, skb, oldIP, newIP, 1);
+        	 printk("Old checksum is %u", ntohs(udph->check) );
+            inet_proto_csum_replace4(&udph->check, skb, oldIP, newIP, 1);
+            printk("New checksum is %u", ntohs(udph->check) );
         }
         csum_replace4(&iph->check, oldIP, newIP);
 
@@ -94,7 +96,8 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     tcp_len = data_len - iphdr_len ;  
     __u32 seqNumber =  tcph->seq;
     __u32 ackSeq = tcph->ack_seq;
-
+    if ( ntohs(tcph->dest)  == 5001 )
+        printk("Input: The sequence nunmber and its sequence ack number are %u  and %u ", ntohl(seqNumber), ntohl(ackSeq));
     //tcph->check = 0;
     //tcph->check = ~csum_tcpudp_magic( iph->saddr, iph->daddr,tcp_len, IPPROTO_TCP, 0);
     bool FLAG = true ;
@@ -198,7 +201,7 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     	}
         return skb;
         }*/
-    }
+        }
     return skb;
     
 }
@@ -224,6 +227,57 @@ static unsigned int outgoing_begin (unsigned int hooknum,
         else if (iph->protocol ==IPPROTO_TCP)
         {
             skb=tcp_header_rewrite(skb);
+            struct tcphdr * tcph ;
+
+            unsigned int data_len ;
+            data_len = skb->len ;
+
+            tcph = (struct tcphdr *) tcp_hdr ( skb ) ;
+
+            unsigned int iphdr_len ;
+            iphdr_len = ip_hdrlen(skb) ;
+            unsigned int tcphdr_len ;
+            tcphdr_len = tcp_hdrlen(skb) ;
+            unsigned int tcp_len ;
+            tcp_len = data_len - iphdr_len ;  
+            __u32 seqNumber =  tcph->seq;
+            __u32 ackSeq = tcph->ack_seq;
+            /*
+            if ( ntohs(tcph->dest)  == 5001 )
+                printk("Output: The sequence nunmber and its sequence ack number are %u  and %u ", ntohl(seqNumber), ntohl(ackSeq));
+                */
+            //tcph->check = 0;
+            //tcph->check = ~csum_tcpudp_magic( iph->saddr, iph->daddr,tcp_len, IPPROTO_TCP, 0);
+            bool FLAG = true ;
+            
+            if(FLAG){
+            
+            record_t l, *p ;
+            memset(&l, 0, sizeof(record_t) ) ;
+            p=NULL;
+            //get_random_bytes ( &i, sizeof (int) );
+            l.key.dst =iph->daddr ;
+            l.key.dport = ntohs(tcph->dest) ;
+            read_lock(&my_rwlock) ;
+            HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p) ;
+            read_unlock(&my_rwlock) ;
+
+            if(p){
+	            __be32 oldIP = iph->daddr;
+                iph->daddr = p->dst;
+                __be32 newIP = iph->daddr;
+                inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
+                csum_replace4(&iph->check, oldIP, newIP);
+                
+                printk("before entering the readlock\n");
+                read_lock(&release_lock);
+                printk("readlock\n");
+            	read_unlock(&release_lock);
+                return NF_ACCEPT;
+                printk( "Output: found src dest are  %pI4 and %pI4  \n", & iph->saddr, & iph->daddr);
+                }
+                return NF_ACCEPT;
+            }
             return NF_ACCEPT;
             /*
             okfn(skb);

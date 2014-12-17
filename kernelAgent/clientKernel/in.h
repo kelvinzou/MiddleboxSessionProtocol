@@ -22,7 +22,7 @@
 #include <net/route.h>
 
 
-struct sk_buff * header_rewrite_back(struct sk_buff *skb){
+struct sk_buff * udp_header_write_prerouting(struct sk_buff *skb){
     struct iphdr *iph ;
     struct udphdr *udph;
     
@@ -31,29 +31,30 @@ struct sk_buff * header_rewrite_back(struct sk_buff *skb){
 
     unsigned int data_len = skb->len;
 
-    iph = (struct iphdr *) skb_header_pointer (skb, 0, 0, NULL);
+    iph = (struct iphdr *) ip_hdr (skb );
 
-    udph = (struct udphdr *) skb_header_pointer (skb, sizeof(struct iphdr), 0, NULL);
-    printk(KERN_ALERT "PRE_ROUTING: Initial udp port number is %d and %d \n", 
-        ntohs(udph->source), ntohs(udph ->dest));
+    udph = (struct udphdr *) udp_hdr (skb );
 
-    size_t iphdr_len = sizeof (struct iphdr);
-    size_t udphdr_len = sizeof (struct udphdr) ;
-    //create new space at the head of socket buffer
-    printk(KERN_ALERT "PRE_ROUTING: SWAP back to old header\n");
-    skb_pull(skb, iphdr_len+udphdr_len);
+    record_t l, *p;
+    memset(&l, 0, sizeof(record_t));
+    
+    p=NULL ;
 
-    iph = (struct iphdr *) skb_header_pointer (skb, 0, 0, NULL);
-    udph = (struct udphdr *) skb_header_pointer (skb, sizeof(struct iphdr), 0, NULL);
-     udph->check = 0;
-    skb->csum = csum_partial((char *)udph, data_len - sizeof(struct iphdr),0);
-     udph->check = csum_tcpudp_magic((iph->saddr), (iph->daddr), data_len- sizeof(struct iphdr), IPPROTO_UDP,skb->csum);
-
-    printk(KERN_ALERT "PRE_ROUTING: Packet length is %d\n\n", data_len);
-
-    printk(KERN_ALERT "PRE_ROUTING: Src and Dest address is %pI4 and  %pI4\n", 
-        &iph->saddr ,&iph->daddr );
-    printk(KERN_ALERT "PRE_ROUTING: Final Packet length is %d\n", skb->len);
+    l.key.src = iph->saddr ;
+    l.key.dport = ntohs(udph->dest) ;
+    read_lock(&my_rwlock) ;
+    HASH_FIND(hh, records, &l.key, sizeof( record_key_t ), p) ;
+    read_unlock(&my_rwlock) ;
+    if(p)
+    {
+        printk( KERN_ALERT "Input: found %pI4 and value is %pI4  \n", &p->key.src , &p->src ) ;
+        iph->saddr = p->src ;
+        return skb ;
+    } else{
+        if ( ntohs(udph->source)  == 5001 )
+            printk( KERN_ALERT "No hash found, do nothing \n") ;
+        return skb ;
+    }
 
     return  skb ;
 }
@@ -110,20 +111,19 @@ static unsigned int incoming_begin(unsigned int hooknum,
     struct iphdr  *iph;
     struct udphdr *udph;
     __u16 dst_port, src_port;
-    struct sk_buff * retv;
 
     if (skb) {
         iph = (struct iphdr *) ip_hdr ( skb ); 
         //do not change any non-TCP traffic
         if ( iph && iph->protocol && (iph->protocol !=IPPROTO_UDP && iph->protocol !=IPPROTO_TCP) ) {
             return NF_ACCEPT;
-        } else if( iph->protocol ==IPPROTO_TCP){
-        	
+        } 
+        else if( iph->protocol ==IPPROTO_TCP){
         	tcp_header_write_prerouting(skb);
-
         }
         else  if( iph->protocol ==IPPROTO_UDP)
         {
+            udp_header_write_prerouting(skb);
             //do nothing
         }
 	return NF_ACCEPT;

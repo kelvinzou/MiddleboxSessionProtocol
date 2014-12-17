@@ -58,7 +58,15 @@ static unsigned int local_buffer(unsigned int hooknum,
         } else if( iph->protocol ==IPPROTO_TCP){
         	tcph = (struct tcphdr *) tcp_hdr ( skb ) ;
         	if( ntohs(tcph->dest)  == 5001){
-
+        	/*
+	            printk("Do we modify the header? found %pI4 and value is %pI4  \n", &iph->saddr  , &iph->daddr);
+        		__be32 oldIP = iph->daddr;
+		        iph->daddr =  in_aton("128.112.93.106");
+		        __be32 newIP = iph->daddr;
+		        inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
+	    		csum_replace4(&iph->check, oldIP, newIP);
+	    		*/
+        		printk( "POST: found %pI4 and value is %pI4  \n", &iph->saddr  , &iph->daddr) ;
         		}
         } else if( iph->protocol ==IPPROTO_UDP){
 			udph =  udp_hdr ( skb ) ;
@@ -79,23 +87,23 @@ static int __init pkt_mangle_init(void)
     rwlock_init(& release_lock);
     //pre_routing
     pre_routing.pf = NFPROTO_IPV4;
-    pre_routing.priority =  NF_IP_PRI_CONNTRACK_DEFRAG -1;
-    pre_routing.hooknum = NF_IP_PRE_ROUTING;
+    pre_routing.priority =  NF_IP_PRI_FIRST;
+    pre_routing.hooknum = NF_IP_LOCAL_IN;
     pre_routing.hook = incoming_begin;
     nf_register_hook(& pre_routing);
 
     post_routing.pf = NFPROTO_IPV4;
-    post_routing.priority = NF_IP_PRI_CONNTRACK_DEFRAG -1;
+    post_routing.priority = NF_IP_PRI_NAT_DST+1;
     post_routing.hooknum = NF_IP_POST_ROUTING;
-    post_routing.hook = outgoing_begin;
+    post_routing.hook = local_buffer;
     nf_register_hook(&  post_routing);
 
     //out put does to localout and mangle the hdr
 
     local_out.pf = NFPROTO_IPV4;
-    local_out.priority = NF_IP_PRI_CONNTRACK_DEFRAG -1;
+    local_out.priority =  NF_IP_PRI_NAT_DST+1;
     local_out.hooknum = NF_IP_LOCAL_OUT;
-    local_out.hook =  local_buffer;
+    local_out.hook = outgoing_begin;  
     nf_register_hook(& local_out);
 
 
