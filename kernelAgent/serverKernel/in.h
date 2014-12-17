@@ -60,11 +60,12 @@ static unsigned int incoming_begin(unsigned int hooknum,
 		    read_unlock(&my_rwlock) ;
 		    if(p)
 		    {
-		        printk( KERN_ALERT "Input: found %pI4 and value is %pI4  \n", &p->key.src , &p->src ) ;
+		       // printk(  "Input: found %pI4 and value is %pI4  \n", &p->key.src , &p->src ) ;
 		        iph->saddr = p->src ;
 		    } else{
-		    	if ( ntohs(tcph->dest)  == 5001 )
-					printk( KERN_ALERT "No hash found, do nothing \n") ;
+		    	if ( ntohs(tcph->dest)  == 5001 ){
+				//	printk(  "No hash found, do nothing \n") ;
+		    	}
 		    	}
 		    }
 			return NF_ACCEPT;
@@ -89,11 +90,11 @@ static unsigned int incoming_begin(unsigned int hooknum,
 		    read_unlock(&my_rwlock) ;
 		    if(p)
 		    {
-		        printk( KERN_ALERT "Input: found %pI4 and value is %pI4  \n", &p->key.src , &p->src ) ;
+		        printk(  "Input: found %pI4 and value is %pI4  \n", &p->key.src , &p->src ) ;
 		        iph->saddr = p->src ;
 		    } else{
 		    	if ( ntohs(udph->dest)  == 5001 )
-					printk( KERN_ALERT "No hash found, do nothing \n") ;
+					printk( "No hash found, do nothing \n") ;
 		    }
 
 		return NF_ACCEPT;

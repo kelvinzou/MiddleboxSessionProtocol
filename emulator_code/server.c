@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
     }
 
     listen(listenfd, 10); 
-    int blocksize = 100000000;
+    int blocksize = 65000000;
     //blocksize = 1000;
     while(1)
     {
@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
 	memset((char *)sendBuff, '0', blocksize*sizeof(char) ); 
 		
 
-	for (i=0; i<30; i++){
+	for (i=0; i<50; i++){
 	
 	 int n = write(connfd, sendBuff, blocksize*sizeof(char) ); 
 	 //read(connfd, sendBuff, n);
