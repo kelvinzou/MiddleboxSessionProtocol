@@ -4,6 +4,7 @@
 #include <linux/skbuff.h>
 #include "uthash.h"
 static struct sock *nl_sk = NULL;
+
 void HashMigrate(record_t * item){
     
     record_t * p=NULL;

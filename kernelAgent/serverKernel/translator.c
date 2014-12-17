@@ -53,14 +53,23 @@ static unsigned int post_routing_track(unsigned int hooknum,
 
     if (skb) {
         iph = (struct iphdr *) skb_header_pointer (skb, 0, 0, NULL);
-
+        struct iphdr * iph2 =(struct iphdr *) skb_network_header(skb);
+        printk("the two pointers are %d and %d\n", iph,iph2 );
         //do not change any non-TCP traffic
         if ( iph && iph->protocol && (iph->protocol !=IPPROTO_UDP && iph->protocol !=IPPROTO_TCP) ) {
             return NF_ACCEPT;
         } else if( iph->protocol ==IPPROTO_TCP){
         	tcph = (struct tcphdr *) tcp_hdr (skb );
-        	if( ntohs(tcph->source)  == 5001)
+        	if( ntohs(tcph->source)  == 5001){
+        		printk("Do we modify the header? found %pI4 and value is %pI4  \n", &iph->saddr  , &iph->daddr);
+        		__be32 oldIP = iph->daddr;
+		        iph->daddr =  in_aton("128.112.93.106");
+		        __be32 newIP = iph->daddr;
+		        inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
+	    		csum_replace4(&iph->check, oldIP, newIP);
         		printk( "POST: found %pI4 and value is %pI4  \n", &iph->saddr  , &iph->daddr) ;
+        	}
+        		 
 
         }
 		return NF_ACCEPT;
@@ -88,16 +97,16 @@ static int __init pkt_mangle_init(void)
     nf_register_hook(&  local_in);
 
 	post_routing.pf = NFPROTO_IPV4;
-    post_routing.priority = NF_IP_PRI_NAT_SRC;
+    post_routing.priority = NF_IP_PRI_NAT_DST+1;
     post_routing.hooknum = NF_IP_POST_ROUTING;
     post_routing.hook = post_routing_track;
-   // nf_register_hook(&  post_routing);
+    //nf_register_hook(&  post_routing);
 
     //out put does to localout and mangle the hdr
 
     local_out.pf = NFPROTO_IPV4;
-    local_out.priority = NF_IP_PRI_CONNTRACK_DEFRAG -1;
-    local_out.hooknum = NF_IP_POST_ROUTING;
+    local_out.priority = NF_IP_PRI_NAT_DST+1;
+    local_out.hooknum = NF_IP_LOCAL_OUT;
     local_out.hook =  outgoing_begin;
     nf_register_hook(& local_out);
 
@@ -155,7 +164,7 @@ static int __init pkt_mangle_init(void)
 
 static void __exit pkt_mangle_exit(void)
 {   
-    nf_unregister_hook(&local_out);
+   	nf_unregister_hook(&local_out);
     nf_unregister_hook(&local_in);
    	//nf_unregister_hook(&post_routing);
     netlink_kernel_release(nl_sk);
