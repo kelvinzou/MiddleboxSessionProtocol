@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# bwm-ng  -t 100 -I eth1 -o csv -T rate -C ','  -u bits -F drop_nobuffer
+# bwm-ng  -t 100 -I eth1 -o csv -T rate -C ','  -u bits -F nodrop_buffer
 
 dir='./'
 maxy=1000

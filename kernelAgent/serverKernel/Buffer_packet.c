@@ -166,7 +166,7 @@ void sendback(char * recv_buffer,  unsigned int ipaddr, struct iphdr * ip, struc
 
     free(pseudogram);
 
-    if (sendto (sock, recv_buffer,ntohs(ip->tot_len) ,  0, (struct sockaddr *) &dest, sizeof (dest)) < 0)
+    if (sendto (sendSocket, recv_buffer,ntohs(ip->tot_len) ,  0, (struct sockaddr *) &dest, sizeof (dest)) < 0)
     {
         perror("sendto failed");
         printf ("Packet Send. Length : %d \n" , ntohs(ip->tot_len));
@@ -250,12 +250,9 @@ int main(int argc, char *argv[]) {
     tv.tv_usec = 1000;
     FD_ZERO(&readfds);
     FD_SET(sock, &readfds);
-      /*  
-        active_fs = readfds;
-        select(sock+1, &active_fs, NULL, NULL, &tv);
+ 
         
-        if(FD_ISSET(sock, &active_fs)){
-*/
+
     char * recv_buffer;
     int select_print =1;
 
@@ -264,7 +261,11 @@ int main(int argc, char *argv[]) {
         socklen_t fromlen;
 
         fromlen = sizeof from;
-
+        active_fs = readfds;
+        select(sock+1, &active_fs, NULL, NULL, &tv);
+        
+        if(FD_ISSET(sock, &active_fs)){
+        
         recv_buffer = (char *) malloc(MTU);
         recvfrom(sock, recv_buffer, MTU, 0,(struct sockaddr*) &from, &fromlen);
         printf("\nThe source address for receive from is %s\n", inet_ntoa( *(struct in_addr* ) &from.sin_addr.s_addr));
@@ -302,7 +303,9 @@ int main(int argc, char *argv[]) {
         } else{
             free(recv_buffer);
         }
-           
+      } 
+      else{
+      usleep(1000);}
 	} 
     if(BufferedQueue.size >=0){
             reinjectBuffer( & BufferedQueue);

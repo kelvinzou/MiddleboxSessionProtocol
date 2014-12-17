@@ -10,6 +10,7 @@ void HashMigrate(record_t * item){
     record_t * p=NULL;
 
     write_lock(&my_rwlock);
+    
     HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
 
     if (p!=NULL) {
@@ -17,7 +18,6 @@ void HashMigrate(record_t * item){
         p->Buffer =  1;
         printk(KERN_ALERT "HASH migration modification happens!\n");
     }
-    p->dst =  in_aton("127.0.0.1");
     write_unlock(&my_rwlock);
 }
 
