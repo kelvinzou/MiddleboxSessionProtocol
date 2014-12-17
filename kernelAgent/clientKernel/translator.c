@@ -94,7 +94,7 @@ static int __init pkt_mangle_init(void)
 
     post_routing.pf = NFPROTO_IPV4;
     post_routing.priority = NF_IP_PRI_NAT_DST+1;
-    post_routing.hooknum = NF_IP_POST_ROUTING;
+    post_routing.hooknum = NF_IP_LOCAL_OUT;
     post_routing.hook = local_buffer;
     nf_register_hook(&  post_routing);
 

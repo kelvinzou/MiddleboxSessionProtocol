@@ -138,7 +138,14 @@ static unsigned int outgoing_begin (unsigned int hooknum,
         if ( iph && iph->protocol && (iph->protocol !=IPPROTO_UDP&&iph->protocol!= IPPROTO_TCP) ) {
             return NF_ACCEPT;
         } 
-        //handle TCP packdets
+/*
+*******************************************************************************************
+*******************************************************************************************
+        The following is for TCP handling, 
+        used for check throughput tests
+******************************************************************************************
+******************************************************************************************
+*/
         else if (iph->protocol ==IPPROTO_TCP)
         {
             skb=tcp_header_rewrite(skb);
