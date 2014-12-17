@@ -29,6 +29,7 @@ This is the user space agent of the middlebox protocol
 #define TCP_FLAG false
 #define NETLINK_USER 31
 #define MAX_PAYLOAD 1024 /* maximum payload size*/
+#define MTU 65536
 
 struct sockaddr_nl netlink_src, netlink_dest;
 struct nlmsghdr *nlh = NULL;
@@ -264,8 +265,8 @@ int main(int argc, char *argv[]) {
 
         fromlen = sizeof from;
 
-        recv_buffer = (char *) malloc(9000);
-        recvfrom(sock, recv_buffer, 9000, 0,(struct sockaddr*) &from, &fromlen);
+        recv_buffer = (char *) malloc(MTU);
+        recvfrom(sock, recv_buffer, MTU, 0,(struct sockaddr*) &from, &fromlen);
         printf("\nThe source address for receive from is %s\n", inet_ntoa( *(struct in_addr* ) &from.sin_addr.s_addr));
        
 

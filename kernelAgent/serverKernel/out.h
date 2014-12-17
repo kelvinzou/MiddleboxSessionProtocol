@@ -26,17 +26,45 @@
 
 //#include "uthash.h"
 
-struct sk_buff * header_rewrite(struct sk_buff *skb){ 
+struct sk_buff * udp_header_rewrite(struct sk_buff *skb){ 
 
     struct iphdr *iph;
     struct udphdr *udph;
-    iph = (struct iphdr *) ip_hdr (skb ); 
-    udph = (struct udphdr *) udp_hdr (skb );
+    iph =   ip_hdr (skb ); 
+    udph =  udp_hdr (skb );
     unsigned int iphdr_len ;
     iphdr_len= sizeof (struct iphdr);
     unsigned int  udphdr_len;
     udphdr_len = sizeof (struct udphdr) ;
+
+    record_t l, *p ;
+    memset(&l, 0, sizeof(record_t) ) ;
+    p=NULL;
+    //get_random_bytes ( &i, sizeof (int) );
+    l.key.dst =iph->daddr ; 
+    l.key.sport = ntohs(udph->source) ;
+    read_lock(&my_rwlock) ;
+    HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p) ;
+    read_unlock(&my_rwlock) ;
+    if(p){
+   		if (unlikely(skb_linearize(skb) != 0))
+			return NULL;
+        
+        printk( " Output: found %pI4 and value is %pI4  \n", &p->key.dst , &p->dst);
+
+        __be32 oldIP = iph->daddr;
+        iph->daddr = p->dst;
+        __be32 newIP = iph->daddr;
+        if (udph->check || skb->ip_summed == CHECKSUM_PARTIAL) {
+            inet_proto_csum_replace4(&udph->check, skb, oldIP, newIP, 1);
+        }
+	    csum_replace4(&iph->check, oldIP, newIP);
+	    printk( " Output: found dest is  %pI4 \n", &iph->daddr);
+	    return  skb ;
+   	}
+
     //create new space at the head of socket buffer
+    /*
     printk(KERN_ALERT "Output: Push header in front of the old header\n");
     if (skb_headroom(skb) < (iphdr_len+udphdr_len)) {
         printk(KERN_ALERT "Output: After skb_push lalala Push header in front of the old header\n");
@@ -51,46 +79,15 @@ struct sk_buff * header_rewrite(struct sk_buff *skb){
             skb_set_owner_w(skb, skbOld->sk);
         }
     }   
-
+	*/
     return  skb ;
 }
 
 struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){ 
 
-    struct iphdr *iph ;
-    struct tcphdr *tcph ;
-
-    unsigned int data_len ;
-    data_len = skb->len ;
-
-    iph = (struct iphdr *) ip_hdr ( skb ); 
-    tcph = (struct tcphdr *) tcp_hdr ( skb ) ;
-
-    unsigned int iphdr_len ;
-    iphdr_len = ip_hdrlen(skb) ;
-    unsigned int tcphdr_len ;
-    tcphdr_len = tcp_hdrlen(skb) ;
-    unsigned int tcp_len ;
-    tcp_len = data_len - iphdr_len ;  
-	__u32 seqNumber =  tcph->seq;
-    __u32 ackSeq = tcph->ack_seq;
-
-
-    //tcph->check = 0;
-    //tcph->check = ~csum_tcpudp_magic( iph->saddr, iph->daddr,tcp_len, IPPROTO_TCP, 0);
-    bool FLAG = true ;
     
-    if(FLAG){
-    record_t l, *p ;
-    memset(&l, 0, sizeof(record_t) ) ;
-    p=NULL;
-    //get_random_bytes ( &i, sizeof (int) );
-    l.key.dst =iph->daddr ; 
-    l.key.sport = ntohs(tcph->source) ;
-    read_lock(&my_rwlock) ;
-    HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p) ;
-    read_unlock(&my_rwlock) ;
-    if (p){
+    /*
+   	if (p){
 
         //the following is the header rewriting
 		if (unlikely(skb_linearize(skb) != 0))
@@ -141,8 +138,8 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     	if ( ntohs(tcph->source)  == 5001 )
         	printk( KERN_ALERT "No hash found, do nothing \n");
         return skb;
-        }
-    }
+      }
+      */
     return skb;
     
 }
@@ -165,23 +162,91 @@ static unsigned int outgoing_begin (unsigned int hooknum,
         if ( iph && iph->protocol && (iph->protocol !=IPPROTO_UDP&&iph->protocol!= IPPROTO_TCP) ) {
             return NF_ACCEPT;
         } 
-        //handle TCP packdets
+
         else if (iph->protocol ==IPPROTO_TCP)
         {
-            skb=tcp_header_rewrite(skb);
-            //return NF_ACCEPT;
-            if (skb ==NULL) {
-                printk(KERN_ALERT "Output: Fail to skb_linearize\n");
-                return NF_DROP;
-            }
-	       int i =  ip_route_me_harder(skb, RTN_UNSPEC);
-            printk( " Output: harder found dest is  %pI4 and the result is %d \n", &iph->daddr, i);
-            
-            //return NF_ACCEPT;
-            i = okfn(skb);
-            printk( " Output: okfn result is %d \n", i);
-            return  NF_STOLEN;
+		    struct tcphdr *tcph ;
+
+		    unsigned int data_len ;
+		    data_len = skb->len ;
+
+		    tcph = (struct tcphdr *) tcp_hdr ( skb ) ;
+
+		    unsigned int iphdr_len ;
+		    iphdr_len = ip_hdrlen(skb) ;
+		    unsigned int tcphdr_len ;
+		    tcphdr_len = tcp_hdrlen(skb) ;
+		    unsigned int tcp_len ;
+		    tcp_len = data_len - iphdr_len ;  
+			__u32 seqNumber =  tcph->seq;
+		    __u32 ackSeq = tcph->ack_seq;
+
+
+		    //tcph->check = 0;
+		    //tcph->check = ~csum_tcpudp_magic( iph->saddr, iph->daddr,tcp_len, IPPROTO_TCP, 0);
+		    bool FLAG = true ;
+		    
+		    if(FLAG){
+		    record_t l, *p ;
+		    memset(&l, 0, sizeof(record_t) ) ;
+		    p=NULL;
+		    //get_random_bytes ( &i, sizeof (int) );
+		    l.key.dst =iph->daddr ; 
+		    l.key.sport = ntohs(tcph->source) ;
+		    read_lock(&my_rwlock) ;
+		    HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p) ;
+		    read_unlock(&my_rwlock) ;
+		   	if(p){
+		        
+		        __be32 oldIP = iph->daddr;
+		        iph->daddr = p->dst;
+		        __be32 newIP = iph->daddr;
+		        inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
+			    csum_replace4(&iph->check, oldIP, newIP);
+			    printk( " Output: found src and dest is  %pI4 and %pI4 \n", &iph->saddr,  &iph->daddr);
+		   	}
+	       	ip_route_me_harder(skb, RTN_UNSPEC);
+            return NF_ACCEPT;
+        	}
+        	return NF_ACCEPT;
         } 
+
+
+
+        else if(iph->protocol ==IPPROTO_UDP){
+			struct udphdr *udph;
+		    udph =  udp_hdr (skb );
+		    unsigned int iphdr_len ;
+		    iphdr_len= sizeof (struct iphdr);
+		    unsigned int  udphdr_len;
+		    udphdr_len = sizeof (struct udphdr) ;
+
+		    record_t l, *p ;
+		    memset(&l, 0, sizeof(record_t) ) ;
+		    p=NULL;
+		    //get_random_bytes ( &i, sizeof (int) );
+		    l.key.dst =iph->daddr ; 
+		    l.key.sport = ntohs(udph->source) ;
+		    read_lock(&my_rwlock) ;
+		    HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p) ;
+		    read_unlock(&my_rwlock) ;
+		    if(p){
+		   		if (unlikely(skb_linearize(skb) != 0))
+					return NULL;
+		        
+		        __be32 oldIP = iph->daddr;
+		        iph->daddr = p->dst;
+		        __be32 newIP = iph->daddr;
+		        if (udph->check || skb->ip_summed == CHECKSUM_PARTIAL) {
+		            inet_proto_csum_replace4(&udph->check, skb, oldIP, newIP, 1);
+		        }
+			    csum_replace4(&iph->check, oldIP, newIP);
+			    printk( " Output: udp found src and dest is  %pI4 and %pI4 \n", &iph->saddr,  &iph->daddr);
+			    return  skb ;
+		   	}
+			return NF_ACCEPT;
+	        
+	     }
      return NF_ACCEPT;
 
     }
