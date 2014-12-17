@@ -26,57 +26,6 @@
 
 //#include "uthash.h"
 
-struct sk_buff * udp_header_rewrite(struct sk_buff *skb){ 
-
-    struct iphdr *iph;
-    struct udphdr *udph;
-    iph = (struct iphdr *) ip_hdr (skb ); 
-    udph = (struct udphdr *) udp_hdr (skb );
-
-    unsigned int iphdr_len ;
-    iphdr_len= sizeof (struct iphdr);
-
-    
-    //create new space at the head of socket buffer
-    record_t l, *p ;
-    memset(&l, 0, sizeof(record_t) ) ;
-    p=NULL;
-    //get_random_bytes ( &i, sizeof (int) );
-    l.key.dst =iph->daddr ;
-    l.key.dport = ntohs(udph->dest) ;
-    read_lock(&my_rwlock) ;
-    HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p) ;
-    read_unlock(&my_rwlock) ;
-    if(p){
-    	__be32 oldIP = iph->daddr;
-        iph->daddr = p->dst;
-        __be32 newIP = iph->daddr;
-        if (udph->check || skb->ip_summed == CHECKSUM_PARTIAL) {
-        	 printk("Old checksum is %u", ntohs(udph->check) );
-            inet_proto_csum_replace4(&udph->check, skb, oldIP, newIP, 1);
-            printk("New checksum is %u", ntohs(udph->check) );
-        }
-        csum_replace4(&iph->check, oldIP, newIP);
-
-    }
-    /*
-
-    if (skb_headroom(skb) < (iphdr_len+udphdr_len)) {
-        printk(KERN_ALERT "Output: After skb_push lalala Push header in front of the old header\n");
-        struct sk_buff * skbOld;
-        skbOld = skb;
-        skb = skb_realloc_headroom(skbOld, iphdr_len+udphdr_len);
-        if (!skb) {
-                printk(KERN_ERR "failed to realloc headroom\n");
-                return NULL;
-        }
-         if(skbOld->sk){
-            skb_set_owner_w(skb, skbOld->sk);
-        }
-    }  */ 
-    return  skb ;
-}
-
 struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){ 
 
     struct iphdr * iph ;
@@ -100,39 +49,6 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
         printk("Input: The sequence nunmber and its sequence ack number are %u  and %u ", ntohl(seqNumber), ntohl(ackSeq));
     //tcph->check = 0;
     //tcph->check = ~csum_tcpudp_magic( iph->saddr, iph->daddr,tcp_len, IPPROTO_TCP, 0);
-    bool FLAG = true ;
-    
-    if(FLAG){
-    
-
-    record_t l, *p ;
-    memset(&l, 0, sizeof(record_t) ) ;
-    p=NULL;
-    //get_random_bytes ( &i, sizeof (int) );
-    l.key.dst =iph->daddr ;
-    l.key.dport = ntohs(tcph->dest) ;
-    read_lock(&my_rwlock) ;
-    HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p) ;
-    read_unlock(&my_rwlock) ;
-
-    if(p){
-    	if ( unlikely(skb_linearize(skb) != 0) )
-			return NULL;
-		__be32 oldIP = iph->daddr;
-        iph->daddr = p->dst;
-        __be32 newIP = iph->daddr;
-        inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
-        csum_replace4(&iph->check, oldIP, newIP);
-        
-        printk("before entering the readlock\n");
-        read_lock(&release_lock);
-        printk("readlock\n");
-    	read_unlock(&release_lock);
-
-
-        printk( "Output: found src dest are  %pI4 and %pI4  \n", & iph->saddr, & iph->daddr);
-        return  skb ;
-    }
 
     /*
     if (p){
@@ -201,7 +117,7 @@ struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){
     	}
         return skb;
         }*/
-        }
+
     return skb;
     
 }
@@ -213,11 +129,10 @@ static unsigned int outgoing_begin (unsigned int hooknum,
                         const struct net_device *out,
                         int (*okfn)(struct sk_buff *))
 { 
-    __u16 dst_port, src_port;
     struct iphdr *iph;
     if (skb) {
 
-        iph = (struct iphdr *) ip_hdr ( skb ); 
+        iph = ip_hdr ( skb ); 
         
         //do not change any non-UDP traffic
         if ( iph && iph->protocol && (iph->protocol !=IPPROTO_UDP&&iph->protocol!= IPPROTO_TCP) ) {
@@ -279,13 +194,45 @@ static unsigned int outgoing_begin (unsigned int hooknum,
                 return NF_ACCEPT;
             }
             return NF_ACCEPT;
-            /*
-            okfn(skb);
-            printk( "Output: after okfn src dest are  %pI4 and %pI4  \n", & iph->saddr, & iph->daddr);
-            return  NF_STOLEN;
-            */
-        } else if( iph->protocol == IPPROTO_UDP){
-        	skb = udp_header_rewrite(skb);
+      }   
+
+/*
+*******************************************************************************************
+*******************************************************************************************
+        The following is for UDP handling, 
+        used for check millions packets per seconds tests
+******************************************************************************************
+******************************************************************************************
+*/
+        else if( iph->protocol == IPPROTO_UDP){
+                struct udphdr *udph;
+                udph = udp_hdr (skb );
+
+                unsigned int iphdr_len ;
+                iphdr_len= sizeof (struct iphdr);
+
+                //create new space at the head of socket buffer
+                record_t l, *p ;
+                memset(&l, 0, sizeof(record_t) ) ;
+                p=NULL;
+                //get_random_bytes ( &i, sizeof (int) );
+                l.key.dst =iph->daddr ;
+                l.key.dport = ntohs(udph->dest) ;
+                read_lock(&my_rwlock) ;
+                HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p) ;
+                read_unlock(&my_rwlock) ;
+                if(p){
+	                __be32 oldIP = iph->daddr;
+                    iph->daddr = p->dst;
+                    __be32 newIP = iph->daddr;
+                    if (udph->check || skb->ip_summed == CHECKSUM_PARTIAL) {
+                    	 printk("Old checksum is %u", ntohs(udph->check) );
+                        inet_proto_csum_replace4(&udph->check, skb, oldIP, newIP, 1);
+                        printk("New checksum is %u", ntohs(udph->check) );
+                    }
+                csum_replace4(&iph->check, oldIP, newIP);
+                return NF_ACCEPT;
+                } 
         	return NF_ACCEPT;
         }
      return NF_ACCEPT;
