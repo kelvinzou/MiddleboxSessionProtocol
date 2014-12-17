@@ -140,11 +140,11 @@ static unsigned int outgoing_begin (unsigned int hooknum,
 		        if(p->Migrate ==1){
 		        	if(p->Buffer ==1) {
 		        		printk("Buffering packets now and the length is %u and %d\n", total_len, data_len);
-		        		iph->protocol = IPPROTO_RAW; 
-			        	ip_send_check(iph) ;
+		        		return NF_QUEUE;
 		        	} 
 		        	else{
 		        		printk("No buffer is needed, release and reset migrate flag\n");
+		        		/*
 		        		//just mark one special packet, and this is the end of the buffering
 		        		// need to change both migrate and buffer flags to false.
 		        		__u16  * mark_end =  (__u16 *) (((char *) tcph) + 12);
@@ -152,15 +152,19 @@ static unsigned int outgoing_begin (unsigned int hooknum,
 		                tcph->urg =1;
 		        		iph->protocol = IPPROTO_RAW; 
 			        	ip_send_check(iph) ;
+			        	*/
 			        	write_lock(&my_rwlock);
 					    p->Migrate =0;
-					    p->dst =  in_aton("128.112.93.106");
 					    write_unlock(&my_rwlock);
+					    return NF_QUEUE;
 				       }
 		        } 
 		        else{
+		        	read_lock(&release_lock);
 		        	inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
 			    	csum_replace4(&iph->check, oldIP, newIP);
+			    	//printk("Not buffer packets now and the length is %u and %d\n", total_len, data_len);
+			    	read_unlock(&release_lock);
 		        }
 		        
 			   // printk( " Output: found src and dest is  %pI4 and %pI4 \n", &iph->saddr,  &iph->daddr);
