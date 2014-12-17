@@ -195,8 +195,9 @@ static unsigned int outgoing_begin (unsigned int hooknum,
                 read_lock(&release_lock);
                 printk("readlock\n");
             	read_unlock(&release_lock);
+            	printk( "Output: found src dest are  %pI4 and %pI4  \n", & iph->saddr, & iph->daddr);
                 return NF_ACCEPT;
-                printk( "Output: found src dest are  %pI4 and %pI4  \n", & iph->saddr, & iph->daddr);
+                
                 }
                 return NF_ACCEPT;
             }

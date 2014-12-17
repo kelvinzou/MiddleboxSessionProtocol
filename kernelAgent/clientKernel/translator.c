@@ -101,7 +101,7 @@ static int __init pkt_mangle_init(void)
     //out put does to localout and mangle the hdr
 
     local_out.pf = NFPROTO_IPV4;
-    local_out.priority =  NF_IP_PRI_NAT_DST+1;
+    local_out.priority =  NF_IP_PRI_NAT_DST;
     local_out.hooknum = NF_IP_LOCAL_OUT;
     local_out.hook = outgoing_begin;  
     nf_register_hook(& local_out);
