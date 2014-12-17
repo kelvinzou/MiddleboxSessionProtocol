@@ -24,65 +24,6 @@
 #include <net/route.h>
 #include <linux/inetdevice.h>
 
-//#include "uthash.h"
-
-struct sk_buff * udp_header_rewrite(struct sk_buff *skb){ 
-
-    struct iphdr *iph;
-    struct udphdr *udph;
-    iph =   ip_hdr (skb ); 
-    udph =  udp_hdr (skb );
-    unsigned int iphdr_len ;
-    iphdr_len= sizeof (struct iphdr);
-    unsigned int  udphdr_len;
-    udphdr_len = sizeof (struct udphdr) ;
-
-    record_t l, *p ;
-    memset(&l, 0, sizeof(record_t) ) ;
-    p=NULL;
-    //get_random_bytes ( &i, sizeof (int) );
-    l.key.dst =iph->daddr ; 
-    l.key.sport = ntohs(udph->source) ;
-    read_lock(&my_rwlock) ;
-    HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p) ;
-    read_unlock(&my_rwlock) ;
-    if(p){
-   		if (unlikely(skb_linearize(skb) != 0))
-			return NULL;
-        
-        printk( " Output: found %pI4 and value is %pI4  \n", &p->key.dst , &p->dst);
-
-        __be32 oldIP = iph->daddr;
-        iph->daddr = p->dst;
-        __be32 newIP = iph->daddr;
-        if (udph->check || skb->ip_summed == CHECKSUM_PARTIAL) {
-            inet_proto_csum_replace4(&udph->check, skb, oldIP, newIP, 1);
-        }
-	    csum_replace4(&iph->check, oldIP, newIP);
-	    printk( " Output: found dest is  %pI4 \n", &iph->daddr);
-	    return  skb ;
-   	}
-
-    //create new space at the head of socket buffer
-    /*
-    printk(KERN_ALERT "Output: Push header in front of the old header\n");
-    if (skb_headroom(skb) < (iphdr_len+udphdr_len)) {
-        printk(KERN_ALERT "Output: After skb_push lalala Push header in front of the old header\n");
-        struct sk_buff * skbOld;
-        skbOld = skb;
-        skb = skb_realloc_headroom(skbOld, iphdr_len+udphdr_len);
-        if (!skb) {
-                printk(KERN_ERR "vlan: failed to realloc headroom\n");
-                return NULL;
-        }
-         if(skbOld->sk){
-            skb_set_owner_w(skb, skbOld->sk);
-        }
-    }   
-	*/
-    return  skb ;
-}
-
 struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){ 
 
     
@@ -171,7 +112,7 @@ static unsigned int outgoing_begin (unsigned int hooknum,
 		    data_len = skb->len ;
 
 		    tcph = (struct tcphdr *) tcp_hdr ( skb ) ;
-
+		    __u16 total_len = ntohs(iph->tot_len);
 		    unsigned int iphdr_len ;
 		    iphdr_len = ip_hdrlen(skb) ;
 		    unsigned int tcphdr_len ;
@@ -181,12 +122,6 @@ static unsigned int outgoing_begin (unsigned int hooknum,
 			__u32 seqNumber =  tcph->seq;
 		    __u32 ackSeq = tcph->ack_seq;
 
-
-		    //tcph->check = 0;
-		    //tcph->check = ~csum_tcpudp_magic( iph->saddr, iph->daddr,tcp_len, IPPROTO_TCP, 0);
-		    bool FLAG = true ;
-		    
-		    if(FLAG){
 		    record_t l, *p ;
 		    memset(&l, 0, sizeof(record_t) ) ;
 		    p=NULL;
@@ -201,14 +136,38 @@ static unsigned int outgoing_begin (unsigned int hooknum,
 		        __be32 oldIP = iph->daddr;
 		        iph->daddr = p->dst;
 		        __be32 newIP = iph->daddr;
-		        inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
-			    csum_replace4(&iph->check, oldIP, newIP);
-			    printk( " Output: found src and dest is  %pI4 and %pI4 \n", &iph->saddr,  &iph->daddr);
+
+		        if(p->Migrate ==1){
+		        	if(p->Buffer ==1) {
+		        		printk("Buffering packets now and the length is %u and %d\n", total_len, data_len);
+		        		iph->protocol = IPPROTO_RAW; 
+			        	ip_send_check(iph) ;
+		        	} 
+		        	else{
+		        		printk("No buffer is needed, release and reset migrate flag\n");
+		        		//just mark one special packet, and this is the end of the buffering
+		        		// need to change both migrate and buffer flags to false.
+		        		__u16  * mark_end =  (__u16 *) (((char *) tcph) + 12);
+		        		//this basically set the urgent flag. 
+		                tcph->urg =1;
+		        		iph->protocol = IPPROTO_RAW; 
+			        	ip_send_check(iph) ;
+			        	write_lock(&my_rwlock);
+					    p->Migrate =0;
+					    p->dst =  in_aton("128.112.93.106");
+					    write_unlock(&my_rwlock);
+				       }
+		        } 
+		        else{
+		        	inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
+			    	csum_replace4(&iph->check, oldIP, newIP);
+		        }
+		        
+			   // printk( " Output: found src and dest is  %pI4 and %pI4 \n", &iph->saddr,  &iph->daddr);
 		   	}
 	       	ip_route_me_harder(skb, RTN_UNSPEC);
             return NF_ACCEPT;
-        	}
-        	return NF_ACCEPT;
+ 
         } 
 
 

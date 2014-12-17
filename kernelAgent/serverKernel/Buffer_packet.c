@@ -29,7 +29,7 @@ This is the user space agent of the middlebox protocol
 #define TCP_FLAG false
 #define NETLINK_USER 31
 #define MAX_PAYLOAD 1024 /* maximum payload size*/
-#define MTU 65536
+#define MTU 1500
 
 struct sockaddr_nl netlink_src, netlink_dest;
 struct nlmsghdr *nlh = NULL;
@@ -287,19 +287,12 @@ int main(int argc, char *argv[]) {
             __u16  reserved_field =  * (__u16 *) (((char *) tcp) + 12);
             printf("The reserved_field is %x\n", reserved_field);
 
-            __u16  result = reserved_field & 0x2000 ;
-            if(result == 0x2000){
-                printf("Urgent packet \n");
+             if (tcp->urg==1){
+                printf("It is Urgent packet \n");
                 flag = false;
-                reserved_field = reserved_field & 0xdfff;
-                //reset the urgent pointer
-                printf("The reserved_field is %x\n", reserved_field);
-
-                __u16 * value  = (__u16 *) (((char *) tcp) + 12);
-                * value = reserved_field;
+                tcp->urg =0;
             }
             
-
             enqueue(&BufferedQueue, recv_buffer);
             printf("The item number is %d\n", BufferedQueue.size);
             if(!flag){
