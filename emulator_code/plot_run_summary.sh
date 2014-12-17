@@ -4,12 +4,14 @@
 
 dir='./'
 maxy=1000
-
+filename="$1"
+suffix=".png"
+picname=$1$suffix
 #
 #--maxy $maxy \
 #       -i "eth1" \
 python util/plot_rate.py \
-       -f $dir/drop_nobuffer \
+       -f $dir/$filename \
        --legend Bandwidth during drop-based flow migration \
        --xlabel 'Time (100ms)' \
        --ylabel 'Rate (Mbps)' \
@@ -17,5 +19,5 @@ python util/plot_rate.py \
        -i "eth1" \
        --rx \
        --total \
-       -o $dir/drop_nobuffer_bandwidth.png
+       -o $dir/$picname
 

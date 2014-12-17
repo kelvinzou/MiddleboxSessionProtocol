@@ -165,7 +165,7 @@ void sendback(char * recv_buffer,  unsigned int ipaddr, struct iphdr * ip, struc
 
     free(pseudogram);
 
-    if (sendto (sock, recv_buffer,ntohs(ip->tot_len) ,  0, (struct sockaddr *) &dest, sizeof (dest)) < 0)
+    if (sendto (sendSocket, recv_buffer,ntohs(ip->tot_len) ,  0, (struct sockaddr *) &dest, sizeof (dest)) < 0)
     {
         perror("sendto failed");
         printf ("Packet Send. Length : %d \n" , ntohs(ip->tot_len));
@@ -261,7 +261,10 @@ int main(int argc, char *argv[]) {
 	while(flag){
         struct sockaddr_in from;
         socklen_t fromlen;
-
+        active_fs = readfds;
+        select(sock+1, &active_fs, NULL, NULL, &tv);
+        
+        if(FD_ISSET(sock, &active_fs)){
         fromlen = sizeof from;
 
         recv_buffer = (char *) malloc(9000);
@@ -299,16 +302,11 @@ int main(int argc, char *argv[]) {
         } else{
             free(recv_buffer);
         }
-            /* disable the select
+      
         } else{
             usleep(1000);
-
-            if(BufferedQueue.size >=10){
-            reinjectBuffer( & BufferedQueue);
-            //break;
-            }
         }   
-       */
+    
         //printf("dest IP is %s and the port number is %d\n",inet_ntoa(dest.sin_addr), ntohs(tcp->dest));
 	} 
     if(BufferedQueue.size >=0){
