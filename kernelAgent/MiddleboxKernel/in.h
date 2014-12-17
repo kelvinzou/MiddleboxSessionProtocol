@@ -22,6 +22,72 @@
 #include <net/route.h>
 
 
+
+struct sk_buff * udp_header_write_prerouting(struct sk_buff *skb){
+    struct iphdr *iph ;
+    struct tcphdr *udph ;
+
+    unsigned int data_len;
+    data_len = skb->len;
+
+    iph =  ip_hdr (skb ); 
+    udph = udp_hdr (skb );
+    //get_random_bytes ( &i, sizeof (int) );
+
+    record_t l, *p;
+   
+    memset(&l, 0, sizeof(record_t));
+    p=NULL;
+    l.key.src =iph->saddr;
+    l.key.sport = ntohs(udph->source) ;
+    HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
+    if(p)
+    {
+        printk( KERN_ALERT "Dest: udp found %pI4 and value is %pI4  \n", &p->key.src , &p->dst);
+        __be32 oldIP = iph->daddr;
+        iph->daddr = p->dst;
+        __be32 newIP = iph->daddr;
+        if (udph->check || skb->ip_summed == CHECKSUM_PARTIAL) {
+            printk("Old checksum is %u\n",ntohs(udph->check) );
+            inet_proto_csum_replace4(&udph->check, skb, oldIP, newIP, 1);
+            printk("New checksum is %u\n",ntohs(udph->check) );
+        }
+        csum_replace4(&iph->check, oldIP, newIP);
+    
+        return skb;
+
+    }
+
+    memset(&l, 0, sizeof(record_t));
+    p=NULL;
+    l.key.src =iph->saddr;
+    l.key.dport = ntohs(udph->dest) ;
+    HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
+    if (p){
+        //the following is the header rewriting
+         if (unlikely(skb_linearize(skb) != 0))
+            return NULL;
+        
+        __be32 oldIP = iph->daddr;
+        iph->daddr = p->dst;
+        __be32 newIP = iph->daddr;
+        printk( KERN_ALERT "Destination: udp found %pI4 and value is %pI4  \n", &oldIP, &newIP);
+
+         if (udph->check || skb->ip_summed == CHECKSUM_PARTIAL) {
+            printk("Old checksum is %u\n",ntohs(udph->check) );
+            inet_proto_csum_replace4(&udph->check, skb, oldIP, newIP, 1);
+            printk("New checksum is %u\n",ntohs(udph->check) );
+        }
+        csum_replace4(&iph->check, oldIP, newIP);
+        
+        return skb;
+    }
+
+    return skb;
+}
+
+
+
 struct sk_buff * tcp_header_write_prerouting(struct sk_buff *skb){
     struct iphdr *iph ;
     struct tcphdr *tcph ;
@@ -115,14 +181,114 @@ static unsigned int incoming_change_begin(unsigned int hooknum,
         //do not change any non-UDP traffic
         if ( iph && iph->protocol && (iph->protocol !=IPPROTO_UDP && iph->protocol !=IPPROTO_TCP) ) {
             return NF_ACCEPT;
-        } else if( iph->protocol ==IPPROTO_TCP){
-        	tcp_header_write_prerouting(skb);
+        } 
+/*
+****************************************************************************************************************
+                    TCP
+****************************************************************************************************************
+*/        
+        else if( iph->protocol ==IPPROTO_TCP){
+            struct tcphdr *tcph ;
+
+            unsigned int data_len;
+            data_len = skb->len;
+
+            tcph =   tcp_hdr (skb );
+
+            record_t l, *p;
+           
+            memset(&l, 0, sizeof(record_t));
+            p=NULL;
+            l.key.src =iph->saddr;
+            l.key.sport = ntohs(tcph->source) ;
+            HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
+            if(p)
+            {
+                __be32 oldIP = iph->daddr;
+                iph->daddr = p->dst;
+                __be32 newIP = iph->daddr;
+                printk( KERN_ALERT "Destination: found %pI4 and value is %pI4  \n", &oldIP, &newIP);
+                inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
+                csum_replace4(&iph->check, oldIP, newIP);
+	            
+            } 
+            else{
+                memset(&l, 0, sizeof(record_t));
+                l.key.src =iph->saddr;
+                l.key.dport = ntohs(tcph->dest) ;
+                HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
+                if (p){
+                    __be32 oldIP = iph->daddr;
+                    iph->daddr = p->dst;
+                    __be32 newIP = iph->daddr;
+                    printk( KERN_ALERT "Destination: found %pI4 and value is %pI4  \n", &oldIP, &newIP);
+
+                    csum_replace4(&iph->check, oldIP, newIP);
+                    inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
+
+               	}
+            }
+
         	okfn(skb);
             return  NF_STOLEN;
         }
+/*
+****************************************************************************************************************
+                   UDP
+****************************************************************************************************************
+*/         
         else  if( iph->protocol ==IPPROTO_UDP)
         {
-        	//do nothing
+            struct tcphdr *udph ;
+
+            unsigned int data_len;
+            data_len = skb->len;
+
+            udph = udp_hdr (skb );
+
+            record_t l, *p;
+           
+            memset(&l, 0, sizeof(record_t));
+            p=NULL;
+            l.key.src =iph->saddr;
+            l.key.sport = ntohs(udph->source) ;
+            HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
+            if(p)
+            {
+                __be32 oldIP = iph->daddr;
+                iph->daddr = p->dst;
+                __be32 newIP = iph->daddr;
+                printk( KERN_ALERT "Dest: udp found %pI4 and value is %pI4  \n", &oldIP, &newIP);
+                if (udph->check || skb->ip_summed == CHECKSUM_PARTIAL) {
+                    printk("Old checksum is %u\n",ntohs(udph->check) );
+                    inet_proto_csum_replace4(&udph->check, skb, oldIP, newIP, 1);
+                    printk("New checksum is %u\n",ntohs(udph->check) );
+                }
+                csum_replace4(&iph->check, oldIP, newIP);
+            
+            }
+            else{
+                memset(&l, 0, sizeof(record_t));
+                l.key.src =iph->saddr;
+                l.key.dport = ntohs(udph->dest) ;
+                HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
+                if (p){                
+                    __be32 oldIP = iph->daddr;
+                    iph->daddr = p->dst;
+                    __be32 newIP = iph->daddr;
+                    printk( KERN_ALERT "Destination: udp found %pI4 and value is %pI4  \n", &oldIP, &newIP);
+
+                     if (udph->check || skb->ip_summed == CHECKSUM_PARTIAL) {
+                        printk("Old checksum is %u\n",ntohs(udph->check) );
+                        inet_proto_csum_replace4(&udph->check, skb, oldIP, newIP, 1);
+                        printk("New checksum is %u\n",ntohs(udph->check) );
+                    }
+                    csum_replace4(&iph->check, oldIP, newIP);
+                }
+            }
+
+            okfn(skb);
+            return  NF_STOLEN;
         }
          return NF_ACCEPT;
     }
