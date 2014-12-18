@@ -23,67 +23,6 @@
 #include <net/flow.h>
 #include <net/route.h>
 #include <linux/inetdevice.h>
-
-struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){ 
-
-    
-    /*
-   	if (p){
-
-        //the following is the header rewriting
-		if (unlikely(skb_linearize(skb) != 0))
-			return NULL;
-        
-        printk( " Output: found %pI4 and value is %pI4  \n", &p->key.dst , &p->dst);
-
-        __be32 oldIP = iph->daddr;
-        iph->daddr = p->dst;
-        __be32 newIP = iph->daddr;
-
-
-
-        if(p->Migrate ==1){
-        	if(p->Buffer ==1) {
-        		printk("Buffering packets now\n");
-        		iph->protocol = IPPROTO_RAW; 
-	        	ip_send_check(iph) ;
-        	} else{
-        		printk("No buffer is needed, release and reset migrate flag\n");
-        		//just mark one special packet, and this is the end of the buffering
-        		// need to change both migrate and buffer flags to false.
-        		__u16  * mark_end =  (__u16 *) (((char *) tcph) + 12);
-        		//this basically set the urgent flag. 
-                tcph->urg =1;
-        		iph->protocol = IPPROTO_RAW; 
-	        	ip_send_check(iph) ;
-	        	write_lock(&my_rwlock);
-			    p->Migrate =0;
-			    p->dst =  in_aton("128.112.93.106");
-			    write_unlock(&my_rwlock);
-	        	
-	        	//write_lock(&release_lock);
-	        	printk("Entering release lock and should not see any readlock msg unless after release\n");
-	        	return skb;
-        	}
-
-        }
-        else{
-        	inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
-		    csum_replace4(&iph->check, oldIP, newIP);
-		    printk( " Output: found dest is  %pI4 \n", &iph->daddr);
-		    return  skb ;
-    	}
-        
-    }
-    else {
-    	if ( ntohs(tcph->source)  == 5001 )
-        	printk( KERN_ALERT "No hash found, do nothing \n");
-        return skb;
-      }
-      */
-    return skb;
-    
-}
  
 
 static unsigned int outgoing_begin (unsigned int hooknum,
@@ -131,6 +70,8 @@ static unsigned int outgoing_begin (unsigned int hooknum,
 		    read_lock(&my_rwlock) ;
 		    HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p) ;
 		    read_unlock(&my_rwlock) ;
+
+
 		   	if(p){
 		        
 		        __be32 oldIP = iph->daddr;
@@ -143,16 +84,12 @@ static unsigned int outgoing_begin (unsigned int hooknum,
 		        		return NF_QUEUE;
 		        	} 
 		        	else{
-		        		printk("No buffer is needed, release and reset migrate flag\n");
-		        		/*
+		        		printk("No buffer is needed, release and reset migrate flag, we also change some urgent flag\n");
+		        		
 		        		//just mark one special packet, and this is the end of the buffering
 		        		// need to change both migrate and buffer flags to false.
-		        		__u16  * mark_end =  (__u16 *) (((char *) tcph) + 12);
 		        		//this basically set the urgent flag. 
 		                tcph->urg =1;
-		        		iph->protocol = IPPROTO_RAW; 
-			        	ip_send_check(iph) ;
-			        	*/
 			        	write_lock(&my_rwlock);
 					    p->Migrate =0;
 					    write_unlock(&my_rwlock);
@@ -160,6 +97,7 @@ static unsigned int outgoing_begin (unsigned int hooknum,
 				       }
 		        } 
 		        else{
+
 		        	read_lock(&release_lock);
 		        	inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
 			    	csum_replace4(&iph->check, oldIP, newIP);
@@ -194,18 +132,16 @@ static unsigned int outgoing_begin (unsigned int hooknum,
 		    HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p) ;
 		    read_unlock(&my_rwlock) ;
 		    if(p){
-		   		if (unlikely(skb_linearize(skb) != 0))
-					return NULL;
-		        
 		        __be32 oldIP = iph->daddr;
 		        iph->daddr = p->dst;
 		        __be32 newIP = iph->daddr;
 		        if (udph->check || skb->ip_summed == CHECKSUM_PARTIAL) {
 		            inet_proto_csum_replace4(&udph->check, skb, oldIP, newIP, 1);
+		        } else{
+		        	udph->check = CSUM_MANGLED_0;
 		        }
 			    csum_replace4(&iph->check, oldIP, newIP);
 			    printk( " Output: udp found src and dest is  %pI4 and %pI4 \n", &iph->saddr,  &iph->daddr);
-			    return  skb ;
 		   	}
 			return NF_ACCEPT;
 	        
