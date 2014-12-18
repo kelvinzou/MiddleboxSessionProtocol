@@ -1001,49 +1001,7 @@ void deleteHash(record_t * item){
 }
 
 
-void HashMigrate(record_t * item){
-    
-    record_t * p=NULL;
 
-    write_lock(&my_rwlock);
-    HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
-
-    if (p!=NULL) {
-        p->Migrate = 1;
-        p->Buffer =  1;
-        printk(KERN_ALERT "HASH migration modification happens!\n");
-    }
-    p->dst =  in_aton("127.0.0.1");
-    write_unlock(&my_rwlock);
-}
-
-void HashReleaseBuffer(record_t * item){
-    
-    record_t * p=NULL;
-    
-
-    write_lock(&my_rwlock);
-    HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
-    if (p!=NULL) {
-        p->Buffer = 0;
-        printk(KERN_ALERT "HASH buffer modification happens!\n");
-    }
-    write_unlock(&my_rwlock);
-}
-
-void HashResetMigration(record_t * item){
-    record_t * p=NULL;
-    
-    write_lock(&my_rwlock);
-    HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
-
-    if (p!=NULL) {
-        p->Migrate =0;
-        printk(KERN_ALERT "HASH buffer reset happens!\n");
-        p->dst =  in_aton("128.112.93.106");
-    }
-    write_unlock(&my_rwlock);
-}
 
 void addHash(record_t * item){
     record_t  *r;

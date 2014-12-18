@@ -5,6 +5,46 @@
 #include "uthash.h"
 static struct sock *nl_sk = NULL;
 
+void HashResetMigration(record_t * item){
+    record_t * p=NULL;
+    
+    write_lock(&my_rwlock);
+    HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
+
+    if (p!=NULL) {
+        p->Migrate =0;
+        printk(KERN_ALERT "HASH buffer reset happens!\n");
+    }
+    write_unlock(&my_rwlock);
+}
+
+void HashMigrate(record_t * item){
+    record_t * p=NULL;
+
+    write_lock(&my_rwlock);
+    HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
+
+    if (p!=NULL) {
+        p->Migrate = 1;
+        p->Buffer =  1;
+        printk(KERN_ALERT "HASH migration modification happens!\n");
+    }
+    write_unlock(&my_rwlock);
+}
+
+void HashReleaseBuffer(record_t * item){
+    
+    record_t * p=NULL;
+
+    write_lock(&my_rwlock);
+    HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
+    if (p!=NULL) {
+        p->Buffer = 0;
+        printk(KERN_ALERT "HASH buffer modification happens!\n");
+    }
+    write_unlock(&my_rwlock);
+}
+
 
 static void netlink_agent(struct sk_buff *skb)
 { 
@@ -45,50 +85,6 @@ static void netlink_agent(struct sk_buff *skb)
         item.key.dport =5001;
         HashReleaseBuffer(&item);
     }
-
-    /*
-    if (strcmp((char*)nlmsg_data(nlh), "ACK")==0) {
-        memset(&item, 0, sizeof(record_t));
-        item.key.dst = in_aton( "128.112.93.108" );
-        item.key.dport =5001;
-        deleteHash(&item);
-
-        memset(&item, 0, sizeof(record_t));
-        item.key.src = in_aton( "128.112.93.106" );
-        item.key.sport =5001;
-        deleteHash(&item);
-        
-    } 
-   
-    else if (strcmp((char*)nlmsg_data(nlh), "RESET")==0) {
-        memset(&item, 0, sizeof(record_t));
-        item.key.dst = in_aton( "128.112.93.108" );
-        item.key.dport =5001;
-        item.dst = in_aton("128.112.93.106");
-        addHash(& item);
-        
-        memset(&item, 0, sizeof(record_t));
-        item.key.src = in_aton( "128.112.93.106" );
-        item.key.sport =5001;
-        item.src =  in_aton("128.112.93.108");;
-        addHash(& item);
-    } 
-
-    else if (strcmp((char*)nlmsg_data(nlh), "BUFFER")==0) {
-        memset(&item, 0, sizeof(record_t));
-        item.key.dst = in_aton( "128.112.93.108" );
-        item.key.dport =5001;
-        item.dst = in_aton("128.112.93.106");
-        addHash(& item);
-        
-        memset(&item, 0, sizeof(record_t));
-        item.key.src = in_aton( "128.112.93.106" );
-        item.key.sport =5001;
-        item.src =  in_aton("128.112.93.108");;
-        addHash(& item);
-    }
-    
- */
 
     pid = nlh->nlmsg_pid; /*pid of sending process */
 

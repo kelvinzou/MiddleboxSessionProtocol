@@ -121,7 +121,7 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
            printf("set as an urg packet \n");
            nfq_flag = 1;
            tcp->urg=0;
-            return nfq_set_verdict(qh, id, NF_ACCEPT, length, full_packet_ptr);
+           return nfq_set_verdict(qh, id, NF_ACCEPT, length, full_packet_ptr);
        } 
         return nfq_set_verdict(qh, id, NF_ACCEPT, 0, NULL);
     }
@@ -186,9 +186,10 @@ void sendback_packet(){
         nfq_handle_packet(h, buf, recvCount);
         if(nfq_flag==1 &&sent==0){
             printf("send ack!\n");
-            sent =1;
             char * netlink_message = "ACK";
             send_netlink(netlink_message);
+            sent =1;
+
         }
     }
 }
@@ -210,11 +211,13 @@ int main(int argc, char **argv)
         
         printf("pkt received\n");
         usleep(10000);
+        char * netlink_message = "ACK";
+        send_netlink(netlink_message);
         nfq_handle_packet(h, buf, recvCount);
         break;
     }
     
-
+    
     sendback_packet();
 
     printf("send syn-ack\n");

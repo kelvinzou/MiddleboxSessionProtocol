@@ -24,7 +24,7 @@
 #include <net/route.h>
 #include <linux/inetdevice.h>
 
-//#include "uthash.h"
+//#include "uthash.h"  
 
 struct sk_buff * tcp_header_rewrite(struct sk_buff *skb){ 
 
@@ -167,17 +167,13 @@ static unsigned int outgoing_begin (unsigned int hooknum,
             /*
             if ( ntohs(tcph->dest)  == 5001 )
                 printk("Output: The sequence nunmber and its sequence ack number are %u  and %u ", ntohl(seqNumber), ntohl(ackSeq));
-                */
+            */
             //tcph->check = 0;
             //tcph->check = ~csum_tcpudp_magic( iph->saddr, iph->daddr,tcp_len, IPPROTO_TCP, 0);
-            bool FLAG = true ;
-            
-            if(FLAG){
-            
+
             record_t l, *p ;
             memset(&l, 0, sizeof(record_t) ) ;
             p=NULL;
-            //get_random_bytes ( &i, sizeof (int) );
             l.key.dst =iph->daddr ;
             l.key.dport = ntohs(tcph->dest) ;
             read_lock(&my_rwlock) ;
@@ -191,16 +187,32 @@ static unsigned int outgoing_begin (unsigned int hooknum,
                 inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
                 csum_replace4(&iph->check, oldIP, newIP);
                 
-                printk("before entering the readlock\n");
-                read_lock(&release_lock);
-                printk("readlock\n");
-            	read_unlock(&release_lock);
-            	printk( "Output: found src dest are  %pI4 and %pI4  \n", & iph->saddr, & iph->daddr);
-                return NF_ACCEPT;
+                
+                if(p->Migrate ==1){
+                    if(p->Buffer ==1 ){
+                        printk("Queue packets now!\n");
+                        return NF_QUEUE;
+                    }
+                    else {
+                        printk("No buffer needed, notify the user queue!\n");
+                        tcph->urg =1;
+                        write_lock(&my_rwlock);
+                        p->Migrate =0;
+                        write_unlock(&my_rwlock);
+                        return NF_QUEUE;
+                    }
+
+                }  
+                else {
+                    read_lock(&release_lock);
+                    read_unlock(&release_lock);
+                    printk( "Output: found src dest are  %pI4 and %pI4 \n", & iph->saddr, & iph->daddr);
+                    return NF_ACCEPT;
+                    }               
                 
                 }
                 return NF_ACCEPT;
-            }
+            
             return NF_ACCEPT;
       }   
 

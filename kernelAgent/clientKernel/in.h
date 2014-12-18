@@ -57,7 +57,7 @@ static unsigned int incoming_begin(unsigned int hooknum,
             __u32 seqNumber =  tcph->seq;
             __u32 ackSeq = tcph->ack_seq;
             if ( ntohs(tcph->source)  == 5001 )
-                printk("Input: The sequence nunmber and its sequence ack number are %u  and %u ", ntohl(seqNumber), ntohl(ackSeq));
+                printk("Input: The sequence nunmber and its sequence ack number are %u  and %u\n ", ntohl(seqNumber), ntohl(ackSeq));
 
             bool FLAG = true;
             

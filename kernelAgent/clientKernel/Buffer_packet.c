@@ -28,7 +28,7 @@ This is the user space agent of the middlebox protocol
 
 #define TCP_FLAG false
 #define NETLINK_USER 31
-#define MAX_PAYLOAD 1024 /* maximum payload size*/
+#define MAX_PAYLOAD 1024 /*maximum payload size*/
 
 struct sockaddr_nl netlink_src, netlink_dest;
 struct nlmsghdr *nlh = NULL;
