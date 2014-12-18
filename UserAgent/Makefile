@@ -7,7 +7,7 @@ MiddleboxAgent:
 Buffer_packet:
 	g++ -o Buffer_packet Buffer_packet.c  
 MidBoxOrderPreserving:
-	g++ -o MidBoxOrderPreserving MidBoxOrderPreserving.c   -lpthread  
+	g++ -o MidBoxOrderPreserving MidBoxOrderPreserving.c   -lpthread  -lnfnetlink -lnetfilter_queue
 notifyOrderPreserving:
 	g++ -o	notifyOrderPreserving notifyOrderPreserving.c
 clean:
