@@ -9,7 +9,7 @@
 #include <iostream>
 
 #define BUFLEN 2
-#define NPACK 10
+#define NPACK 1000000
 #define PORT 5001
 
 void diep(char *s){
@@ -37,7 +37,7 @@ int main(void) {
         if (recvfrom(fd, buf, BUFLEN, 0, (struct sockaddr *)  &daddr, &size) ==-1 ){
             diep("RECVFROM error");
         } 
-        printf("receive packet\n");
+        //printf("receive packet\n");
     }
     close (fd);
     return 0;

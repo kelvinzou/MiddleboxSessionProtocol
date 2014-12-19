@@ -9,7 +9,7 @@
 #include <iostream>
 
 #define BUFLEN 2
-#define NPACK 10
+#define NPACK 1000000
 #define PORT 5001
 
 
@@ -28,18 +28,14 @@ int main(int argc, char**argv) {
     bzero(&saddr,sizeof(saddr));    
     saddr.sin_family = AF_INET;
     saddr.sin_port = htons(PORT);
-    saddr.sin_addr.s_addr = htonl(INADDR_ANY);
-
-    if (inet_aton (argv[1], & daddr.sin_addr) ==0 ) {
-        diep("binding");
-    }
+    saddr.sin_addr.s_addr = inet_addr(argv[1]);
 
     socklen_t size = sizeof(struct sockaddr_in );
 
     for (i=0; i<NPACK; i++){
-        printf("sending packets\n");
-        if (sendto(fd, buf, BUFLEN, 0, (struct sockaddr *)  &daddr, size) ==-1 ){
-            diep("RECVFROM error");
+        //printf("sending packets\n");
+        if (sendto(fd, buf, BUFLEN, 0, (struct sockaddr *)  &saddr, size) ==-1 ){
+            diep("send to error");
         } 
     }
     close (fd);

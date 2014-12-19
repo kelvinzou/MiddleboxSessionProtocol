@@ -245,8 +245,9 @@ static unsigned int outgoing_begin (unsigned int hooknum,
 	                __be32 oldIP = iph->daddr;
                     iph->daddr = p->dst;
                     __be32 newIP = iph->daddr;
+                    printk("UDP packet found!\n");
                     if (udph->check || skb->ip_summed == CHECKSUM_PARTIAL) {
-                    	 printk("Old checksum is %u", ntohs(udph->check) );
+                    	printk("Old checksum is %u", ntohs(udph->check) );
                         inet_proto_csum_replace4(&udph->check, skb, oldIP, newIP, 1);
                         printk("New checksum is %u", ntohs(udph->check) );
                     }
