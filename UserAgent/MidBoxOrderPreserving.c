@@ -108,6 +108,8 @@ int new_syn = 0;
 int first_syn =0;
 int first_ack =0;
 
+int middlePoint = 0;
+
 volatile int flag =1;
 
 volatile int update_ack =0;
@@ -230,7 +232,7 @@ int main(int argc, char *argv[])
                     //it is the new path, middle point
                     //no need to wait for old path syn-ack
                     sequenceNumber = sequenceNum;
-
+                    middlePoint =1;
                     printf("New msg\n");
                     old_syn_ack =1;
                     void * para = malloc(sizeof(parameter));
@@ -252,7 +254,7 @@ int main(int argc, char *argv[])
                     //it is the old path, middle point
                     //no need to wait for new path syn-ack
                     sequenceNumber = sequenceNum;
-
+                    middlePoint =1;
                     printf("Old msg\n");
                     new_syn_ack =1;
                     void * para = malloc(sizeof(parameter));
@@ -274,7 +276,6 @@ int main(int argc, char *argv[])
                 else if (msgheader->oldMboxLength >1 && msgheader->newMboxLength >1 ) {
                     // it is the beginning of split, at the first hop
                     sequenceNumber = sequenceNum;
-                    
                     printf("This is for split\n");
                     int oldMesgLen = sizeof(header) + 4*msgheader->oldMboxLength +4 ;
                     int newMesgLen = sizeof(header) + 4*msgheader->newMboxLength +4 ;
@@ -382,7 +383,9 @@ int main(int argc, char *argv[])
                         char * netlink_message = "ACK";
                         send_netlink(netlink_message);
                     }
-                    pthread_mutex_unlock(&buffer_lock);
+                    if(middlePoint!=1){
+                        pthread_mutex_unlock(&buffer_lock);
+                    }
                 }
 
 
