@@ -364,7 +364,7 @@ int main(int argc, char *argv[])
                             sequenceNumber = sequenceNum;
                             if(first_syn==0){
                                 pthread_mutex_lock(&buffer_lock);
-                                
+
                                 printf("Ready for SYN-ACK\n");
                                 first_syn=1;
                             }
@@ -423,6 +423,8 @@ void * sendback_packet(void * ptr){
         //while ((recvCount = recv(nf_queue_fd, buf, sizeof(buf), 0)) && recvCount >= 0) 
         
     while(1){
+
+
         while(first_syn==1){
         pthread_mutex_lock(&buffer_lock);
         usleep(1000000);
@@ -432,6 +434,8 @@ void * sendback_packet(void * ptr){
         pthread_mutex_unlock(&buffer_lock);
 
         }
+        usleep(1000000);
+        
     }
     
 }
