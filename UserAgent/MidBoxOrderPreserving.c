@@ -416,8 +416,10 @@ int main(int argc, char *argv[])
 
 void * sendback_packet(void * ptr){
     int packet_counter =0;
-    if(NETLINK_FLAG){
+  //  if(NETLINK_FLAG){
         //while ((recvCount = recv(nf_queue_fd, buf, sizeof(buf), 0)) && recvCount >= 0) 
+        
+    while(1){
         while(first_syn==1){
         pthread_mutex_lock(&buffer_lock);
         usleep(10000);
@@ -429,7 +431,6 @@ void * sendback_packet(void * ptr){
         }
     }
     
-
 }
 
 
