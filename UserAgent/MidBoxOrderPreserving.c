@@ -346,6 +346,7 @@ int main(int argc, char *argv[])
                             replyAddr[0] = clientAddressPtr;
                             if(first_syn==0){
                                 printf("Ready for SYN-ACK\n");
+                                pthread_mutex_lock(&buffer_lock);
                                 first_syn=1;
                             }
                             pthread_create(&(thread[thread_iterator]), NULL, handleACK, NULL);
@@ -362,6 +363,8 @@ int main(int argc, char *argv[])
                             replyAddr[1] = clientAddressPtr;
                             sequenceNumber = sequenceNum;
                             if(first_syn==0){
+                                pthread_mutex_lock(&buffer_lock);
+                                
                                 printf("Ready for SYN-ACK\n");
                                 first_syn=1;
                             }
@@ -422,7 +425,7 @@ void * sendback_packet(void * ptr){
     while(1){
         while(first_syn==1){
         pthread_mutex_lock(&buffer_lock);
-        usleep(10000);
+        usleep(1000000);
         packet_counter ++;
         printf("pkt received %d\n", packet_counter);
         //nfq_handle_packet(h, buf, recvCount);
