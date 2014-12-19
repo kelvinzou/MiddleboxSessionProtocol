@@ -454,7 +454,7 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
            printf("set as an urg packet \n");
            nfq_flag = 1;
            tcp->urg=0;
-           return nfq_set_verdict(qh, id, NF_ACCEPT, length, full_packet_ptr);
+           return nfq_set_verdict(qh, id, NF_ACCEPT,0, NULL);
        } 
         return nfq_set_verdict(qh, id, NF_ACCEPT, 0, NULL);
     }
