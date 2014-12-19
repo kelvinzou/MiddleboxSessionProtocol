@@ -10,7 +10,7 @@
 #include <sys/time.h>
 
 #define BUFLEN 4
-#define NPACK 1000000
+#define NPACK 50000000
 #define PORT 5001
 
 
