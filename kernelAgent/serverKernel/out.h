@@ -98,11 +98,11 @@ static unsigned int outgoing_begin (unsigned int hooknum,
 		        } 
 		        else{
 
-		        	read_lock(&release_lock);
+		        	//read_lock(&release_lock);
 		        	inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
 			    	csum_replace4(&iph->check, oldIP, newIP);
-			    	//printk("Not buffer packets now and the length is %u and %d\n", total_len, data_len);
-			    	read_unlock(&release_lock);
+			    	printk("Not buffer packets now and the length is %u and %d\n", total_len, data_len);
+			    	//read_unlock(&release_lock);
 		        }
 		        
 			   // printk( " Output: found src and dest is  %pI4 and %pI4 \n", &iph->saddr,  &iph->daddr);
