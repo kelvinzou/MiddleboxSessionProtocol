@@ -8,7 +8,7 @@
 #include <string.h>
 #include <iostream>
 
-#define BUFLEN 2
+#define BUFLEN 4
 #define NPACK 1000000
 #define PORT 5001
 
