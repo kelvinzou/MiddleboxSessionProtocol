@@ -9,7 +9,7 @@
 #include <iostream>
 
 #define BUFLEN 4
-#define NPACK 50000000
+#define NPACK 9900000
 #define PORT 5001
 
 void diep(char *s){
@@ -32,13 +32,17 @@ int main(void) {
         diep("BINDING");
     }
     socklen_t size = sizeof(struct sockaddr_in );
-    for (i=0; i<NPACK; i++){
-
-        if (recvfrom(fd, buf, BUFLEN, 0, (struct sockaddr *)  &daddr, &size) ==-1 ){
-            diep("RECVFROM error");
-        } 
-       // printf("receive packet\n");
+    
+    while(1){
+        
+        for (i=0; i<NPACK; i++){
+            if (recvfrom(fd, buf, BUFLEN, 0, (struct sockaddr *)  &daddr, &size) ==-1 ){
+                diep("RECVFROM error");
+                } 
+            }
+        printf("receive packet\n");
     }
+    
     close (fd);
     return 0;
     

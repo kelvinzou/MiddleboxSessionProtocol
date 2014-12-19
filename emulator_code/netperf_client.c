@@ -10,7 +10,7 @@
 #include <sys/time.h>
 
 #define BUFLEN 4
-#define NPACK 50000000
+#define NPACK 10000000
 #define PORT 5001
 
 
@@ -40,7 +40,7 @@ int main(int argc, char**argv) {
             diep("send to error");
         } 
     }
-     gettimeofday(&t2, NULL);
+    gettimeofday(&t2, NULL);
     double elapsedTime =(t2.tv_sec - t1.tv_sec)*1000000.0;
      elapsedTime +=(t2.tv_usec-t1.tv_usec);
     double packetrate = (NPACK*1.0)/(elapsedTime);
