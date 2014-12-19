@@ -379,10 +379,7 @@ int main(int argc, char *argv[])
                 if(first_ack ==0){
                     printf("ACK\n");
                     first_ack=1;
-                    if(NETLINK_FLAG){
-                        char * netlink_message = "ACK";
-                        send_netlink(netlink_message);
-                    }
+                    
                     if(middlePoint!=1){
                         pthread_mutex_unlock(&buffer_lock);
                     }
@@ -421,9 +418,11 @@ void * sendback_packet(void * ptr){
         while ((recvCount = recv(nf_queue_fd, buf, sizeof(buf), 0)) && recvCount >= 0) 
         {
             pthread_mutex_lock(&buffer_lock);
+            char * netlink_message = "ACK";
+            send_netlink(netlink_message);
             packet_counter ++;
             printf("pkt received %d\n", packet_counter);
-            //nfq_handle_packet(h, buf, recvCount);
+            nfq_handle_packet(h, buf, recvCount);
             pthread_mutex_unlock(&buffer_lock);
         }
     }
