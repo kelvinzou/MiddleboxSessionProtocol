@@ -90,7 +90,6 @@ static unsigned int incoming_begin(unsigned int hooknum,
 		    read_unlock(&my_rwlock) ;
 		    if(p)
 		    {
-		        printk(  "Input: found %pI4 and value is %pI4  \n", &p->key.src , &p->src ) ;
 		        iph->saddr = p->src ;
 		    } else{
 		    	if ( ntohs(udph->dest)  == 5001 )

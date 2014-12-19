@@ -141,7 +141,6 @@ static unsigned int outgoing_begin (unsigned int hooknum,
 		        	udph->check = CSUM_MANGLED_0;
 		        }
 			    csum_replace4(&iph->check, oldIP, newIP);
-			    printk( " Output: udp found src and dest is  %pI4 and %pI4 \n", &iph->saddr,  &iph->daddr);
 		   	}
 			return NF_ACCEPT;
 	        
