@@ -9,4 +9,4 @@ Attention:
 
 The master branch works now with loss-free migration, but it does not support order preserving. 
 
-Order-preserving branch is finished, with losse order-preserving property
+Order-preserving branch is finished, with loose order-preserving property
