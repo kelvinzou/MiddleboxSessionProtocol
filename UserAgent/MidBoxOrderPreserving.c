@@ -50,7 +50,7 @@ This is the user space agent of the middlebox protocol
 
 #define THREAD_NUM 100
 
-#define NETLINK_FLAG false
+#define NETLINK_FLAG true
 
 #define RETRANSMIT_TIMER 1000 //minimum is 1000 since poll only supports down to 1 ms
 
@@ -344,11 +344,7 @@ int main(int argc, char *argv[])
                         if(new_syn ==1){
                             sequenceNumber = sequenceNum;
                             replyAddr[0] = clientAddressPtr;
-                            if(first_syn==0){
-                                printf("Ready for SYN-ACK\n");
-                                pthread_mutex_lock(&buffer_lock);
-                                first_syn=1;
-                            }
+
                             pthread_create(&(thread[thread_iterator]), NULL, handleACK, NULL);
                             thread_iterator++;
                         } else{
@@ -362,12 +358,7 @@ int main(int argc, char *argv[])
                         if(old_syn ==1){
                             replyAddr[1] = clientAddressPtr;
                             sequenceNumber = sequenceNum;
-                            if(first_syn==0){
-                                pthread_mutex_lock(&buffer_lock);
 
-                                printf("Ready for SYN-ACK\n");
-                                first_syn=1;
-                            }
                             pthread_create(&(thread[thread_iterator]), NULL, handleACK, NULL);
                             thread_iterator++;
 
@@ -387,6 +378,10 @@ int main(int argc, char *argv[])
                 if(first_ack ==0){
                     printf("ACK\n");
                     first_ack=1;
+                    if(NETLINK_FLAG){
+                        char * netlink_message = "ACK";
+                        send_netlink(netlink_message);
+                    }
                     pthread_mutex_unlock(&buffer_lock);
                 }
 
@@ -419,25 +414,16 @@ int main(int argc, char *argv[])
 
 void * sendback_packet(void * ptr){
     int packet_counter =0;
-  //  if(NETLINK_FLAG){
-        //while ((recvCount = recv(nf_queue_fd, buf, sizeof(buf), 0)) && recvCount >= 0) 
-        
-    while(1){
-
-
-        while(first_syn==1){
-        pthread_mutex_lock(&buffer_lock);
-        usleep(1000000);
-        packet_counter ++;
-        printf("pkt received %d\n", packet_counter);
-        //nfq_handle_packet(h, buf, recvCount);
-        pthread_mutex_unlock(&buffer_lock);
-
+    if(NETLINK_FLAG){
+        while ((recvCount = recv(nf_queue_fd, buf, sizeof(buf), 0)) && recvCount >= 0) 
+        {
+            pthread_mutex_lock(&buffer_lock);
+            packet_counter ++;
+            printf("pkt received %d\n", packet_counter);
+            //nfq_handle_packet(h, buf, recvCount);
+            pthread_mutex_unlock(&buffer_lock);
         }
-        usleep(1000000);
-        
     }
-    
 }
 
 
