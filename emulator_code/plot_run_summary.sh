@@ -13,7 +13,7 @@ picname=$1$suffix
 python util/plot_rate.py \
        -f $dir/$filename \
        --legend Bandwidth during drop-based flow migration \
-       --xlabel 'Time (100ms)' \
+       --xlabel 'Time (30ms)' \
        --ylabel 'Rate (Mbps)' \
        --maxy $maxy \
        -i "eth1" \

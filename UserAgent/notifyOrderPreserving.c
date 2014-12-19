@@ -109,9 +109,6 @@ int main(int argc, char**argv)
 	servaddr.sin_addr.s_addr=inet_addr(argv[1]);
 	servaddr.sin_port=htons(UDP_PORT);
 
-// Here we use file descriptor to avoid I/O block at receive side.
-	int timeout =3000;
-	
 	double elapsedTime;
 	int flag =0;
 
