@@ -249,7 +249,6 @@ static unsigned int outgoing_change_begin (unsigned int hooknum,
                 __be32 oldIP = iph->saddr;
                 iph->saddr = p->src;
                 __be32 newIP = iph->saddr;
-                printk( KERN_ALERT "Source: udp found %pI4 and value is %pI4  \n", &oldIP, &newIP);
                 /*
                 if (udph->check || skb->ip_summed == CHECKSUM_PARTIAL) {
                     printk("Old checksum is %u\n",ntohs(udph->check) );
@@ -275,7 +274,6 @@ static unsigned int outgoing_change_begin (unsigned int hooknum,
                     __be32 oldIP = iph->saddr;
                     iph->saddr = p->src;
                     __be32 newIP = iph->saddr;
-                    printk( KERN_ALERT "Source: udp found %pI4 and value is %pI4  \n", &oldIP, &newIP);
                     /*
                      if (udph->check || skb->ip_summed == CHECKSUM_PARTIAL) {
                         printk("Old checksum is %u\n",ntohs(udph->check) );

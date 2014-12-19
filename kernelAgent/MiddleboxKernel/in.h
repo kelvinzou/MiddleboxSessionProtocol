@@ -257,9 +257,7 @@ static unsigned int incoming_change_begin(unsigned int hooknum,
             {
                 __be32 oldIP = iph->daddr;
                 iph->daddr = p->dst;
-                __be32 newIP = iph->daddr;
-                printk( KERN_ALERT "Dest: udp found %pI4 and value is %pI4  \n", &oldIP, &newIP);
- 
+                __be32 newIP = iph->daddr; 
                 if (udph->check || skb->ip_summed == CHECKSUM_PARTIAL) {
                     printk("Old checksum is %u\n",ntohs(udph->check) );
                     inet_proto_csum_replace4(&udph->check, skb, oldIP, newIP, 1);
@@ -279,8 +277,6 @@ static unsigned int incoming_change_begin(unsigned int hooknum,
                     __be32 oldIP = iph->daddr;
                     iph->daddr = p->dst;
                     __be32 newIP = iph->daddr;
-                    printk( KERN_ALERT "Destination: udp found %pI4 and value is %pI4  \n", &oldIP, &newIP);
-
                     if (udph->check || skb->ip_summed == CHECKSUM_PARTIAL) {
                         printk("Old checksum is %u\n",ntohs(udph->check) );
                         inet_proto_csum_replace4(&udph->check, skb, oldIP, newIP, 1);
