@@ -8,6 +8,7 @@
 #include <string.h>
 #include <iostream>
 #include <sys/time.h>
+#include <cstdlib>
 
 #define BUFLEN 4
 #define NPACK 10000000
@@ -20,16 +21,24 @@ void diep(char *s){
 }
 
 int main(int argc, char**argv) {
+    
+    if(argc <4){
+        printf("Type down the values: [server IP] [port number] [packet size]\n");
+        return 0;
+    }
     struct timeval t1, t2;
     struct sockaddr_in saddr, daddr; 
     int fd, i;
-    char buf[BUFLEN];
+    int buffer_len = atoi(argv[3]);
+    int port_number = atoi(argv[2]);
+    char buf[buffer_len];
+
     if ((fd=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1)
     {  diep("socket");
     }
     bzero(&saddr,sizeof(saddr));    
     saddr.sin_family = AF_INET;
-    saddr.sin_port = htons(PORT);
+    saddr.sin_port = htons(port_number);
     saddr.sin_addr.s_addr = inet_addr(argv[1]);
 
     socklen_t size = sizeof(struct sockaddr_in );
