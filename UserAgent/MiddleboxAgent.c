@@ -45,7 +45,7 @@ This is the user space agent of the middlebox protocol
 
 #define THREAD_NUM 100
 
-#define NETLINK_ON false
+#define NETLINK_ON true
 
 using namespace std;
 
@@ -482,7 +482,7 @@ int main(int argc, char *argv[])
                 clearHash();
                 pthread_mutex_unlock(&lock);
                 if(NETLINK_ON){
-                    char * netlink_message = "SYN";
+                    char * netlink_message = "ACK";
                     send_netlink(netlink_message);
                 }
 

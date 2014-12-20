@@ -54,30 +54,44 @@ static void netlink_agent(struct sk_buff *skb)
     
     record_t item;
     //here we just need SYNC packet, because SYN-ACK are rule is preinstalled first
-    if (strcmp((char*)nlmsg_data(nlh), "SYN")==0) {
+    if (strcmp((char*)nlmsg_data(nlh), "ACK")==0) {
         memset(&item, 0, sizeof(record_t));
         item.key.dst = in_aton( "128.112.93.108" );
         item.key.dport =5001;
-        deleteHash(&item);
-/*
-        memset(&item, 0, sizeof(record_t));
-        item.key.src = in_aton( "128.112.93.106" );
-        item.key.sport =5001;
-        deleteHash(&item);
-        */
+        
+        write_lock(&my_rwlock);
+
+        record_t * p=NULL;
+        HASH_FIND(hh, records, &item.key, sizeof(record_key_t), p);
+
+        if(p!=NULL){
+            p->dst = in_aton("128.112.93.109");
+        }
+        write_unlock(&my_rwlock);
+
     } 
+    else if (strcmp((char*)nlmsg_data(nlh), "SYN")==0) {
+        memset(&item, 0, sizeof(record_t));
+        item.key.src = in_aton( "128.112.93.109" );
+        item.key.sport =5001;
+        item.src =  in_aton("128.112.93.108");
+        deleteHash(& item);
+        addHash(& item);
+    }
 
     else if (strcmp((char*)nlmsg_data(nlh), "RESET")==0) {
         memset(&item, 0, sizeof(record_t));
         item.key.dst = in_aton( "128.112.93.108" );
         item.key.dport =5001;
         item.dst = in_aton("128.112.93.106");
+        deleteHash(& item);
         addHash(& item);
         
         memset(&item, 0, sizeof(record_t));
         item.key.src = in_aton( "128.112.93.106" );
         item.key.sport =5001;
-        item.src =  in_aton("128.112.93.108");;
+        item.src =  in_aton("128.112.93.108");
+        deleteHash(& item);
         addHash(& item);
     }
     

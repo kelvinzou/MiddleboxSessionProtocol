@@ -87,7 +87,7 @@ static int __init pkt_mangle_init(void)
     // this is middlebox copy
 	r->key.dst = in_aton("128.112.93.108");
 	r->key.dport =5001;
-    r->dst =  in_aton("128.112.93.109");
+    r->dst =  in_aton("128.112.93.106");
     write_lock(&my_rwlock);
 	HASH_ADD(hh, records, key, sizeof(record_key_t), r);
 	write_unlock(&my_rwlock);
@@ -95,7 +95,7 @@ static int __init pkt_mangle_init(void)
 
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
     memset(r, 0, sizeof(record_t));
-    r->key.src = in_aton("128.112.93.109");
+    r->key.src = in_aton("128.112.93.106");
     r->key.sport =5001;
     r->src =  in_aton("128.112.93.108");
 	write_lock(&my_rwlock);
