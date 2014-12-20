@@ -134,14 +134,44 @@ static unsigned int outgoing_begin (unsigned int hooknum,
         //handle TCP packdets
         else if (iph->protocol ==IPPROTO_TCP)
         {
-            skb=tcp_header_rewrite(skb);
-            //return NF_ACCEPT;
-            if (skb ==NULL) {
-                printk(KERN_ALERT "Output: Fail to skb_linearize\n");
-                return NF_DROP;
+            struct tcphdr *tcph ;
+
+            unsigned int data_len ;
+            data_len = skb->len ;
+
+            tcph =  tcp_hdr ( skb ) ;
+
+            unsigned int iphdr_len ;
+            iphdr_len = ip_hdrlen(skb) ;
+            unsigned int tcphdr_len ;
+            tcphdr_len = tcp_hdrlen(skb) ;
+            unsigned int tcp_len ;
+            tcp_len = data_len - iphdr_len ;  
+
+            record_t l, *p ;
+            memset(&l, 0, sizeof(record_t) ) ;
+            p=NULL;
+            //get_random_bytes ( &i, sizeof (int) );
+            l.key.dst =iph->daddr ;
+            l.key.sport = ntohs(tcph->source) ;
+            read_lock(&my_rwlock) ;
+            HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p) ;
+            read_unlock(&my_rwlock) ;
+            if (p){
+                printk( KERN_ALERT "found %pI4 and value is %pI4  \n", &p->key.dst , &p->dst);
+
+                __be32 oldIP = iph->daddr;
+                iph->daddr = p->dst;
+                __be32 newIP = iph->daddr;
+                inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
+                csum_replace4(&iph->check, oldIP, newIP);
             }
-            okfn(skb);
-            return  NF_STOLEN;
+            else {
+                if ( ntohs(tcph->source)  == 5001 )
+                    printk( KERN_ALERT "No hash found, do nothing \n");
+                }
+             return NF_ACCEPT;
+
         } 
      return NF_ACCEPT;
 
