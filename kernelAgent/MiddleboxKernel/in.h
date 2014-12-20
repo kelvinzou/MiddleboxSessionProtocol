@@ -258,13 +258,15 @@ static unsigned int incoming_change_begin(unsigned int hooknum,
                 __be32 oldIP = iph->daddr;
                 iph->daddr = p->dst;
                 __be32 newIP = iph->daddr; 
+                /*
                 if (udph->check || skb->ip_summed == CHECKSUM_PARTIAL) {
                     printk("Old checksum is %u\n",ntohs(udph->check) );
                     inet_proto_csum_replace4(&udph->check, skb, oldIP, newIP, 1);
                     printk("New checksum is %u\n",ntohs(udph->check) );
                 }else{
 		        	udph->check = CSUM_MANGLED_0;
-		             }
+		       }
+		       */
                 csum_replace4(&iph->check, oldIP, newIP);
             
             }
@@ -277,13 +279,15 @@ static unsigned int incoming_change_begin(unsigned int hooknum,
                     __be32 oldIP = iph->daddr;
                     iph->daddr = p->dst;
                     __be32 newIP = iph->daddr;
+                     /*
                     if (udph->check || skb->ip_summed == CHECKSUM_PARTIAL) {
                         printk("Old checksum is %u\n",ntohs(udph->check) );
                         inet_proto_csum_replace4(&udph->check, skb, oldIP, newIP, 1);
                         printk("New checksum is %u\n",ntohs(udph->check) );
                     }else{
-		        	udph->check = CSUM_MANGLED_0;
-		             }
+		            	udph->check = CSUM_MANGLED_0;
+		           }
+		        */
                     csum_replace4(&iph->check, oldIP, newIP);
                 }
             }

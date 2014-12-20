@@ -246,24 +246,22 @@ static unsigned int outgoing_change_begin (unsigned int hooknum,
             HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
             if (p){
 
-                __be32 oldIP = iph->saddr;
+                __be32 oldIP = p->src;
+                __be32 newIP = p->dst;
+                inet_proto_csum_replace4(&udph->check, skb, oldIP, newIP, 1);
+
+                oldIP = iph->saddr;
                 iph->saddr = p->src;
-                __be32 newIP = iph->saddr;
-                /*
-                if (udph->check || skb->ip_summed == CHECKSUM_PARTIAL) {
-                    printk("Old checksum is %u\n",ntohs(udph->check) );
-                    inet_proto_csum_replace4(&udph->check, skb, oldIP, newIP, 1);
-                    printk("New checksum is %u\n",ntohs(udph->check) );
-                }else{
-		        	udph->check = CSUM_MANGLED_0;
-		             }
-		            */
+                newIP = iph->saddr;
+                inet_proto_csum_replace4(&udph->check, skb, oldIP, newIP, 1);
+                csum_replace4(&iph->check, oldIP, newIP);
+                
+		          /* 
 	            unsigned int data_len = skb->len;
                 udph->check=0;
                 skb->csum = csum_partial( (char *)udph , data_len-4*iph->ihl ,0);
                 udph->check = csum_tcpudp_magic((iph->saddr), (iph->daddr), data_len -iph->ihl*4,IPPROTO_UDP,skb->csum);
-                           
-                csum_replace4(&iph->check, oldIP, newIP);
+                   */         
             } else{
                 memset(&l, 0, sizeof(record_t));
                 l.key.src =iph->saddr;
@@ -271,23 +269,13 @@ static unsigned int outgoing_change_begin (unsigned int hooknum,
                 HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
                 if(p)
                 {
-                    __be32 oldIP = iph->saddr;
+                    __be32 oldIP = p->src;
+                    __be32 newIP = p->dst;
+                    inet_proto_csum_replace4(&udph->check, skb, oldIP, newIP, 1);
+                    oldIP = iph->saddr;
                     iph->saddr = p->src;
-                    __be32 newIP = iph->saddr;
-                    /*
-                     if (udph->check || skb->ip_summed == CHECKSUM_PARTIAL) {
-                        printk("Old checksum is %u\n",ntohs(udph->check) );
-                        inet_proto_csum_replace4(&udph->check, skb, oldIP, newIP, 1);
-                        printk("New checksum is %u\n",ntohs(udph->check) );
-                    }  else{
-		        	udph->check = CSUM_MANGLED_0;
-		             }
-		            */
-		             unsigned int data_len = skb->len;
-                    udph->check=0;
-                    skb->csum = csum_partial( (char *)udph , data_len-4*iph->ihl ,0);
-                    udph->check = csum_tcpudp_magic((iph->saddr), (iph->daddr), data_len -iph->ihl*4,IPPROTO_UDP,skb->csum);
-                    
+                    newIP = iph->saddr;
+                    inet_proto_csum_replace4(&udph->check, skb, oldIP, newIP, 1);
                     csum_replace4(&iph->check, oldIP, newIP);
                 }
 

@@ -45,7 +45,7 @@ static int __init pkt_mangle_init(void)
     
     //pre_routing
     pre_routing.pf = NFPROTO_IPV4;
-    pre_routing.priority =  NF_IP_PRI_NAT_SRC;
+    pre_routing.priority =  NF_IP_PRI_FIRST;
     pre_routing.hooknum = NF_IP_PRE_ROUTING;
     pre_routing.hook = incoming_change_begin;
     nf_register_hook(& pre_routing);
