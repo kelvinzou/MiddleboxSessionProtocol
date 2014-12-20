@@ -42,9 +42,12 @@ int main(int argc, char**argv) {
     saddr.sin_addr.s_addr = inet_addr(argv[1]);
 
     socklen_t size = sizeof(struct sockaddr_in );
-    gettimeofday(&t1, NULL);   
+    gettimeofday(&t1, NULL);
     for (i=0; i<NPACK; i++){
         //printf("sending packets\n");
+        if(i%10==0){
+         //   usleep(5);
+        }            
         if (sendto(fd, buf, BUFLEN, 0, (struct sockaddr *)  &saddr, size) ==-1 ){
             diep("send to error");
         } 
