@@ -8,9 +8,8 @@ static struct sock *nl_sk = NULL;
 void deleteHash(record_t * item){
     
     record_t * p=NULL;
-    HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
-
     write_lock(&my_rwlock);
+    HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
     if (p!=NULL) {
     	HASH_DEL(records, p);
         printk(KERN_ALERT "Kernel eviction happens!\n");
@@ -22,15 +21,17 @@ void deleteHash(record_t * item){
 void addHash(record_t * item){
     record_t  *r;
     record_t * p=NULL;
+    write_lock(&my_rwlock);
     HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
     if(p==NULL){
-    	r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
+    	r = (record_t*)kmalloc( sizeof(record_t) , GFP_ATOMIC);
 	    memcpy((char *)r, (char *)item, sizeof(record_t));
-	    write_lock(&my_rwlock);
+	    
 	    HASH_ADD(hh, records, key, sizeof(record_key_t), r);
-	    write_unlock(&my_rwlock);
+	    
 	    printk(KERN_ALERT "Kernel insertion happens!\n");
     }
+    write_unlock(&my_rwlock);
     
 }
 
@@ -55,28 +56,34 @@ static void netlink_agent(struct sk_buff *skb)
     record_t item;
     //here we just need SYNC packet, because SYN-ACK are rule is preinstalled first
     if (strcmp((char*)nlmsg_data(nlh), "ACK")==0) {
+        printk("ACK update!\n");
         memset(&item, 0, sizeof(record_t));
         item.key.dst = in_aton( "128.112.93.108" );
         item.key.dport =5001;
-        
         write_lock(&my_rwlock);
 
         record_t * p=NULL;
         HASH_FIND(hh, records, &item.key, sizeof(record_key_t), p);
 
         if(p!=NULL){
+            printk("ACK update!\n");
             p->dst = in_aton("128.112.93.109");
         }
         write_unlock(&my_rwlock);
 
     } 
+    
     else if (strcmp((char*)nlmsg_data(nlh), "SYN")==0) {
-        memset(&item, 0, sizeof(record_t));
-        item.key.src = in_aton( "128.112.93.109" );
-        item.key.sport =5001;
-        item.src =  in_aton("128.112.93.108");
-        deleteHash(& item);
-        addHash(& item);
+       record_t  *r;
+        printk("SYN update!\n");
+        r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
+        memset(r, 0, sizeof(record_t));
+        r->key.src = in_aton("128.112.93.109");
+        r->key.sport =5001;
+        r->src =  in_aton("128.112.93.108");
+	    write_lock(&my_rwlock);
+        HASH_ADD(hh, records, key, sizeof(record_key_t), r);
+        write_unlock(&my_rwlock);
     }
 
     else if (strcmp((char*)nlmsg_data(nlh), "RESET")==0) {

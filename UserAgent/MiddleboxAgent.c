@@ -479,7 +479,7 @@ int main(int argc, char *argv[])
 
                 update_ack = 1; 
                 //reset a bunch of stuff:
-                clearHash();
+                //clearHash();
                 pthread_mutex_unlock(&lock);
                 if(NETLINK_ON){
                     char * netlink_message = "ACK";
