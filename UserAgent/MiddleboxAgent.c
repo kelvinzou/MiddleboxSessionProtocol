@@ -274,9 +274,6 @@ void updateForward(char * request, int n, int * port_num, struct sockaddr_in * c
             pthread_mutex_unlock(&lock);
 
         }
-        else{
-            usleep(1000);
-        }
     }
     update_ack=0;
     pthread_mutex_unlock(&lock);
