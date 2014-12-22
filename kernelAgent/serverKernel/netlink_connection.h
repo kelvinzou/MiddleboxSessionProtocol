@@ -8,15 +8,17 @@ static struct sock *nl_sk = NULL;
 void addHash(record_t * item){
     record_t  *r;
     record_t *p=NULL;
+    write_lock(&my_rwlock);
+
     HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
     if(p==NULL){
-        r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
+        r = (record_t*)kmalloc( sizeof(record_t) , GFP_ATOMIC);
         memcpy((char *)r, (char *)item, sizeof(record_t));
-        write_lock(&my_rwlock);
         HASH_ADD(hh, records, key, sizeof(record_key_t), r);
-        write_unlock(&my_rwlock);
          printk(KERN_ALERT "Kernel insertion happens!\n");
     }
+    write_unlock(&my_rwlock);
+
 }
 
 static void hello_nl_recv_msg(struct sk_buff *skb)
@@ -52,22 +54,32 @@ static void hello_nl_recv_msg(struct sk_buff *skb)
     
     record_t l, *p;
     //here we only activate the SYN_ACK rule, SYN rule was installed way before
-    if (strcmp((char*)nlmsg_data(nlh), "SYNACK")==0) {
+    if (strcmp((char*)nlmsg_data(nlh), "ACK")==0) {
 
         memset(&l, 0, sizeof(record_t));
         l.key.dst = in_aton( "128.112.93.107" );
         l.key.sport =5001;
+        write_lock(&my_rwlock);
         
         HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
         
+        
         if (p)  {
-            write_lock(&my_rwlock);
-            HASH_DEL(records, p);
-            write_unlock(&my_rwlock);
-	        printk(KERN_ALERT "Kernel eviction happens!\n");
-	        kfree(p);
+            p->dst= in_aton( "128.112.93.109" );
         }
-    } else if (strcmp((char*)nlmsg_data(nlh), "RESET")==0){
+        write_unlock(&my_rwlock);
+
+    } 
+    if (strcmp((char*)nlmsg_data(nlh), "SYN")==0) {
+
+        memset(&l, 0, sizeof(record_t));
+        l.key.src = in_aton( "128.112.93.109" );
+        l.key.dport =5001;
+        l.src= in_aton("128.112.93.107");
+        addHash(&l);
+    }
+
+    else if (strcmp((char*)nlmsg_data(nlh), "RESET")==0){
          memset(&l, 0, sizeof(record_t));
         l.key.dst = in_aton( "128.112.93.107" );
         l.key.sport =5001;
