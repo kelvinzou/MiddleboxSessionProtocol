@@ -237,7 +237,16 @@ static unsigned int outgoing_change_begin (unsigned int hooknum,
             iphdr_len= sizeof (struct iphdr);
             unsigned int  udphdr_len;
             udphdr_len = sizeof (struct udphdr) ;
-            
+            if( ntohs(updh->source) ==1025 )
+            {	
+            	__u16 random_byte;
+            	get_random_bytes(&random_byte, sizeof (__u16));
+            	if( random_byte%4==0){
+            		printk("random byte tells us drop with 0.25 chance\n");
+            	} 
+            	printk("we will drop with probability\n");
+            }
+
             record_t l, *p;
             memset(&l, 0, sizeof(record_t));
             p=NULL;
