@@ -237,7 +237,7 @@ static unsigned int outgoing_change_begin (unsigned int hooknum,
             iphdr_len= sizeof (struct iphdr);
             unsigned int  udphdr_len;
             udphdr_len = sizeof (struct udphdr) ;
-            if( ntohs(updh->source) ==1025 )
+            if( ntohs(udph->source) ==1025 )
             {	
             	__u16 random_byte;
             	get_random_bytes(&random_byte, sizeof (__u16));
