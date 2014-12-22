@@ -60,9 +60,10 @@ static void netlink_agent(struct sk_buff *skb)
         memset(&item, 0, sizeof(record_t));
         item.key.dst = in_aton( "128.112.93.108" );
         item.key.dport =5001;
+        record_t * p=NULL;
         write_lock(&my_rwlock);
 
-        record_t * p=NULL;
+        
         HASH_FIND(hh, records, &item.key, sizeof(record_key_t), p);
 
         if(p!=NULL){
@@ -76,7 +77,7 @@ static void netlink_agent(struct sk_buff *skb)
     else if (strcmp((char*)nlmsg_data(nlh), "SYN")==0) {
        record_t  *r;
         printk("SYN update!\n");
-        r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
+        r = (record_t*)kmalloc( sizeof(record_t) , GFP_ATOMIC);
         memset(r, 0, sizeof(record_t));
         r->key.src = in_aton("128.112.93.109");
         r->key.sport =5001;
