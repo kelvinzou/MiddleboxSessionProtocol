@@ -239,6 +239,7 @@ int main(int argc, char *argv[])
                     parameter * passingparameter = (parameter *) para;
                     passingparameter->request = mesg;
                     passingparameter->cliAddr = clientAddressPtr;
+                    usleep(100000);
 
                     passingparameter->n = n;
                     passingparameter->port_num = UDP_PORT;
@@ -370,7 +371,7 @@ int main(int argc, char *argv[])
 
                     }
 
-                }
+                } 
             }
               
          }
