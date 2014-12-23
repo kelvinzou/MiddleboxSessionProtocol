@@ -92,6 +92,7 @@ int send_netlink(char * input){
     strcpy( (char *)NLMSG_DATA(nlh),input);
     printf("input is %s\n", input);
     
+
     printf("Sending update message to kernel\n");
     sendmsg(netlink_socket_fd, &netlink_msg, 0);
 }
@@ -118,10 +119,18 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
         struct tcphdr *tcp = (struct tcphdr *) (full_packet_ptr + iphdrlen);
        if (tcp->urg==1)
        {
-           printf("set as an urg packet \n");
-           nfq_flag = 1;
-           tcp->urg=0;
-           return nfq_set_verdict(qh, id, NF_ACCEPT, length, full_packet_ptr);
+            printf("set as an urg packet \n");
+
+            nfq_flag = 1;
+            tcp->urg=0;
+            int retv = nfq_set_verdict(qh, id, NF_ACCEPT,0, NULL);
+            //unlock somethere here
+            printf("send to kernel to unlock\n");
+           
+            char * netlink_message = "UNLOCK";
+
+            send_netlink(netlink_message);
+           return retv;
        } 
         return nfq_set_verdict(qh, id, NF_ACCEPT, 0, NULL);
     }
@@ -207,14 +216,12 @@ int main(int argc, char **argv)
     
     double elapsedTime;
     gettimeofday(&t1, NULL);
-    while ((recvCount = recv(nf_queue_fd, buf, sizeof(buf), 0)) && recvCount >= 0) {
-        
+    if ((recvCount = recv(nf_queue_fd, buf, sizeof(buf), 0)) && recvCount >= 0) {
         printf("pkt received\n");
         usleep(10000);
         char * netlink_message = "ACK";
         send_netlink(netlink_message);
         nfq_handle_packet(h, buf, recvCount);
-        break;
     }
     
     

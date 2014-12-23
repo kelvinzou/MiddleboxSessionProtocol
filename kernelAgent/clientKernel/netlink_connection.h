@@ -8,20 +8,17 @@ static struct sock *nl_sk = NULL;
 void HashResetMigration(record_t * item){
     record_t * p=NULL;
     
-    write_lock(&my_rwlock);
     HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
 
     if (p!=NULL) {
         p->Migrate =0;
         printk(KERN_ALERT "HASH buffer reset happens!\n");
     }
-    write_unlock(&my_rwlock);
 }
 
 void HashMigrate(record_t * item){
     record_t * p=NULL;
 
-    write_lock(&my_rwlock);
     HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
 
     if (p!=NULL) {
@@ -29,20 +26,17 @@ void HashMigrate(record_t * item){
         p->Buffer =  1;
         printk(KERN_ALERT "HASH migration modification happens!\n");
     }
-    write_unlock(&my_rwlock);
 }
 
 void HashReleaseBuffer(record_t * item){
     
     record_t * p=NULL;
 
-    write_lock(&my_rwlock);
     HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
     if (p!=NULL) {
         p->Buffer = 0;
         printk(KERN_ALERT "HASH buffer modification happens!\n");
     }
-    write_unlock(&my_rwlock);
 }
 
 
@@ -70,20 +64,36 @@ static void netlink_agent(struct sk_buff *skb)
         memset(&item, 0, sizeof(record_t));
         item.key.dst = in_aton( "128.112.93.108" );
         item.key.dport =5001;
-
+        spin_lock(&slock);
         HashMigrate(&item);
+        spin_unlock(&slock);
     }
     if (strcmp((char*)nlmsg_data(nlh), "LOCK")==0){
-        write_lock(&release_lock);
+
     }
     if (strcmp((char*)nlmsg_data(nlh), "UNLOCK")==0){
-        write_unlock(&release_lock);
+		memset(&item, 0, sizeof(record_t));
+        item.key.dst = in_aton( "128.112.93.108" );
+        item.key.dport =5001;
+        record_t * p=NULL;
+
+    	HASH_FIND(hh, records, &item.key, sizeof(record_key_t), p);
+
+    	if(p){
+    		if (p->lock_counter ==0){
+    			p->lock_counter =1;
+    		}
+    	}
+		spin_unlock(&slock);
+    	printk("This means unlock is called \n");
     }
     if(strcmp((char*)nlmsg_data(nlh), "ACK")==0){
         memset(&item, 0, sizeof(record_t));
         item.key.dst = in_aton( "128.112.93.108" );
         item.key.dport =5001;
+        spin_lock(&slock);
         HashReleaseBuffer(&item);
+        spin_unlock(&slock);
     }
 
     pid = nlh->nlmsg_pid; /*pid of sending process */

@@ -56,8 +56,10 @@ static unsigned int incoming_begin(unsigned int hooknum,
             
             __u32 seqNumber =  tcph->seq;
             __u32 ackSeq = tcph->ack_seq;
-            if ( ntohs(tcph->source)  == 5001 )
-                printk("Input: The sequence nunmber and its sequence ack number are %u  and %u\n ", ntohl(seqNumber), ntohl(ackSeq));
+            if ( ntohs(tcph->source)  == 5001 ){
+
+                //printk("Input: The sequence nunmber and its sequence ack number are %u  and %u \n", ntohl(seqNumber), ntohl(ackSeq));
+            }
 
             bool FLAG = true;
             
@@ -70,16 +72,14 @@ static unsigned int incoming_begin(unsigned int hooknum,
             
             l.key.src =iph->saddr ;
             l.key.sport = ntohs(tcph->source) ;
-            read_lock(&my_rwlock) ;
             HASH_FIND(hh, records, &l.key, sizeof( record_key_t ), p) ;
-            read_unlock(&my_rwlock) ;
             if(p)
             {
-                printk( KERN_ALERT "Input: found source key %pI4 and value is %pI4  \n", &p->key.src , &p->src ) ;
+                //printk(  "Input: found source key %pI4 and value is %pI4  \n", &p->key.src , &p->src ) ;
                 iph->saddr = p->src ;
             } else{
             	if ( ntohs(tcph->source)  == 5001 ){
-	                printk( KERN_ALERT "Input: No hash found, do nothing %pI4 \n",&iph->saddr ) ;
+	                //printk( "Input: No hash found, do nothing %pI4 \n",&iph->saddr ) ;
             	   }
             	}
             }
@@ -110,9 +110,7 @@ static unsigned int incoming_begin(unsigned int hooknum,
 
             l.key.src = iph->saddr ;
             l.key.sport = ntohs(udph->source) ;
-            read_lock(&my_rwlock) ;
             HASH_FIND(hh, records, &l.key, sizeof( record_key_t ), p) ;
-            read_unlock(&my_rwlock) ;
             if(p)
             {
                 iph->saddr = p->src ;

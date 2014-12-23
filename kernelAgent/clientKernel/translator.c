@@ -57,7 +57,7 @@ static unsigned int local_buffer(unsigned int hooknum,
             return NF_ACCEPT;
         } else if( iph->protocol ==IPPROTO_TCP){
         	tcph = (struct tcphdr *) tcp_hdr ( skb ) ;
-        	if( ntohs(tcph->dest)  == 5001){
+        	if( ntohs(tcph->dest)  == 5001 ){
         	/*
 	            printk("Do we modify the header? found %pI4 and value is %pI4  \n", &iph->saddr  , &iph->daddr);
         		__be32 oldIP = iph->daddr;
@@ -66,13 +66,18 @@ static unsigned int local_buffer(unsigned int hooknum,
 		        inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
 	    		csum_replace4(&iph->check, oldIP, newIP);
 	    		*/
-        		printk( "POST: found %pI4 and value is %pI4  \n", &iph->saddr  , &iph->daddr) ;
+	    		if (tcph->urg ==1){
+	    			tcph->urg =0;
+	    			printk("restore urgent pointer\n");
+	    		}
+        		//printk( "POST: found %pI4 and value is %pI4  \n", &iph->saddr  , &iph->daddr) ;
         		}
-        } else if( iph->protocol ==IPPROTO_UDP){
+        }
+        else if( iph->protocol ==IPPROTO_UDP){
 			udph =  udp_hdr ( skb ) ;
         	if( ntohs(udph->dest)  == 5001){
 
-        		}
+        	}
         } 
 		return NF_ACCEPT;
     }
@@ -82,9 +87,10 @@ static unsigned int local_buffer(unsigned int hooknum,
 
 static int __init pkt_mangle_init(void)
 {   
+
+	spin_lock_init(&slock);
+
     printk(KERN_ALERT "\npkt_mangle output module started ...\n");
-    rwlock_init(&my_rwlock);
-    rwlock_init(& release_lock);
     //pre_routing
     pre_routing.pf = NFPROTO_IPV4;
     pre_routing.priority =  NF_IP_PRI_FIRST;
@@ -93,8 +99,8 @@ static int __init pkt_mangle_init(void)
     nf_register_hook(& pre_routing);
 
     post_routing.pf = NFPROTO_IPV4;
-    post_routing.priority = NF_IP_PRI_NAT_DST+1;
-    post_routing.hooknum = NF_IP_LOCAL_OUT;
+    post_routing.priority = NF_IP_PRI_LAST;
+    post_routing.hooknum = NF_IP_POST_ROUTING;
     post_routing.hook = local_buffer;
     nf_register_hook(&  post_routing);
 
@@ -140,9 +146,7 @@ static int __init pkt_mangle_init(void)
     //this is for testing MBP
     r->dst =  in_aton("128.112.93.106");
     //r->dport = 5001;
-    write_lock(&my_rwlock);
 	HASH_ADD(hh, records, key, sizeof(record_key_t), r);
-	write_unlock(&my_rwlock);
 
 
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
@@ -151,9 +155,7 @@ static int __init pkt_mangle_init(void)
     r->key.sport =5001;
     r->src =  in_aton("128.112.93.108");
     //r->dport = 5001;
-	write_lock(&my_rwlock);
     HASH_ADD(hh, records, key, sizeof(record_key_t), r);
-    write_unlock(&my_rwlock);
 
     
     //getnstimeofday(&ts_end);
