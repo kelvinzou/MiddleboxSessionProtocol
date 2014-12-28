@@ -30,6 +30,8 @@
 #include "out.h"
 #include "netlink_connection.h"
 #include <stddef.h>  
+
+
 static struct nf_hook_ops post_routing ;
 static struct nf_hook_ops local_out;  
 static struct nf_hook_ops pre_routing;
@@ -58,25 +60,16 @@ static unsigned int local_buffer(unsigned int hooknum,
         } else if( iph->protocol ==IPPROTO_TCP){
         	tcph = (struct tcphdr *) tcp_hdr ( skb ) ;
         	if( ntohs(tcph->dest)  == 5001 ){
-        	/*
-	            printk("Do we modify the header? found %pI4 and value is %pI4  \n", &iph->saddr  , &iph->daddr);
-        		__be32 oldIP = iph->daddr;
-		        iph->daddr =  in_aton("128.112.93.106");
-		        __be32 newIP = iph->daddr;
-		        inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
-	    		csum_replace4(&iph->check, oldIP, newIP);
-	    		*/
 	    		if (tcph->urg ==1){
 	    			tcph->urg =0;
 	    			printk("restore urgent pointer\n");
 	    		}
-        		//printk( "POST: found %pI4 and value is %pI4  \n", &iph->saddr  , &iph->daddr) ;
-        		}
+        	}
         }
         else if( iph->protocol ==IPPROTO_UDP){
 			udph =  udp_hdr ( skb ) ;
         	if( ntohs(udph->dest)  == 5001){
-
+        		//do whatever
         	}
         } 
 		return NF_ACCEPT;

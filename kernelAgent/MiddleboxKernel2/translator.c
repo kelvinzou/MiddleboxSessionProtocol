@@ -159,7 +159,7 @@ static int __init pkt_mangle_init(void)
 
     post_routing.pf = NFPROTO_IPV4;
     post_routing.priority = NF_IP_PRI_LAST;
-    post_routing.hooknum = NF_IP_LOCAL_OUT;
+    post_routing.hooknum = NF_IP_POST_ROUTING;
     post_routing.hook =  outgoing_change_begin;
     nf_register_hook(&  post_routing);
 
@@ -193,7 +193,7 @@ static int __init pkt_mangle_init(void)
 	memset(r, 0, sizeof(record_t));
 	r->key.src = in_aton("128.112.93.107");
 	r->key.dport =5001;
-    r->src = in_aton("128.112.93.109");
+    r->src = in_aton("128.112.93.105");
     r->dst = in_aton("128.112.93.108");
     //r->dport = 5001;
 
@@ -204,7 +204,7 @@ static int __init pkt_mangle_init(void)
 
     r->key.src = in_aton("128.112.93.108");
     r->key.sport =5001;
-    r->src = in_aton("128.112.93.109");
+    r->src = in_aton("128.112.93.105");
     r->dst = in_aton("128.112.93.107");
 	
     HASH_ADD(hh, records, key, sizeof(record_key_t), r);

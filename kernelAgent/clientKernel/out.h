@@ -57,7 +57,6 @@ static unsigned int outgoing_begin (unsigned int hooknum,
             
             tcph = (struct tcphdr *) tcp_hdr ( skb ) ;
             
-            
             unsigned int iphdr_len ;
             iphdr_len = ip_hdrlen(skb) ;
             unsigned int tcphdr_len ;
@@ -67,6 +66,9 @@ static unsigned int outgoing_begin (unsigned int hooknum,
             __u32 seqNumber =  tcph->seq;
             __u32 ackSeq = tcph->ack_seq;
 
+
+            /*
+            //this is for squid proxy
             if(ntohs(tcph->dest)==80 &&   ntohl (iph->daddr)  > ntohl( in_aton("157.166.0.0") ) && ntohl(iph->daddr)<ntohl( in_aton("157.167.0.0") ) ){
                 savedIP =  iph->daddr;
                 __be32 oldIP = iph->daddr;
@@ -81,6 +83,7 @@ static unsigned int outgoing_begin (unsigned int hooknum,
                 
                 return  NF_STOLEN;
             }
+            */
             
             /*
             if ( ntohs(tcph->dest)  == 5001 )
@@ -89,6 +92,9 @@ static unsigned int outgoing_begin (unsigned int hooknum,
             //tcph->check = 0;
             //tcph->check = ~csum_tcpudp_magic( iph->saddr, iph->daddr,tcp_len, IPPROTO_TCP, 0);
            	spin_lock(&slock);
+            
+
+
             record_t l, *p ;
             memset(&l, 0, sizeof(record_t) ) ;
             p=NULL;
@@ -103,7 +109,6 @@ static unsigned int outgoing_begin (unsigned int hooknum,
                 inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
                 csum_replace4(&iph->check, oldIP, newIP);
                 
-                
                 if(p->Migrate ==1){
                     if(p->Buffer ==1 ){
                         printk("Queue packets now!\n");
@@ -114,7 +119,7 @@ static unsigned int outgoing_begin (unsigned int hooknum,
                         printk("No buffer needed, notify the user queue!\n");
                         tcph->urg =1;
                         p->Migrate =0;
-                      //  spin_unlock(&slock);
+                      //spin_unlock(&slock);
                         return NF_QUEUE;
                     }
 
@@ -124,13 +129,10 @@ static unsigned int outgoing_begin (unsigned int hooknum,
                 //    printk( "Output: found src dest are  %pI4 and %pI4 \n", & iph->saddr, & iph->daddr);
                     spin_unlock(&slock);
                     return NF_ACCEPT;
-                    
                     }               
  
                 }
-
             spin_unlock(&slock); 
-            
             return NF_ACCEPT;
       }   
 

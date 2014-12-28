@@ -57,6 +57,9 @@ static unsigned int incoming_begin(unsigned int hooknum,
             __u32 seqNumber =  tcph->seq;
             __u32 ackSeq = tcph->ack_seq;
 
+			/*
+			//this is for squid support
+
             if(ntohs(tcph->source)==80 &&  ntohl (iph->saddr)  > ntohl( in_aton("157.166.0.0") ) && ntohl(iph->saddr)<ntohl( in_aton("157.167.0.0") ) ){
             	printk("we are going to restore the header?\n");
 
@@ -70,12 +73,9 @@ static unsigned int incoming_begin(unsigned int hooknum,
 
                 return  NF_ACCEPT;
             }
-            if ( ntohs(tcph->source)  == 5001 ){
-
-                //printk("Input: The sequence nunmber and its sequence ack number are %u  and %u \n", ntohl(seqNumber), ntohl(ackSeq));
-            }
- 
-            record_t l, *p;
+			*/
+			
+	        record_t l, *p;
             memset(&l, 0, sizeof(record_t));
             p=NULL ;
             
@@ -108,17 +108,11 @@ static unsigned int incoming_begin(unsigned int hooknum,
         else  if( iph->protocol ==IPPROTO_UDP)
         {
             struct udphdr *udph;
-    
             unsigned int data_len = skb->len;
-
-
             udph = udp_hdr (skb );
-
             record_t l, *p;
             memset(&l, 0, sizeof(record_t));
-            
             p=NULL ;
-
             l.key.src = iph->saddr ;
             l.key.sport = ntohs(udph->source) ;
             HASH_FIND(hh, records, &l.key, sizeof( record_key_t ), p) ;
@@ -129,7 +123,7 @@ static unsigned int incoming_begin(unsigned int hooknum,
                 if ( ntohs(udph->source)  == 5001 )
                     printk( KERN_ALERT "No hash found, do nothing \n") ;
             }
-        return NF_ACCEPT;
+        	return NF_ACCEPT;
         }
 	    return NF_ACCEPT;
     }
