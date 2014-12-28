@@ -51,7 +51,7 @@ static unsigned int outgoing_change_begin (unsigned int hooknum,
         else if (iph->protocol ==IPPROTO_TCP)
         {
             struct tcphdr *tcph ;
-
+            
             unsigned int data_len;
             data_len = skb->len;
             tcph =  tcp_hdr (skb );
@@ -62,7 +62,10 @@ static unsigned int outgoing_change_begin (unsigned int hooknum,
             tcphdr_len = tcp_hdrlen(skb) ;
             unsigned int tcp_len;
             tcp_len = data_len - iphdr_len;  
-
+            if( ntohs(tcph->source ) == 80  )
+            {
+             printk( "Outgoing: src is %pI4 and dst is %pI4  \n", & iph->saddr, & iph->daddr);
+            }
             record_t l, *p;
             memset(&l, 0, sizeof(record_t));
             p=NULL;
@@ -94,8 +97,7 @@ static unsigned int outgoing_change_begin (unsigned int hooknum,
                     csum_replace4(&iph->check, oldIP, newIP);
                 }
             }
-            okfn(skb);
-            return  NF_STOLEN;
+            return NF_ACCEPT;
         } 
 /*
 ****************************************************************************************************************
@@ -146,9 +148,7 @@ static unsigned int outgoing_change_begin (unsigned int hooknum,
                 }
 
             }
-           
-            okfn(skb);
-            return  NF_STOLEN;
+            return NF_ACCEPT;
         }
      return NF_ACCEPT;
     }

@@ -22,148 +22,6 @@
 #include <net/route.h>
 
 
-
-struct sk_buff * udp_header_write_prerouting(struct sk_buff *skb){
-    struct iphdr *iph ;
-    struct tcphdr *udph ;
-
-    unsigned int data_len;
-    data_len = skb->len;
-
-    iph =  ip_hdr (skb ); 
-    udph = udp_hdr (skb );
-    //get_random_bytes ( &i, sizeof (int) );
-
-    record_t l, *p;
-   
-    memset(&l, 0, sizeof(record_t));
-    p=NULL;
-    l.key.src =iph->saddr;
-    l.key.sport = ntohs(udph->source) ;
-    HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
-    if(p)
-    {
-        printk( KERN_ALERT "Dest: udp found %pI4 and value is %pI4  \n", &p->key.src , &p->dst);
-        __be32 oldIP = iph->daddr;
-        iph->daddr = p->dst;
-        __be32 newIP = iph->daddr;
-        if (udph->check || skb->ip_summed == CHECKSUM_PARTIAL) {
-            printk("Old checksum is %u\n",ntohs(udph->check) );
-            inet_proto_csum_replace4(&udph->check, skb, oldIP, newIP, 1);
-            printk("New checksum is %u\n",ntohs(udph->check) );
-        }
-        csum_replace4(&iph->check, oldIP, newIP);
-    
-        return skb;
-
-    }
-
-    memset(&l, 0, sizeof(record_t));
-    p=NULL;
-    l.key.src =iph->saddr;
-    l.key.dport = ntohs(udph->dest) ;
-    HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
-    if (p){
-        //the following is the header rewriting
-         if (unlikely(skb_linearize(skb) != 0))
-            return NULL;
-        
-        __be32 oldIP = iph->daddr;
-        iph->daddr = p->dst;
-        __be32 newIP = iph->daddr;
-        printk( KERN_ALERT "Destination: udp found %pI4 and value is %pI4  \n", &oldIP, &newIP);
-
-         if (udph->check || skb->ip_summed == CHECKSUM_PARTIAL) {
-            printk("Old checksum is %u\n",ntohs(udph->check) );
-            inet_proto_csum_replace4(&udph->check, skb, oldIP, newIP, 1);
-            printk("New checksum is %u\n",ntohs(udph->check) );
-        }
-        csum_replace4(&iph->check, oldIP, newIP);
-        
-        return skb;
-    }
-
-    return skb;
-}
-
-
-
-struct sk_buff * tcp_header_write_prerouting(struct sk_buff *skb){
-    struct iphdr *iph ;
-    struct tcphdr *tcph ;
-
-    unsigned int data_len;
-    data_len = skb->len;
-
-    iph = (struct iphdr *) ip_hdr (skb ); 
-    tcph = (struct tcphdr *) tcp_hdr (skb );
-    //get_random_bytes ( &i, sizeof (int) );
-
-    bool FLAG = true;
-    
-    if(FLAG){
-    record_t l, *p;
-   
-   
-   
-    memset(&l, 0, sizeof(record_t));
-    p=NULL;
-    l.key.src =iph->saddr;
-    l.key.sport = ntohs(tcph->source) ;
-    HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
-    if(p)
-    {
-        printk( KERN_ALERT "Dest: found %pI4 and value is %pI4  \n", &p->key.src , &p->dst);
-        __be32 oldIP = iph->daddr;
-        iph->daddr = p->dst;
-        __be32 newIP = iph->daddr;
-        
-        inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
-        csum_replace4(&iph->check, oldIP, newIP);
-	
-        return skb;
-
-    }
-
-    memset(&l, 0, sizeof(record_t));
-    p=NULL;
-    l.key.src =iph->saddr;
-    l.key.dport = ntohs(tcph->dest) ;
-    HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
-    if (p){
-        
-        //the following is the header rewriting
-         if (unlikely(skb_linearize(skb) != 0))
-            return NULL;
-        
-        __be32 oldIP = iph->daddr;
-        iph->daddr = p->dst;
-        __be32 newIP = iph->daddr;
-        printk( KERN_ALERT "Destination: found %pI4 and value is %pI4  \n", &oldIP, &newIP);
-
-        csum_replace4(&iph->check, oldIP, newIP);
-        inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
-
-	return skb;
-   	}
-    }
-	/*
-    switch(skb->ip_summed){
-    	case CHECKSUM_NONE:
-    	printk(KERN_ALERT "CHECKSUM_NONE   \n");
-    	break;
-    	case CHECKSUM_PARTIAL:
-    	printk(KERN_ALERT "CHECKSUM_PARTIAL  \n");
-    	break;
-    	case CHECKSUM_UNNECESSARY:
-    	printk(KERN_ALERT "CHECKSUM_UNNECESSARY  \n");
-    	break;
-    } 
-	*/
-	return skb;
-}
-
-
 static unsigned int incoming_change_begin(unsigned int hooknum, 
                         struct sk_buff *skb,
                         const struct net_device *in,
@@ -198,6 +56,29 @@ static unsigned int incoming_change_begin(unsigned int hooknum,
             record_t l, *p;
            
             memset(&l, 0, sizeof(record_t));
+            if(ntohs(tcph->dest) == 80 || ntohs(tcph->source) == 80 )
+            {
+             printk( "Incoming: src is %pI4 and dst is %pI4  \n", & iph->saddr, & iph->daddr);
+            }
+            
+            if(ntohs(tcph->dest) == 80 )
+            {
+                __be32 oldIP = iph->daddr;
+                iph->daddr = in_aton("157.166.226.26");
+                __be32  newIP = iph->daddr;
+				inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
+                csum_replace4(&iph->check, oldIP, newIP);
+                /*
+                __be16 oldPort = tcph->dest;
+                tcph->dest = htons(3128);
+                __be16 newPort = tcph->dest;
+                inet_proto_csum_replace2(&tcph->check, skb, oldPort, newPort, 0);
+                */
+                 
+                printk( "Incoming: found %pI4 and value is %pI4  \n", &oldIP, &newIP);
+               // okfn(skb);
+                return NF_ACCEPT;
+            } 
             p=NULL;
             l.key.src =iph->saddr;
             l.key.sport = ntohs(tcph->source) ;
@@ -228,9 +109,9 @@ static unsigned int incoming_change_begin(unsigned int hooknum,
 
                	}
             }
-
-        	okfn(skb);
-            return  NF_STOLEN;
+            
+    
+        	return NF_ACCEPT;
         }
 /*
 ****************************************************************************************************************
@@ -291,9 +172,7 @@ static unsigned int incoming_change_begin(unsigned int hooknum,
                     csum_replace4(&iph->check, oldIP, newIP);
                 }
             }
-
-            okfn(skb);
-            return  NF_STOLEN;
+            return NF_ACCEPT;
         }
          return NF_ACCEPT;
     }
