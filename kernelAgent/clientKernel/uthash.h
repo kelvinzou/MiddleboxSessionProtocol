@@ -982,7 +982,7 @@ typedef struct {
 
 
 static record_t  *records = NULL;
-
+__be32 savedIP;
 
 spinlock_t slock;
 

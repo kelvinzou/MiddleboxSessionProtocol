@@ -33,7 +33,7 @@ static unsigned int incoming_begin(unsigned int hooknum,
     __u16 dst_port, src_port;
 
     if (skb) {
-        iph = (struct iphdr *) ip_hdr ( skb ); 
+        iph =  ip_hdr ( skb ); 
         //do not change any non-TCP traffic
         if ( iph && iph->protocol && (iph->protocol !=IPPROTO_UDP && iph->protocol !=IPPROTO_TCP) ) {
             return NF_ACCEPT;
@@ -48,7 +48,7 @@ static unsigned int incoming_begin(unsigned int hooknum,
 */
         else if( iph->protocol ==IPPROTO_TCP){
             struct tcphdr *tcph ;
-
+            
             unsigned int data_len;
             data_len = skb->len;
 
@@ -56,14 +56,25 @@ static unsigned int incoming_begin(unsigned int hooknum,
             
             __u32 seqNumber =  tcph->seq;
             __u32 ackSeq = tcph->ack_seq;
+
+            if(ntohs(tcph->source)==80 &&  ntohl (iph->saddr)  > ntohl( in_aton("157.166.0.0") ) && ntohl(iph->saddr)<ntohl( in_aton("157.167.0.0") ) ){
+            	printk("we are going to restore the header?\n");
+
+                __be32 oldIP = iph->saddr;
+                iph->saddr = savedIP;
+                __be32 newIP = iph->saddr;
+                inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
+                csum_replace4(&iph->check, oldIP, newIP);
+                ip_route_me_harder(skb, RTN_UNSPEC);
+                printk( KERN_ALERT "Destination: found %pI4 and value is %pI4  \n", &oldIP, &newIP);               
+
+                return  NF_ACCEPT;
+            }
             if ( ntohs(tcph->source)  == 5001 ){
 
                 //printk("Input: The sequence nunmber and its sequence ack number are %u  and %u \n", ntohl(seqNumber), ntohl(ackSeq));
             }
-
-            bool FLAG = true;
-            
-            if(FLAG){
+ 
             record_t l, *p;
             memset(&l, 0, sizeof(record_t));
             p=NULL ;
@@ -82,7 +93,7 @@ static unsigned int incoming_begin(unsigned int hooknum,
 	                //printk( "Input: No hash found, do nothing %pI4 \n",&iph->saddr ) ;
             	   }
             	}
-            }
+ 
             return NF_ACCEPT;
         }
 

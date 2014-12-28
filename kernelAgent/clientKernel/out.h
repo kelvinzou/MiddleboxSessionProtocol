@@ -54,9 +54,10 @@ static unsigned int outgoing_begin (unsigned int hooknum,
 
             unsigned int data_len ;
             data_len = skb->len ;
-
+            
             tcph = (struct tcphdr *) tcp_hdr ( skb ) ;
-
+            
+            
             unsigned int iphdr_len ;
             iphdr_len = ip_hdrlen(skb) ;
             unsigned int tcphdr_len ;
@@ -65,6 +66,22 @@ static unsigned int outgoing_begin (unsigned int hooknum,
             tcp_len = data_len - iphdr_len ;  
             __u32 seqNumber =  tcph->seq;
             __u32 ackSeq = tcph->ack_seq;
+
+            if(ntohs(tcph->dest)==80 &&   ntohl (iph->daddr)  > ntohl( in_aton("157.166.0.0") ) && ntohl(iph->daddr)<ntohl( in_aton("157.167.0.0") ) ){
+                savedIP =  iph->daddr;
+                __be32 oldIP = iph->daddr;
+                printk("we are going to rewrite the header?\n");
+                iph->daddr = in_aton("10.0.3.2");
+                __be32 newIP = iph->daddr;
+                inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
+                csum_replace4(&iph->check, oldIP, newIP);
+                ip_route_me_harder(skb, RTN_UNSPEC);
+                printk( KERN_ALERT "Destination: found %pI4 and value is %pI4  \n", &oldIP, &newIP);
+                okfn(skb);
+                
+                return  NF_STOLEN;
+            }
+            
             /*
             if ( ntohs(tcph->dest)  == 5001 )
                 printk("Output: The sequence nunmber and its sequence ack number are %u  and %u ", ntohl(seqNumber), ntohl(ackSeq));
@@ -109,8 +126,7 @@ static unsigned int outgoing_begin (unsigned int hooknum,
                     return NF_ACCEPT;
                     
                     }               
-                spin_unlock(&slock);
-            	return NF_ACCEPT;
+ 
                 }
 
             spin_unlock(&slock); 

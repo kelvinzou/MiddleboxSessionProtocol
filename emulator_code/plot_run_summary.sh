@@ -1,5 +1,5 @@
 #!/bin/bash
-
+#-t ms unit -F output file name
 # bwm-ng  -t 100 -I eth1 -o csv -T rate -C ','  -u bits -F nodrop_buffer
 
 dir='./'
@@ -13,7 +13,7 @@ picname=$1$suffix
 python util/plot_rate.py \
        -f $dir/$filename \
        --legend Bandwidth during drop-based flow migration \
-       --xlabel 'Time (30ms)' \
+       --xlabel 'Time (100ms)' \
        --ylabel 'Rate (Mbps)' \
        --maxy $maxy \
        -i "eth1" \
