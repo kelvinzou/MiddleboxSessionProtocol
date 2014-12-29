@@ -114,7 +114,7 @@ for f in args.files:
             ifname = row[1]
         except:
             break
-        if ifname not in ['eth0', 'lo']:
+        if ifname not in ['lo']:
             if not rate.has_key(ifname):
                 rate[ifname] = []
             try:

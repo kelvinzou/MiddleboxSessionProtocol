@@ -7,7 +7,7 @@ maxy=1000
 filename="$1"
 suffix=".png"
 picname=$1$suffix
-#
+# --rx \
 #--maxy $maxy \
 #       -i "eth1" \
 python util/plot_rate.py \
@@ -16,8 +16,7 @@ python util/plot_rate.py \
        --xlabel 'Time (100ms)' \
        --ylabel 'Rate (Mbps)' \
        --maxy $maxy \
-       -i "eth1" \
-       --rx \
+       -i "eth0" \
        --total \
        -o $dir/$picname
 

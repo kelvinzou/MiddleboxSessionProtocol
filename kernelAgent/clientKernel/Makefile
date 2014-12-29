@@ -6,13 +6,11 @@ KDIR    := /lib/modules/$(shell uname -r)/build
 PWD    := $(shell pwd)
 
 
-default: netlink_user Buffer_packet
+default: netlink_user  
 	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules  
 netlink_kernel: 
 	$(CXX) -o netlink_kernel netlink_kernel.c
-Buffer_packet: 
-	g++ -o Buffer_packet Buffer_packet.c
 clean: cleanuser
 	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) clean 
 cleanuser:
-	rm -rf netlink_user Buffer_packet *.o
+	rm -rf netlink_user  *.o
