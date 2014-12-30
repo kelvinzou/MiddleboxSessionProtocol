@@ -142,7 +142,7 @@ static int __init pkt_mangle_init(void)
     pre_routing.hook = incoming_change_begin;
     nf_register_hook(& pre_routing);
 
-      
+     /* 
 	local_out.pf = NFPROTO_IPV4;
     local_out.priority  = NF_IP_PRI_FIRST;
     local_out.hooknum = NF_IP_POST_ROUTING;
@@ -154,9 +154,10 @@ static int __init pkt_mangle_init(void)
     local_in.hooknum = NF_IP_PRE_ROUTING;
     local_in.hook = input_change;
   //  nf_register_hook(& local_in);
-
-    //out put does to localout and mangle the hdr
-
+    */
+    
+    
+    //output does to localout and mangle the hdr
     post_routing.pf = NFPROTO_IPV4;
     post_routing.priority = NF_IP_PRI_LAST;
     post_routing.hooknum = NF_IP_POST_ROUTING;
@@ -191,10 +192,10 @@ static int __init pkt_mangle_init(void)
         
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
 	memset(r, 0, sizeof(record_t));
-	r->key.src = in_aton("128.112.93.107");
+	r->key.src = in_aton("10.0.3.1");
 	r->key.dport =5001;
-    r->src = in_aton("128.112.93.105");
-    r->dst = in_aton("128.112.93.108");
+    r->src = in_aton("10.0.1.2");
+    r->dst = in_aton("10.0.1.1");
     //r->dport = 5001;
 
     HASH_ADD(hh, records, key, sizeof(record_key_t), r);
@@ -202,10 +203,10 @@ static int __init pkt_mangle_init(void)
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
     memset(r, 0, sizeof(record_t));
 
-    r->key.src = in_aton("128.112.93.108");
+    r->key.src = in_aton("10.0.1.1");
     r->key.sport =5001;
-    r->src = in_aton("128.112.93.105");
-    r->dst = in_aton("128.112.93.107");
+    r->src = in_aton("10.0.3.2");
+    r->dst = in_aton("10.0.3.1");
 	
     HASH_ADD(hh, records, key, sizeof(record_key_t), r);
 
@@ -216,7 +217,6 @@ static int __init pkt_mangle_init(void)
 
 static void __exit pkt_mangle_exit(void)
 {
-    //nf_unregister_hook(&post_routing);
    
    nf_unregister_hook(&post_routing);
    nf_unregister_hook(&pre_routing);

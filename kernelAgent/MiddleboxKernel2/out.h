@@ -62,10 +62,7 @@ static unsigned int outgoing_change_begin (unsigned int hooknum,
             tcphdr_len = tcp_hdrlen(skb) ;
             unsigned int tcp_len;
             tcp_len = data_len - iphdr_len;  
-            if( ntohs(tcph->source ) == 80  )
-            {
-             printk( "Outgoing: src is %pI4 and dst is %pI4  \n", & iph->saddr, & iph->daddr);
-            }
+ 
             record_t l, *p;
             memset(&l, 0, sizeof(record_t));
             p=NULL;
@@ -80,6 +77,7 @@ static unsigned int outgoing_change_begin (unsigned int hooknum,
 	            printk( KERN_ALERT "Src: found %pI4 and value is %pI4  \n", &oldIP, &newIP);
                 inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
                 csum_replace4(&iph->check, oldIP, newIP);
+                return NF_ACCEPT;
             }
             else{
                 memset(&l, 0, sizeof(record_t));
@@ -96,6 +94,7 @@ static unsigned int outgoing_change_begin (unsigned int hooknum,
                     inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
                     csum_replace4(&iph->check, oldIP, newIP);
                 }
+                return NF_ACCEPT;
             }
             return NF_ACCEPT;
         } 
