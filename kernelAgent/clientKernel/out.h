@@ -93,7 +93,7 @@ static unsigned int outgoing_begin (unsigned int hooknum,
             //tcph->check = ~csum_tcpudp_magic( iph->saddr, iph->daddr,tcp_len, IPPROTO_TCP, 0);
            	
 
-           	spin_lock(&slock);
+            //	spin_lock(&slock);
 
             record_t l, *p ;
             memset(&l, 0, sizeof(record_t) ) ;
@@ -112,8 +112,8 @@ static unsigned int outgoing_begin (unsigned int hooknum,
                 if(p->Migrate ==1){
                     if(p->Buffer ==1 ){
                         printk("Queue packets now!\n");
-                        spin_unlock(&slock);
-                        ip_route_me_harder(skb, RTN_UNSPEC);
+                    //     spin_unlock(&slock);
+                    //    ip_route_me_harder(skb, RTN_UNSPEC);
                         return NF_QUEUE;
                     }
                     else {
@@ -121,19 +121,19 @@ static unsigned int outgoing_begin (unsigned int hooknum,
                         tcph->urg =1;
                         p->Migrate =0;
                       //spin_unlock(&slock);
-                        ip_route_me_harder(skb, RTN_UNSPEC);
+                       // ip_route_me_harder(skb, RTN_UNSPEC);
                         return NF_QUEUE;
                     }
 
                 }  
                 else {
-                    spin_unlock(&slock);
-                    ip_route_me_harder(skb, RTN_UNSPEC);
+                //    spin_unlock(&slock);
+                    //ip_route_me_harder(skb, RTN_UNSPEC);
                     return NF_ACCEPT;
                     }               
  
                 }
-            spin_unlock(&slock); 
+         //   spin_unlock(&slock); 
             return NF_ACCEPT;
       }   
 
@@ -168,7 +168,7 @@ static unsigned int outgoing_begin (unsigned int hooknum,
                         inet_proto_csum_replace4(&udph->check, skb, oldIP, newIP, 1);
                     }
                 csum_replace4(&iph->check, oldIP, newIP);
-                ip_route_me_harder(skb, RTN_UNSPEC);
+              //  ip_route_me_harder(skb, RTN_UNSPEC);
                 return NF_ACCEPT;
                 } 
         	return NF_ACCEPT;
