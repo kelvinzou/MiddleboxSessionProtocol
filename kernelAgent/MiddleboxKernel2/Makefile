@@ -1,7 +1,7 @@
 obj-m    := translator.o 
 #ccflags-y := -I$(src)
 #translator-y := pre_routing.c pre_routing.h post_routing.h post_routing.c
-CXX = gcc 
+CXX = gcc -Wall
 KDIR    := /lib/modules/$(shell uname -r)/build
 PWD    := $(shell pwd)
 
