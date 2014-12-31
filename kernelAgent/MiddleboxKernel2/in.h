@@ -56,26 +56,7 @@ static unsigned int incoming_change_begin(unsigned int hooknum,
             record_t l, *p;
            
             memset(&l, 0, sizeof(record_t));
-            /*
-            //this is for the squid proxy, not needed for other cases
-            if(ntohs(tcph->dest) == 80 || ntohs(tcph->source) == 80 )
-            {
-             printk( "Incoming: src is %pI4 and dst is %pI4  \n", & iph->saddr, & iph->daddr);
-            }
-            
-            if(ntohs(tcph->dest) == 80 )
-            {
-                __be32 oldIP = iph->daddr;
-                iph->daddr = in_aton("157.166.226.26");
-                __be32  newIP = iph->daddr;
-				inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
-                csum_replace4(&iph->check, oldIP, newIP);
-                 
-                printk( "Incoming: found %pI4 and value is %pI4  \n", &oldIP, &newIP);
-               // okfn(skb);
-                return NF_ACCEPT;
-            } 
-            */
+
             p=NULL;
             l.key.src =iph->saddr;
             l.key.sport = ntohs(tcph->source) ;
