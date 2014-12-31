@@ -132,21 +132,21 @@ static int __init pkt_mangle_init(void)
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
 	memset(r, 0, sizeof(record_t));
     // this is middlebox copy
-	r->key.dst = in_aton("10.0.1.1");
+	r->key.dst = in_aton("10.0.3.2");
 	r->key.dport =5001;
     //this is for testing raw socket
     //r->dst =  in_aton("128.112.93.107");
     //this is for testing MBP
-    r->dst =  in_aton("10.0.3.2");
+    r->dst =  in_aton("10.0.2.1");
     //r->dport = 5001;
 	HASH_ADD(hh, records, key, sizeof(record_key_t), r);
 
 
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
     memset(r, 0, sizeof(record_t));
-    r->key.src = in_aton("10.0.3.2");
+    r->key.src = in_aton("10.0.2.1");
     r->key.sport =5001;
-    r->src =  in_aton("10.0.1.1");
+    r->src =  in_aton("10.0.3.2");
     //r->dport = 5001;
     HASH_ADD(hh, records, key, sizeof(record_key_t), r);
 
