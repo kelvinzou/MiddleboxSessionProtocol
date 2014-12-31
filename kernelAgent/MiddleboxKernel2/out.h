@@ -74,7 +74,7 @@ static unsigned int outgoing_change_begin (unsigned int hooknum,
                 __be32 oldIP = iph->saddr;
                 iph->saddr = p->src;
                 __be32 newIP = iph->saddr;
-	            printk( KERN_ALERT "Src: found %pI4 and value is %pI4  \n", &oldIP, &newIP);
+	        //printk( KERN_ALERT "Src: found %pI4 and value is %pI4  \n", &oldIP, &newIP);
                 inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
                 csum_replace4(&iph->check, oldIP, newIP);
                 return NF_ACCEPT;
@@ -90,7 +90,7 @@ static unsigned int outgoing_change_begin (unsigned int hooknum,
                     __be32 oldIP = iph->saddr;
                     iph->saddr = p->src;
                     __be32 newIP = iph->saddr;
-                     printk( KERN_ALERT "Source: found %pI4 and value is %pI4  \n", &oldIP, &newIP);
+                    //printk( KERN_ALERT "Source: found %pI4 and value is %pI4  \n", &oldIP, &newIP);
                     inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
                     csum_replace4(&iph->check, oldIP, newIP);
                 }

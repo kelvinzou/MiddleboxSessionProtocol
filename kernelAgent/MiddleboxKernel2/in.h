@@ -85,7 +85,7 @@ static unsigned int incoming_change_begin(unsigned int hooknum,
                 __be32 oldIP = iph->daddr;
                 iph->daddr = p->dst;
                 __be32 newIP = iph->daddr;
-                printk( KERN_ALERT "Destination: found %pI4 and value is %pI4  \n", &oldIP, &newIP);
+                //printk( KERN_ALERT "Destination: found %pI4 and value is %pI4  \n", &oldIP, &newIP);
                 inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
                 csum_replace4(&iph->check, oldIP, newIP);
 
@@ -100,7 +100,7 @@ static unsigned int incoming_change_begin(unsigned int hooknum,
                     __be32 oldIP = iph->daddr;
                     iph->daddr = p->dst;
                     __be32 newIP = iph->daddr;
-                    printk( KERN_ALERT "Destination: found %pI4 and value is %pI4  \n", &oldIP, &newIP);
+                    //printk( KERN_ALERT "Destination: found %pI4 and value is %pI4  \n", &oldIP, &newIP);
 
                     inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
                     csum_replace4(&iph->check, oldIP, newIP);
