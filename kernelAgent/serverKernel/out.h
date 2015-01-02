@@ -73,14 +73,27 @@ static unsigned int outgoing_begin (unsigned int hooknum,
 
 
 		   	if(p){
-		        
+		        printk(  "Output: found source key %pI4 and value is %pI4  \n", &iph->saddr , &p->src ) ;
+                printk(  "Output: found dest key %pI4 and value is %pI4  \n", & iph->daddr , &p->dst ) ;
 		        __be32 oldIP = iph->daddr;
 		        iph->daddr = p->dst;
 		        __be32 newIP = iph->daddr;
+		        inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
+			    csum_replace4(&iph->check, oldIP, newIP);
+		        
+		        //this is due to the rerouting for different interfaces
+		        oldIP = iph->saddr;
+		        iph->saddr = p->src;
+		        newIP = iph->saddr;
+		        inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
+			    csum_replace4(&iph->check, oldIP, newIP);
+
 
 		        if(p->Migrate ==1){
 		        	if(p->Buffer ==1) {
 		        		printk("Buffering packets now and the length is %u and %d\n", total_len, data_len);
+		        		//update the outgoing device
+		        		ip_route_me_harder(skb, RTN_UNSPEC);
 		        		return NF_QUEUE;
 		        	} 
 		        	else{
@@ -90,24 +103,23 @@ static unsigned int outgoing_begin (unsigned int hooknum,
 		        		// need to change both migrate and buffer flags to false.
 		        		//this basically set the urgent flag. 
 		                tcph->urg =1;
-			        	write_lock(&my_rwlock);
 					    p->Migrate =0;
-					    write_unlock(&my_rwlock);
+		        		//update the outgoing device
+					    ip_route_me_harder(skb, RTN_UNSPEC);
 					    return NF_QUEUE;
 				       }
 		        } 
 		        else{
-
 		        	//read_lock(&release_lock);
-		        	inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
-			    	csum_replace4(&iph->check, oldIP, newIP);
+		        	
 			    	printk("Not buffer packets now and the length is %u and %d\n", total_len, data_len);
 			    	//read_unlock(&release_lock);
+			    	ip_route_me_harder(skb, RTN_UNSPEC);
+            		return NF_ACCEPT;
 		        }
 		        
 			   // printk( " Output: found src and dest is  %pI4 and %pI4 \n", &iph->saddr,  &iph->daddr);
 		   	}
-	       	ip_route_me_harder(skb, RTN_UNSPEC);
             return NF_ACCEPT;
  
         } 

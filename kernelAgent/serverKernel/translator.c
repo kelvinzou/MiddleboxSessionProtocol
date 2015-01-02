@@ -91,7 +91,7 @@ static int __init pkt_mangle_init(void)
 
     //pre_routing
     local_in.pf = NFPROTO_IPV4;
-    local_in.priority = NF_IP_PRI_NAT_SRC;
+    local_in.priority = NF_IP_PRI_FIRST;
     local_in.hooknum = NF_IP_LOCAL_IN;
     local_in.hook = incoming_begin;
     nf_register_hook(&  local_in);
@@ -105,7 +105,7 @@ static int __init pkt_mangle_init(void)
     //out put does to localout and mangle the hdr
 
     local_out.pf = NFPROTO_IPV4;
-    local_out.priority = NF_IP_PRI_NAT_DST+1;
+    local_out.priority = NF_IP_PRI_LAST;
     local_out.hooknum = NF_IP_LOCAL_OUT;
     local_out.hook =  outgoing_begin;
     nf_register_hook(& local_out);
@@ -138,24 +138,47 @@ static int __init pkt_mangle_init(void)
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
 	memset(r, 0, sizeof(record_t));
     // this is middlebox copy
-	r->key.dst = in_aton("128.112.93.107");
+	r->key.dst = in_aton("10.0.2.2");
 	r->key.sport =5001;
-    r->dst =  in_aton("128.112.93.106");
+	//this is for old configure with old path
+	
+    r->dst =  in_aton("10.0.3.1");
+    r->src =  in_aton("10.0.3.2");
+
     //r->dport = 5001;
+    //this is for old configure with old path
+    
+    
     write_lock(&my_rwlock);
 	HASH_ADD(hh, records, key, sizeof(record_key_t), r);
 	write_unlock(&my_rwlock);
+    
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
     memset(r, 0, sizeof(record_t));
 
-    r->key.src = in_aton("128.112.93.106");
+    r->key.src = in_aton("10.0.3.1");
     r->key.dport =5001;
-    r->src =  in_aton("128.112.93.107");
+    r->src =  in_aton("10.0.2.2");
+    r->dst =  in_aton("10.0.3.2");
     //r->dport = 5001;
     
 	write_lock(&my_rwlock);
     HASH_ADD(hh, records, key, sizeof(record_key_t), r);
     write_unlock(&my_rwlock);
+
+    r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
+    memset(r, 0, sizeof(record_t));
+
+    r->key.src = in_aton("10.0.1.1");
+    r->key.dport =5001;
+    r->src =  in_aton("10.0.2.2");
+    r->dst =  in_aton("10.0.3.2");
+    //r->dport = 5001;
+    
+	write_lock(&my_rwlock);
+    HASH_ADD(hh, records, key, sizeof(record_key_t), r);
+    write_unlock(&my_rwlock);
+
     //getnstimeofday(&ts_end);
     //test_of_time = timespec_sub(ts_end,ts_start);
     return 0;

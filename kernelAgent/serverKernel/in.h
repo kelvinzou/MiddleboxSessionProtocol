@@ -55,13 +55,14 @@ static unsigned int incoming_begin(unsigned int hooknum,
 
 		    l.key.src = iph->saddr ;
 		    l.key.dport = ntohs(tcph->dest) ;
-		    read_lock(&my_rwlock) ;
 		    HASH_FIND(hh, records, &l.key, sizeof( record_key_t ), p) ;
-		    read_unlock(&my_rwlock) ;
 		    if(p)
 		    {
 		       // printk(  "Input: found %pI4 and value is %pI4  \n", &p->key.src , &p->src ) ;
+		        printk(  "Input: found source key %pI4 and value is %pI4  \n", &iph->saddr , &p->src ) ;
+                printk(  "Input: found dest key %pI4 and value is %pI4  \n", & iph->daddr , &p->dst ) ;
 		        iph->saddr = p->src ;
+		        iph->daddr = p->dst ;
 		    } else{
 		    	if ( ntohs(tcph->dest)  == 5001 ){
 				//	printk(  "No hash found, do nothing \n") ;
