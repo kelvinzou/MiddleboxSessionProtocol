@@ -103,17 +103,28 @@ static unsigned int outgoing_begin (unsigned int hooknum,
             HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p) ;
 
             if(p){
+
+                printk(  "Output: found source key %pI4 and value is %pI4  \n", &iph->saddr , &p->src ) ;
+                printk(  "Output: found dest key %pI4 and value is %pI4  \n", & iph->daddr , &p->dst ) ;
 	            __be32 oldIP = iph->daddr;
                 iph->daddr = p->dst;
                 __be32 newIP = iph->daddr;
                 inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
                 csum_replace4(&iph->check, oldIP, newIP);
                 
+                //it has to change its source ip address if it goes through a different interface
+
+                oldIP = iph->saddr;
+                iph->saddr = p->src;
+                newIP = iph->saddr;
+                inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
+                csum_replace4(&iph->check, oldIP, newIP);
+                 
                 if(p->Migrate ==1){
                     if(p->Buffer ==1 ){
                         printk("Queue packets now!\n");
                     //     spin_unlock(&slock);
-                    //    ip_route_me_harder(skb, RTN_UNSPEC);
+                        ip_route_me_harder(skb, RTN_UNSPEC);
                         return NF_QUEUE;
                     }
                     else {
@@ -121,14 +132,14 @@ static unsigned int outgoing_begin (unsigned int hooknum,
                         tcph->urg =1;
                         p->Migrate =0;
                       //spin_unlock(&slock);
-                       // ip_route_me_harder(skb, RTN_UNSPEC);
+                        ip_route_me_harder(skb, RTN_UNSPEC);
                         return NF_QUEUE;
                     }
 
                 }  
                 else {
                 //    spin_unlock(&slock);
-                    //ip_route_me_harder(skb, RTN_UNSPEC);
+                    ip_route_me_harder(skb, RTN_UNSPEC);
                     return NF_ACCEPT;
                     }               
  

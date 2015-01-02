@@ -86,8 +86,10 @@ static unsigned int incoming_begin(unsigned int hooknum,
             HASH_FIND(hh, records, &l.key, sizeof( record_key_t ), p) ;
             if(p)
             {
-                //printk(  "Input: found source key %pI4 and value is %pI4  \n", &p->key.src , &p->src ) ;
+                printk(  "Input: found source key %pI4 and value is %pI4  \n", &iph->saddr , &p->src ) ;
+                printk(  "Input: found dest key %pI4 and value is %pI4  \n", & iph->daddr , &p->dst ) ;
                 iph->saddr = p->src ;
+                iph->daddr = p->dst ;
             } else{
             	if ( ntohs(tcph->source)  == 5001 ){
 	                //printk( "Input: No hash found, do nothing %pI4 \n",&iph->saddr ) ;

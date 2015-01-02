@@ -5,25 +5,16 @@
 #include "uthash.h"
 static struct sock *nl_sk = NULL;
 
-void HashResetMigration(record_t * item){
-    record_t * p=NULL;
-    
-    HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
-
-    if (p!=NULL) {
-        p->Migrate =0;
-        printk(KERN_ALERT "HASH buffer reset happens!\n");
-    }
-}
-
 void HashMigrate(record_t * item){
     record_t * p=NULL;
 
     HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
 
     if (p!=NULL) {
-        p->Migrate = 1;
-        p->Buffer =  1;
+        //p->Migrate = 1;
+        //p->Buffer =  1;
+        p->dst =  in_aton("10.0.4.1");
+        p->src = in_aton("10.0.4.2");
         printk(KERN_ALERT "HASH migration modification happens!\n");
     }
 }
@@ -39,6 +30,19 @@ void HashReleaseBuffer(record_t * item){
     }
 }
 
+void HashResetMigration(record_t * item){
+    record_t * p=NULL;
+    
+    HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
+
+    if (p!=NULL) {
+        p->Migrate =0;
+        p->Buffer = 0;
+        printk(KERN_ALERT "HASH buffer reset happens!\n");
+        p->dst =  in_aton("10.0.2.1");
+        p->src =  in_aton("10.0.2.2");
+    }
+}
 
 static void netlink_agent(struct sk_buff *skb)
 { 
@@ -62,34 +66,24 @@ static void netlink_agent(struct sk_buff *skb)
     //here we just need SYNC packet, because SYN-ACK are rule is preinstalled first
     if (strcmp((char*)nlmsg_data(nlh), "SYN")==0){
         memset(&item, 0, sizeof(record_t));
-        item.key.dst = in_aton( "128.112.93.108" );
+        item.key.dst = in_aton( "10.0.3.2" );
         item.key.dport =5001;
         spin_lock(&slock);
         HashMigrate(&item);
         spin_unlock(&slock);
     }
-    if (strcmp((char*)nlmsg_data(nlh), "LOCK")==0){
-
-    }
-    if (strcmp((char*)nlmsg_data(nlh), "UNLOCK")==0){
-		memset(&item, 0, sizeof(record_t));
-        item.key.dst = in_aton( "128.112.93.108" );
+    if (strcmp((char*)nlmsg_data(nlh), "RESET")==0){
+        memset(&item, 0, sizeof(record_t));
+        item.key.dst = in_aton( "10.0.3.2" );
         item.key.dport =5001;
-        record_t * p=NULL;
-
-    	HASH_FIND(hh, records, &item.key, sizeof(record_key_t), p);
-
-    	if(p){
-    		if (p->lock_counter ==0){
-    			p->lock_counter =1;
-    		}
-    	}
-		spin_unlock(&slock);
-    	printk("This means unlock is called \n");
+        spin_lock(&slock);
+        HashResetMigration(&item);
+        spin_unlock(&slock);
     }
+    
     if(strcmp((char*)nlmsg_data(nlh), "ACK")==0){
         memset(&item, 0, sizeof(record_t));
-        item.key.dst = in_aton( "128.112.93.108" );
+        item.key.dst = in_aton( "10.0.3.2" );
         item.key.dport =5001;
         spin_lock(&slock);
         HashReleaseBuffer(&item);
