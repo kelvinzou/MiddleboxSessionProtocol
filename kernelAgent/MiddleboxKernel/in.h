@@ -207,12 +207,11 @@ static unsigned int incoming_change_begin(unsigned int hooknum,
                 __be32 oldIP = iph->daddr;
                 iph->daddr = p->dst;
                 __be32 newIP = iph->daddr;
-                printk( KERN_ALERT "Destination: found %pI4 and value is %pI4  \n", &oldIP, &newIP);
                 inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
                 csum_replace4(&iph->check, oldIP, newIP);
-	            
             } 
             else{
+
                 memset(&l, 0, sizeof(record_t));
                 l.key.src =iph->saddr;
                 l.key.dport = ntohs(tcph->dest) ;
@@ -221,16 +220,13 @@ static unsigned int incoming_change_begin(unsigned int hooknum,
                     __be32 oldIP = iph->daddr;
                     iph->daddr = p->dst;
                     __be32 newIP = iph->daddr;
-                    printk( KERN_ALERT "Destination: found %pI4 and value is %pI4  \n", &oldIP, &newIP);
 
                     csum_replace4(&iph->check, oldIP, newIP);
                     inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
 
                	}
             }
-
-        	okfn(skb);
-            return  NF_STOLEN;
+            return  NF_ACCEPT;
         }
 /*
 ****************************************************************************************************************
@@ -291,9 +287,7 @@ static unsigned int incoming_change_begin(unsigned int hooknum,
                     csum_replace4(&iph->check, oldIP, newIP);
                 }
             }
-
-            okfn(skb);
-            return  NF_STOLEN;
+            return NF_ACCEPT;
         }
          return NF_ACCEPT;
     }
