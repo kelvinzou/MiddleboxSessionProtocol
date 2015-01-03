@@ -16,7 +16,7 @@ python util/plot_rate.py \
        --xlabel 'Time (100ms)' \
        --ylabel 'Rate (Mbps)' \
        --maxy $maxy \
-       -i "eth0" \
+       -i "total" \
        --total \
        -o $dir/$picname
 
