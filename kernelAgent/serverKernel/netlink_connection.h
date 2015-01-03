@@ -14,8 +14,8 @@ void HashMigrate(record_t * item){
     HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
 
     if (p!=NULL) {
-        //p->Migrate = 1;
-        //p->Buffer =  1;
+        p->Migrate = 1;
+        p->Buffer =  1;
         p->src =  in_aton("10.0.1.2");
         p->dst =  in_aton("10.0.1.1");
     

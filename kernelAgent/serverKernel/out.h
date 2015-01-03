@@ -73,8 +73,8 @@ static unsigned int outgoing_begin (unsigned int hooknum,
 
 
 		   	if(p){
-		        printk(  "Output: found source key %pI4 and value is %pI4  \n", &iph->saddr , &p->src ) ;
-                printk(  "Output: found dest key %pI4 and value is %pI4  \n", & iph->daddr , &p->dst ) ;
+		        //printk(  "Output: found source key %pI4 and value is %pI4  \n", &iph->saddr , &p->src ) ;
+                //printk(  "Output: found dest key %pI4 and value is %pI4  \n", & iph->daddr , &p->dst ) ;
 		        __be32 oldIP = iph->daddr;
 		        iph->daddr = p->dst;
 		        __be32 newIP = iph->daddr;
@@ -112,7 +112,7 @@ static unsigned int outgoing_begin (unsigned int hooknum,
 		        else{
 		        	//read_lock(&release_lock);
 		        	
-			    	printk("Not buffer packets now and the length is %u and %d\n", total_len, data_len);
+			    	//printk("Not buffer packets now and the length is %u and %d\n", total_len, data_len);
 			    	//read_unlock(&release_lock);
 			    	ip_route_me_harder(skb, RTN_UNSPEC);
             		return NF_ACCEPT;

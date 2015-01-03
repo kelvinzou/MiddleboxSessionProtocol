@@ -58,9 +58,8 @@ static unsigned int incoming_begin(unsigned int hooknum,
 		    HASH_FIND(hh, records, &l.key, sizeof( record_key_t ), p) ;
 		    if(p)
 		    {
-		       // printk(  "Input: found %pI4 and value is %pI4  \n", &p->key.src , &p->src ) ;
-		        printk(  "Input: found source key %pI4 and value is %pI4  \n", &iph->saddr , &p->src ) ;
-                printk(  "Input: found dest key %pI4 and value is %pI4  \n", & iph->daddr , &p->dst ) ;
+		      //  printk(  "Input: found source key %pI4 and value is %pI4  \n", &iph->saddr , &p->src ) ;
+               // printk(  "Input: found dest key %pI4 and value is %pI4  \n", & iph->daddr , &p->dst ) ;
 		        iph->saddr = p->src ;
 		        iph->daddr = p->dst ;
 		    } else{
