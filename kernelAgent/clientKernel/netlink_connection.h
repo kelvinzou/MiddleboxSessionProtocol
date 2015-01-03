@@ -11,8 +11,8 @@ void HashMigrate(record_t * item){
     HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
 
     if (p!=NULL) {
-        //p->Migrate = 1;
-        //p->Buffer =  1;
+        p->Migrate = 1;
+        p->Buffer =  1;
         p->dst =  in_aton("10.0.4.1");
         p->src = in_aton("10.0.4.2");
         printk(KERN_ALERT "HASH migration modification happens!\n");
@@ -22,7 +22,6 @@ void HashMigrate(record_t * item){
 void HashReleaseBuffer(record_t * item){
     
     record_t * p=NULL;
-
     HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
     if (p!=NULL) {
         p->Buffer = 0;

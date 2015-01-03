@@ -104,8 +104,8 @@ static unsigned int outgoing_begin (unsigned int hooknum,
 
             if(p){
 
-                printk(  "Output: found source key %pI4 and value is %pI4  \n", &iph->saddr , &p->src ) ;
-                printk(  "Output: found dest key %pI4 and value is %pI4  \n", & iph->daddr , &p->dst ) ;
+            //    printk(  "Output: found source key %pI4 and value is %pI4  \n", &iph->saddr , &p->src ) ;
+            //    printk(  "Output: found dest key %pI4 and value is %pI4  \n", & iph->daddr , &p->dst ) ;
 	            __be32 oldIP = iph->daddr;
                 iph->daddr = p->dst;
                 __be32 newIP = iph->daddr;
