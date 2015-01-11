@@ -974,6 +974,7 @@ typedef struct {
     uint16_t Buffer;
     uint16_t Migrate;
     int lock_counter ;
+    int acked;
    // uint16_t ReleaseBuffer;
     int Seq;
     UT_hash_handle hh;
