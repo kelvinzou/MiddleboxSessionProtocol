@@ -47,7 +47,6 @@ static unsigned int incoming_change_begin(unsigned int hooknum,
 */        
         else if( iph->protocol ==IPPROTO_TCP){
             struct tcphdr *tcph ;
-
             unsigned int data_len;
             data_len = skb->len;
 

@@ -984,6 +984,8 @@ typedef struct {
 static record_t  *records = NULL;
 __be32 savedIP;
 
+int time_counter ;
+
 spinlock_t slock;
 
 void deleteHash(record_t * item){

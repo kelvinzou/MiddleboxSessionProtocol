@@ -44,36 +44,18 @@ int main(int argc, char *argv[])
         printf("\n inet_pton error occured\n");
         return 1;
     } 
-     gettimeofday(&t1, NULL);   
+    gettimeofday(&t1, NULL);   
     if( connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
     {
        printf("\n Error : Connect Failed \n");
        return 1;
     } 
-      gettimeofday(&t2, NULL);
-     elapsedTime =(t2.tv_sec - t1.tv_sec)*1000000.0;
-     elapsedTime +=(t2.tv_usec-t1.tv_usec);
-     printf("\n the latency to establish a connection is %f\n", elapsedTime);
+    gettimeofday(&t2, NULL);
+    elapsedTime =(t2.tv_sec - t1.tv_sec)*1000000.0;
+    elapsedTime +=(t2.tv_usec-t1.tv_usec);
+    printf("\n the latency to establish a connection is %f\n", elapsedTime);
     double count =0;
     gettimeofday(&t1, NULL);
-    
-    
-    
-    while ( (n = read(sockfd, recvBuff, sizeof(recvBuff))) > 0)
-    {
-        count+=n;
-       // write(sockfd, recvBuff, n);
-    } 
-     gettimeofday(&t2, NULL);
-     elapsedTime =(t2.tv_sec - t1.tv_sec)*1000000.0;
-     elapsedTime +=(t2.tv_usec-t1.tv_usec);
-    double bandwidth = (count * 8.0)/(elapsedTime);
-    printf("\ntotal bytes received is %f and bandwidth is %f\n", count, bandwidth);
-    if(n < 0)
-    {
-        printf("\n Read error \n");
-        printf("Error with read() is %s!\n", strerror(errno));
-    } 
-      close(sockfd);
+    close(sockfd);
      return 0;
 }

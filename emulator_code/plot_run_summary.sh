@@ -3,7 +3,7 @@
 # bwm-ng  -t 100 -I eth1 -o csv -T rate -C ','  -u bits -F nodrop_buffer
 
 dir='./'
-maxy=1000
+maxy=1200
 filename="$1"
 suffix=".png"
 picname=$1$suffix
@@ -11,8 +11,8 @@ picname=$1$suffix
 #--maxy $maxy \
 #       -i "eth1" \
 python util/plot_rate.py \
-       -f $dir/$filename \
-       --legend Bandwidth during drop-based flow migration \
+       -f $dir/$filename  ./drop_buffer \
+       --legend "5 ms migration latency" "100 ms migration latency" \
        --xlabel 'Time (100ms)' \
        --ylabel 'Rate (Mbps)' \
        --maxy $maxy \

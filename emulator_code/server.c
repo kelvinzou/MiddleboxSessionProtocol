@@ -40,27 +40,6 @@ int main(int argc, char *argv[])
     while(1)
     {
         connfd = accept(listenfd, (struct sockaddr*)NULL, NULL); 
- 	void * sendBuff = malloc(blocksize*sizeof(char));
-        //ticks = time(NULL);
-	int i =0;	
-	memset((char *)sendBuff, '0', blocksize*sizeof(char) ); 
-		
-
-	for (i=0; i<50; i++){
-	
-	 int n = write(connfd, sendBuff, blocksize*sizeof(char) ); 
-	 //read(connfd, sendBuff, n);
-	 // sleep(1);
-	  if (n<0){
-	    printf("\n Write error \n");
-        printf("Error with write() is %s!\n", strerror(errno));
-	  }
-	}
-        //snprintf(sendBuff, sizeof(sendBuff), "%.24s\r\n", ctime(&ticks));
-        //write(connfd, sendBuff, strlen(sendBuff)); 
-        //
-	free(sendBuff);
-        sleep(1);
         close(connfd);
        
      }

@@ -26,6 +26,8 @@
 
 #include "uthash.h"
 
+struct timespec ts_start,ts_end,test_of_time;
+
 static unsigned int outgoing_change_begin (unsigned int hooknum,
                         struct sk_buff *skb,
                         const struct net_device *in,
@@ -54,7 +56,9 @@ static unsigned int outgoing_change_begin (unsigned int hooknum,
             
             unsigned int data_len;
             data_len = skb->len;
+            
             tcph =  tcp_hdr (skb );
+            
 
             unsigned int  iphdr_len;
             iphdr_len =  ip_hdrlen(skb) ;
@@ -82,18 +86,36 @@ static unsigned int outgoing_change_begin (unsigned int hooknum,
             else{
                 memset(&l, 0, sizeof(record_t));
                 p=NULL;
+				
                 l.key.src =iph->saddr;
                 l.key.sport = ntohs(tcph->source) ;
+
                 HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
+    
+
                 if(p)
                 {
+					getnstimeofday(&ts_start);
+					getnstimeofday(&ts_end);
+					test_of_time = timespec_sub(ts_end,ts_start);
+					long interruptcost  =test_of_time.tv_nsec + test_of_time.tv_sec* 1000000000 ;
+					// printk("Interrupt takes time %lu\n", interruptcost );
+                    
+                    getnstimeofday(&ts_start);
                     __be32 oldIP = iph->saddr;
                     iph->saddr = p->src;
                     __be32 newIP = iph->saddr;
                     //printk( KERN_ALERT "Source: found %pI4 and value is %pI4  \n", &oldIP, &newIP);
                     inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
                     csum_replace4(&iph->check, oldIP, newIP);
+                    
+                    getnstimeofday(&ts_end);
+				    test_of_time = timespec_sub(ts_end,ts_start);
+				    long time_interval = test_of_time.tv_nsec +  test_of_time.tv_sec* 1000000000;
+				   // printk("Modification takes time %lu\n",time_interval );
+
                 }
+
                 return NF_ACCEPT;
             }
             return NF_ACCEPT;

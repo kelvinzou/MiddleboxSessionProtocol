@@ -98,8 +98,9 @@ if args.normalise and args.labels == []:
 
 bw = map(lambda e: int(e.replace('M','')), args.labels)
 idx = 0
-
+counter = 0
 for f in args.files:
+    counter +=1
     data = read_list(f)[:-1]
     #xaxis = map(float, col(0, data))
     #start_time = xaxis[0]
@@ -107,7 +108,7 @@ for f in args.files:
     #rate = map(float, col(2, data))
     rate = {}
     column = 2
-    if args.rx:
+    if args.rx or counter==2:
         column = 3
     for row in data:
         try:
@@ -161,7 +162,7 @@ else:
 plt.grid()
 plt.legend()
 plt.ylim((int(args.miny), int(args.maxy)))
-
+plt.xlim((0, 170))
 if args.summarise:
     plt.boxplot(to_plot)
     plt.xticks(range(1, 1+len(args.files)), args.labels)

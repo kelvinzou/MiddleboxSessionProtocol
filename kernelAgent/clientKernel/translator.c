@@ -80,9 +80,9 @@ static unsigned int local_buffer(unsigned int hooknum,
 
 static int __init pkt_mangle_init(void)
 {   
-
+    time_counter=0;
 	spin_lock_init(&slock);
-
+    
     printk(KERN_ALERT "\npkt_mangle output module started ...\n");
     //pre_routing
     pre_routing.pf = NFPROTO_IPV4;
@@ -150,7 +150,7 @@ static int __init pkt_mangle_init(void)
     */
 	HASH_ADD(hh, records, key, sizeof(record_key_t), r);
 
-
+    
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
     memset(r, 0, sizeof(record_t));
     r->key.src = in_aton("10.0.2.1");
@@ -170,7 +170,53 @@ static int __init pkt_mangle_init(void)
     
     //r->dport = 5001;
     HASH_ADD(hh, records, key, sizeof(record_key_t), r);
+    
+    int counter = 0;
+    long timeValue;
+    for (counter=0; counter< 100000; counter ++){
+        if(counter %100 ==0){
+            if(counter>0){
+                getnstimeofday(&ts_end);  
+                test_of_time = timespec_sub(ts_end,ts_start); 
+                 printk(KERN_ALERT "Insertion takes time %lu\n", test_of_time.tv_nsec);
+            }
+            getnstimeofday(&ts_start);
+        } 
+        
+        r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
+        memset(r, 0, sizeof(record_t));
+        r->key.src = counter;
+        r->key.dst = counter;
+        r->key.sport =12345;
+        r->src =  counter;
+        r->dst =  counter;
+        
+        HASH_ADD(hh, records, key, sizeof(record_key_t), r);
 
+    }
+    /*
+    record_t l, *p ;
+    for (counter = 0; counter < 100000; counter ++){
+        if(counter %100 ==0){
+            if(counter>0){
+                getnstimeofday(&ts_end);  
+                test_of_time = timespec_sub(ts_end,ts_start); 
+                 printk(KERN_ALERT "Search takes time %lu\n", test_of_time.tv_nsec);
+            }
+            getnstimeofday(&ts_start);
+        } 
+        memset(&l, 0, sizeof(record_t) ) ;
+        p=NULL;
+        l.key.dst =counter ;
+        l.key.src = counter; 
+        
+        l.key.sport = 12345 ;
+        HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p) ;
+        
+    }
+    */ 
+
+    
     //getnstimeofday(&ts_end);
     //test_of_time = timespec_sub(ts_end,ts_start);
     return 0;
