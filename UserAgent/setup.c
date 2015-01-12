@@ -90,6 +90,8 @@ int main(int argc, char**argv){
         sendto(sockfd, mesg, 4, 0 , (struct sockaddr *)&clientAddressPtr,sizeof(struct sockaddr_in ));
         
         recvfrom(sockfd,mesg,4,0,(struct sockaddr *) & clientAddressPtr,&len);
+        
+        sendto(SendSockfd,mesg,4,0,(struct sockaddr *)&SendServaddr,sizeof(struct sockaddr_in ));
             
     } else if(argc <3) {
         struct timeval t1, t2;
@@ -108,18 +110,21 @@ int main(int argc, char**argv){
         char mesg[4];
         struct sockaddr_in clientAddressPtr;
         socklen_t len = sizeof(struct sockaddr_in) ;
+        gettimeofday(&t1, NULL);
         recvfrom(sockfd,mesg,4,0,(struct sockaddr *) & clientAddressPtr,&len);
         
         
         sendto(sockfd, mesg, 4, 0 , (struct sockaddr *)&clientAddressPtr,sizeof(struct sockaddr_in ));
         
         recvfrom(sockfd,mesg,4,0,(struct sockaddr *) & clientAddressPtr,&len);
-            
+        gettimeofday(&t2, NULL);
+        elapsedTime =(t2.tv_usec - t1.tv_usec) + (t2.tv_sec - t1.tv_sec)*1000000;
+		printf("Time is %f\n",elapsedTime);     
     } 
     else {
         int sockfd,n;
 	    struct sockaddr_in servaddr;
-
+        struct timeval t1, t2;
 	    sockfd=socket(AF_INET,SOCK_DGRAM,0);
 
 	    bzero(&servaddr,sizeof(servaddr));
@@ -134,11 +139,13 @@ int main(int argc, char**argv){
 	    char sendline[4];
 	    char recvline[4];
 	    memset(sendline, 0,4);
+	    gettimeofday(&t1, NULL);
 	    sendto(sockfd,sendline,4,0,(struct sockaddr *)&servaddr,sizeof(struct sockaddr_in ));
         recvfrom(sockfd,recvline,4,0,NULL,NULL);
         sendto(sockfd,sendline,4,0,(struct sockaddr *)&servaddr,sizeof(struct sockaddr_in ));
-    
-    
+        gettimeofday(&t2, NULL);
+        elapsedTime =(t2.tv_usec - t1.tv_usec) + (t2.tv_sec - t1.tv_sec)*1000000;
+		printf("Time is %f\n",elapsedTime);
     }
     
     
