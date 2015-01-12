@@ -50,7 +50,7 @@ This is the user space agent of the middlebox protocol
 
 #define THREAD_NUM 100
 
-#define NETLINK_FLAG true
+#define NETLINK_FLAG false
 
 #define RETRANSMIT_TIMER 1000 //minimum is 1000 since poll only supports down to 1 ms
 
@@ -329,8 +329,8 @@ int main(int argc, char *argv[])
                     pthread_create(&(thread[thread_iterator]), NULL, handleUpdate, oldPara);
                     thread_iterator++;
 
-                    pthread_create( &(thread[thread_iterator]), NULL, handleUpdate, newPara );
-                    thread_iterator++;
+                   // pthread_create( &(thread[thread_iterator]), NULL, handleUpdate, newPara );
+                   // thread_iterator++;
 
                     if(thread_iterator>=THREAD_NUM){
                         thread_iterator=0;
@@ -343,7 +343,8 @@ int main(int argc, char *argv[])
                     
                     if(msgheader->oldMboxLength == 1){
                         old_syn = 1;
-                        if(new_syn ==1){
+                        //new_syn ==1
+                        if(new_syn ==0  ){
                             sequenceNumber = sequenceNum;
                             replyAddr[0] = clientAddressPtr;
 
@@ -655,7 +656,8 @@ void relayMsg(char * request, int n, int * port_num, struct sockaddr_in * cliAdd
             if(sendmsgHeader->oldMboxLength >0 ){
                 //it is the old path message and we have to make sure the new path is also set up
                 old_syn_ack = 1;
-                if( new_syn_ack==1 ){
+                //new_syn_ack ==1
+                if( new_syn_ack== 0){
                     sendto(sockfd,recvsendmsg,m,0,(struct sockaddr *) cliAddr,sizeof(struct sockaddr_in ));
                     printf("Old SYN-ACK\n");
                 } else{
