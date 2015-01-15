@@ -41,62 +41,6 @@ int main(int argc, char**argv){
     
         struct timeval t1, t2;
         double elapsedTime;
-        gettimeofday(&t1, NULL);
-        int sockfd;
-        sockfd=socket(AF_INET,SOCK_DGRAM,0);
-        struct sockaddr_in servaddr;
-        bzero(&servaddr,sizeof(servaddr));
-        servaddr.sin_family = AF_INET;
-        servaddr.sin_addr.s_addr=htonl(INADDR_ANY);
-        servaddr.sin_port=htons(UDP_PORT);
-        bind(sockfd,(struct sockaddr *)&servaddr,sizeof(servaddr));
-
-        
-        char mesg[4];
-        struct sockaddr_in clientAddressPtr;
-        socklen_t len = sizeof(struct sockaddr_in) ;
-        recvfrom(sockfd,mesg,4,0,(struct sockaddr *) & clientAddressPtr,&len);
-        
-        int * counter = (int *) mesg;
-        printf("counter is %d\n", *counter);
-        
-        
-        struct sockaddr_in SendServaddr, SendCliaddr;
-        
-        struct in_addr addr;
-        
-        int SendSockfd ;
-        
-        SendSockfd=socket(AF_INET,SOCK_DGRAM,0);
-        bzero(&SendServaddr,sizeof(SendServaddr));
-        printf("The SendSockfd is %d \n", SendSockfd);
-
-        SendServaddr.sin_family = AF_INET;
-        
-        
-        inet_aton("10.0.3.2", &addr);
-        
-        char * IPStr = inet_ntoa(addr);
-        
-        
-        printf("the destination is %s\n", IPStr);
-        SendServaddr.sin_addr.s_addr=inet_addr(IPStr); 
-
-        SendServaddr.sin_port=htons(UDP_PORT);
-
-        sendto(SendSockfd,mesg,4,0,(struct sockaddr *)&SendServaddr,sizeof(struct sockaddr_in ));
-        recvfrom(SendSockfd,mesg,4,0,NULL,NULL);
-        
-        sendto(sockfd, mesg, 4, 0 , (struct sockaddr *)&clientAddressPtr,sizeof(struct sockaddr_in ));
-        
-        recvfrom(sockfd,mesg,4,0,(struct sockaddr *) & clientAddressPtr,&len);
-        
-        sendto(SendSockfd,mesg,4,0,(struct sockaddr *)&SendServaddr,sizeof(struct sockaddr_in ));
-            
-    } else if(argc <3) {
-        struct timeval t1, t2;
-        double elapsedTime;
-        gettimeofday(&t1, NULL);
         int sockfd;
         sockfd=socket(AF_INET,SOCK_DGRAM,0);
         struct sockaddr_in servaddr;
@@ -120,6 +64,65 @@ int main(int argc, char**argv){
         gettimeofday(&t2, NULL);
         elapsedTime =(t2.tv_usec - t1.tv_usec) + (t2.tv_sec - t1.tv_sec)*1000000;
 		printf("Time is %f\n",elapsedTime);     
+    
+    
+    } else if(argc <3) {
+       
+    
+        struct timeval t1, t2;
+        double elapsedTime;
+        gettimeofday(&t1, NULL);
+        int sockfd;
+        sockfd=socket(AF_INET,SOCK_DGRAM,0);
+        struct sockaddr_in servaddr;
+        bzero(&servaddr,sizeof(servaddr));
+        servaddr.sin_family = AF_INET;
+        servaddr.sin_addr.s_addr=htonl(INADDR_ANY);
+        servaddr.sin_port=htons(UDP_PORT);
+        bind(sockfd,(struct sockaddr *)&servaddr,sizeof(servaddr));
+
+        
+        char mesg[4];
+        struct sockaddr_in clientAddressPtr;
+        socklen_t len = sizeof(struct sockaddr_in) ;
+        
+        
+        int * counter = (int *) mesg;
+        printf("counter is %d\n", *counter);
+        
+        
+        struct sockaddr_in SendServaddr, SendCliaddr;
+        
+        struct in_addr addr;
+        
+        int SendSockfd ;
+        
+        SendSockfd=socket(AF_INET,SOCK_DGRAM,0);
+        bzero(&SendServaddr,sizeof(SendServaddr));
+        printf("The SendSockfd is %d \n", SendSockfd);
+
+        SendServaddr.sin_family = AF_INET;
+        
+        
+        inet_aton(argv[1], &addr);
+        
+        char * IPStr = inet_ntoa(addr);
+        
+        
+        printf("the destination is %s\n", IPStr);
+        SendServaddr.sin_addr.s_addr=inet_addr(IPStr); 
+
+        SendServaddr.sin_port=htons(UDP_PORT);
+        recvfrom(sockfd,mesg,4,0,(struct sockaddr *) & clientAddressPtr,&len);
+        
+        sendto(SendSockfd,mesg,4,0,(struct sockaddr *)&SendServaddr,sizeof(struct sockaddr_in ));
+        recvfrom(SendSockfd,mesg,4,0,NULL,NULL);
+        
+        sendto(sockfd, mesg, 4, 0 , (struct sockaddr *)&clientAddressPtr,sizeof(struct sockaddr_in ));
+        recvfrom(sockfd,mesg,4,0,(struct sockaddr *) & clientAddressPtr,&len);
+        
+        sendto(SendSockfd,mesg,4,0,(struct sockaddr *)&SendServaddr,sizeof(struct sockaddr_in ));
+            
     } 
     else {
         int sockfd,n;
