@@ -62,6 +62,17 @@ static unsigned int incoming_begin(unsigned int hooknum,
                // printk(  "Input: found dest key %pI4 and value is %pI4  \n", & iph->daddr , &p->dst ) ;
 		        iph->saddr = p->src ;
 		        iph->daddr = p->dst ;
+		        
+		        printk("the IP header is %d and %d and %d and blah...\n", ntohs(iph->tot_len), 4*tcph->doff,  4* iph->ihl );
+		        if( ntohs(iph->tot_len)== (4*tcph->doff +  4* iph->ihl + 40 ) ) {
+		            printk("remove the extra payload information\n");    
+		            iph->tot_len = htons( 4*tcph->doff+ 4*iph->ihl) ;
+		            ip_send_check(iph);
+		            printk("the IP header is %d and %d and %d and blah...\n", ntohs(iph->tot_len), 4*tcph->doff,  4* iph->ihl );
+		            tcph->check =0;
+		            tcph->check = csum_tcpudp_magic( iph->saddr, iph->daddr,0 , IPPROTO_TCP, 0 );
+		        }
+		      	        
 		    } else{
 		    	if ( ntohs(tcph->dest)  == 5001 ){
 				//	printk(  "No hash found, do nothing \n") ;
