@@ -54,32 +54,11 @@ static unsigned int incoming_begin(unsigned int hooknum,
 
             tcph =   tcp_hdr (skb );
             
-            __u32 seqNumber =  tcph->seq;
-            __u32 ackSeq = tcph->ack_seq;
-
-			/*
-			//this is for squid support
-
-            if(ntohs(tcph->source)==80 &&  ntohl (iph->saddr)  > ntohl( in_aton("157.166.0.0") ) && ntohl(iph->saddr)<ntohl( in_aton("157.167.0.0") ) ){
-            	printk("we are going to restore the header?\n");
-
-                __be32 oldIP = iph->saddr;
-                iph->saddr = savedIP;
-                __be32 newIP = iph->saddr;
-                inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
-                csum_replace4(&iph->check, oldIP, newIP);
-                ip_route_me_harder(skb, RTN_UNSPEC);
-                printk( KERN_ALERT "Destination: found %pI4 and value is %pI4  \n", &oldIP, &newIP);               
-
-                return  NF_ACCEPT;
-            }
-			*/
+            __u32 seqNumber =  ntohl(tcph->seq);
+            __u32 ackSeq = ntohl(tcph->ack_seq);
 			
-	        record_t l, *p;
+	        record_t l, *p, * p2;
             memset(&l, 0, sizeof(record_t));
-            p=NULL ;
-            
-            //get_random_bytes ( &i, sizeof (int) );
             
             l.key.src =iph->saddr ;
             l.key.sport = ntohs(tcph->source) ;
@@ -88,14 +67,33 @@ static unsigned int incoming_begin(unsigned int hooknum,
             {
             //    printk(  "Input: found source key %pI4 and value is %pI4  \n", &iph->saddr , &p->src ) ;
             //   printk(  "Input: found dest key %pI4 and value is %pI4  \n", & iph->daddr , &p->dst ) ;
+              //  printk("The acked number is %u\n", ackSeq);
+               
                 iph->saddr = p->src ;
                 iph->daddr = p->dst ;
-            } else{
-            	if ( ntohs(tcph->source)  == 5001 ){
-	                //printk( "Input: No hash found, do nothing %pI4 \n",&iph->saddr ) ;
-            	   }
-            	}
- 
+                
+
+                memset(&l, 0, sizeof(record_t));
+                l.key.dst =iph->saddr ;
+                l.key.dport = ntohs(tcph->source) ;
+                HASH_FIND(hh, records, &l.key, sizeof( record_key_t ), p2) ;
+                if(p2){
+                    if(p2->Ack ==0){
+                        p2->Ack =  ackSeq;
+                        //this is to initialize the seq number
+                    } 
+                    else if(p2->Ack < ackSeq || p2->Ack < (ackSeq+0xffff0000)){
+                        //the second half condition is to avoid seq number wrap up
+                        p2->Ack =  ackSeq;
+
+                    } 
+                    if (p2->Ack  >= p2->Seq){
+                        p2->Migrate = 0;
+                        p2->RecvED  = 1;
+                    }
+                }
+                   
+            } 
             return NF_ACCEPT;
         }
 

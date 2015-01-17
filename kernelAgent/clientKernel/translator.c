@@ -142,6 +142,9 @@ static int __init pkt_mangle_init(void)
     r->dst =  in_aton("10.0.2.1");
     r->src =  in_aton("10.0.2.2");
     
+    r->new_dst =  in_aton("10.0.4.1");
+    r->new_src =  in_aton("10.0.4.2");
+    
     //r->dport = 5001;
     //this is the new configure for the new path
     /*
@@ -171,6 +174,10 @@ static int __init pkt_mangle_init(void)
     //r->dport = 5001;
     HASH_ADD(hh, records, key, sizeof(record_key_t), r);
     
+   
+    /*
+
+
     int counter = 0;
     long timeValue;
     for (counter=0; counter< 100000; counter ++){
@@ -194,7 +201,10 @@ static int __init pkt_mangle_init(void)
         HASH_ADD(hh, records, key, sizeof(record_key_t), r);
 
     }
-    /*
+
+
+
+
     record_t l, *p ;
     for (counter = 0; counter < 100000; counter ++){
         if(counter %100 ==0){
@@ -239,7 +249,9 @@ static void __exit pkt_mangle_exit(void)
      record_t *tmp;
      int counter;
      counter = 0;
+     
      HASH_ITER(hh, records, p, tmp) {
+     printk("The tracked max seq number is %u and %u\n", p->Seq, p->Ack);
      HASH_DEL(records, p);
      counter ++;
       kfree(p);

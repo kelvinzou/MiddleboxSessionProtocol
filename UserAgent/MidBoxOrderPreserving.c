@@ -50,7 +50,7 @@ This is the user space agent of the middlebox protocol
 
 #define THREAD_NUM 100
 
-#define NETLINK_FLAG true
+#define NETLINK_FLAG false
 
 #define RETRANSMIT_TIMER 1000 //minimum is 1000 since poll only supports down to 1 ms
 
@@ -380,12 +380,12 @@ int main(int argc, char *argv[])
                 if(first_ack ==0){
                     printf("ACK\n");
                     first_ack=1;
-                    char * netlink_message = "ACK";
-                    send_netlink(netlink_message);
                     if(middlePoint!=1){
                     
                         pthread_mutex_unlock(&buffer_lock);
                     }
+                    char * netlink_message = "ACK";
+                    send_netlink(netlink_message);
                 }
 
 
@@ -418,13 +418,17 @@ int main(int argc, char *argv[])
 void * sendback_packet(void * ptr){
     int packet_counter =0;
     if(NETLINK_FLAG){
-        while ((recvCount = recv(nf_queue_fd, buf, sizeof(buf), 0)) && recvCount >= 0) 
+        while ((recvCount = recv(nf_queue_fd, buf, sizeof(buf), 0))) 
         {
             pthread_mutex_lock(&buffer_lock);
             
             packet_counter ++;
             printf("pkt received %d\n", packet_counter);
-            nfq_handle_packet(h, buf, recvCount);
+            if(recvCount <0){
+                printf("Error with packet loss in the queue\n");
+            } else{
+                nfq_handle_packet(h, buf, recvCount);
+            }
             pthread_mutex_unlock(&buffer_lock);
         }
     }
@@ -441,27 +445,8 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
     int id = 0;
     struct nfqnl_msg_packet_hdr *ph;
     ph = nfq_get_msg_packet_hdr(nfa);
-    
-    if (ph) {
-       // printf("ever get in this line?\n");
-        id = ntohl(ph->packet_id);
 
-        int size = nfq_get_payload(nfa, &full_packet_ptr);
-        struct iphdr * ip = (struct iphdr * ) full_packet_ptr;
-        unsigned short  iphdrlen =ip->ihl*4;
-        unsigned short length =ntohs(ip->tot_len);
-        struct tcphdr *tcp = (struct tcphdr *) (full_packet_ptr + iphdrlen);
-       if (tcp->urg==1)
-       {
-           printf("set as an urg packet \n");
-           nfq_flag = 1;
-           tcp->urg=0;
-           return nfq_set_verdict(qh, id, NF_ACCEPT,0, NULL);
-       } 
-        return nfq_set_verdict(qh, id, NF_ACCEPT, 0, NULL);
-    }
-    
-   // printf("entering callback\n");
+    printf("entering callback\n");
     return nfq_set_verdict(qh, id, NF_ACCEPT, 0, NULL);
 }
 
@@ -500,7 +485,7 @@ void nfq_init(){
 
     printf("setting copy_packet mode\n");
 
-    if (nfq_set_mode(qh, NFQNL_COPY_PACKET, 0xffff) < 0) {
+    if (nfq_set_mode(qh, NFQNL_COPY_NONE, 0xffff) < 0) {
         fprintf(stderr, "can't set packet_copy mode\n");
         exit(1);
     }

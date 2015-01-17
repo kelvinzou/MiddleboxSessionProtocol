@@ -967,16 +967,25 @@ typedef struct {
 
 typedef struct {
     record_key_t key;
+    
     int src;
     int dst;
     uint16_t sport;
     uint16_t dport;
+    
+    int new_src;
+    int new_dst;
+    uint16_t new_sport;
+    uint16_t new_dport;
+
     uint16_t Buffer;
     uint16_t Migrate;
+    uint16_t RecvED;
+    uint16_t Dropped ; 
     int lock_counter ;
-    int acked;
-   // uint16_t ReleaseBuffer;
-    int Seq;
+    __u32 Ack;
+    __u32 Seq;
+    int pid;
     UT_hash_handle hh;
 
 } record_t;

@@ -24,7 +24,7 @@ void HashReleaseBuffer(record_t * item){
     record_t * p=NULL;
     HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
     if (p!=NULL) {
-        p->Buffer = 0;
+        p->Migrate = 0;
         printk(KERN_ALERT "HASH buffer modification happens!\n");
     }
 }
@@ -55,7 +55,7 @@ static void netlink_agent(struct sk_buff *skb)
     printk(KERN_ALERT "Entering: %s\n", __FUNCTION__);
 
 
-    msg_size = strlen(msg);
+   
 
     nlh = (struct nlmsghdr *)skb->data;
 
@@ -63,20 +63,39 @@ static void netlink_agent(struct sk_buff *skb)
     
     record_t item;
     //here we just need SYNC packet, because SYN-ACK are rule is preinstalled first
+    /*
     if (strcmp((char*)nlmsg_data(nlh), "SYN")==0){
         memset(&item, 0, sizeof(record_t));
         item.key.dst = in_aton( "10.0.3.2" );
         item.key.dport =5001;
         spin_lock(&slock);
-        HashMigrate(&item);
+        record_t * p=NULL;
+
+        HASH_FIND(hh, records, &item.key, sizeof(record_key_t), p);
+
+        if (p!=NULL) { 
+            p->Migrate = 1;
+            printk(KERN_ALERT "HASH migration modification happens!\n");
+        }        
         spin_unlock(&slock);
     }
+    */
     if (strcmp((char*)nlmsg_data(nlh), "RESET")==0){
         memset(&item, 0, sizeof(record_t));
         item.key.dst = in_aton( "10.0.3.2" );
         item.key.dport =5001;
         spin_lock(&slock);
-        HashResetMigration(&item);
+        record_t * p=NULL;
+        HASH_FIND(hh, records, &item.key, sizeof(record_key_t), p);
+        if (p!=NULL) {
+            p->Migrate = 0;
+            p->dst =  in_aton("10.0.2.1");
+            p->src =  in_aton("10.0.2.2");
+            p->Seq = 0;
+            p->Ack = 0;
+            p->Dropped =0;
+            p->RecvED = 0;
+        }
         spin_unlock(&slock);
     }
     
@@ -85,13 +104,37 @@ static void netlink_agent(struct sk_buff *skb)
         item.key.dst = in_aton( "10.0.3.2" );
         item.key.dport =5001;
         spin_lock(&slock);
-        HashReleaseBuffer(&item);
+        record_t * p=NULL;
+        HASH_FIND(hh, records, &item.key, sizeof(record_key_t), p);
+        if (p!=NULL) {
+            p->Migrate = 0;
+            p->dst =  in_aton("10.0.4.1");
+            p->src =  in_aton("10.0.4.2");
+        }
         spin_unlock(&slock);
     }
 
+    if(strcmp((char*)nlmsg_data(nlh), "SYN")==0){
+        memset(&item, 0, sizeof(record_t));
+        item.key.dst = in_aton( "10.0.3.2" );
+        item.key.dport =5001;
+        spin_lock(&slock);
+
+        record_t * p=NULL;
+        HASH_FIND(hh, records, &item.key, sizeof(record_key_t), p);
+        if(p){
+            p->pid =  nlh->nlmsg_pid ;
+            p->Migrate = 1;
+            printk(KERN_ALERT "The recorded max seq number is %u\n", p->Seq);
+        }
+
+        spin_unlock(&slock);
+    }
+
+
+
     pid = nlh->nlmsg_pid; /*pid of sending process */
-
-
+    msg_size = strlen(msg);
     skb_out = nlmsg_new(msg_size, 0);
 
     if (!skb_out)
@@ -105,7 +148,7 @@ static void netlink_agent(struct sk_buff *skb)
     
     
 
-    printk(KERN_ALERT "finish one IPC!\n");
+    printk(KERN_ALERT "finish one IPC! with the pid %d \n", pid);
 
     strncpy(nlmsg_data(nlh), msg, msg_size);
 
