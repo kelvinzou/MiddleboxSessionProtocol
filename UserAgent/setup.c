@@ -81,15 +81,12 @@ int main(int argc, char**argv){
         servaddr.sin_port=htons(UDP_PORT);
         bind(sockfd,(struct sockaddr *)&servaddr,sizeof(servaddr));
 
-        
         char mesg[4];
         struct sockaddr_in clientAddressPtr;
         socklen_t len = sizeof(struct sockaddr_in) ;
         
-        
         int * counter = (int *) mesg;
         printf("counter is %d\n", *counter);
-        
         
         struct sockaddr_in SendServaddr, SendCliaddr;
         

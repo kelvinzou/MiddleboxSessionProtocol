@@ -141,21 +141,6 @@ static int __init pkt_mangle_init(void)
     pre_routing.hooknum = NF_IP_PRE_ROUTING;
     pre_routing.hook = incoming_change_begin;
     nf_register_hook(& pre_routing);
-
-     /* 
-	local_out.pf = NFPROTO_IPV4;
-    local_out.priority  = NF_IP_PRI_FIRST;
-    local_out.hooknum = NF_IP_POST_ROUTING;
-    local_out.hook = output_change;
-    //nf_register_hook(& local_out);
-
-    local_in.pf = NFPROTO_IPV4;
-    local_in.priority  = NF_IP_PRI_FIRST;
-    local_in.hooknum = NF_IP_PRE_ROUTING;
-    local_in.hook = input_change;
-  //  nf_register_hook(& local_in);
-    */
-    
     
     //output does to localout and mangle the hdr
     post_routing.pf = NFPROTO_IPV4;
