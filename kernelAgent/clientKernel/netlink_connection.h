@@ -77,6 +77,9 @@ static void netlink_agent(struct sk_buff *skb)
             //if the ack is being received from the old path
             if(p->NoRecvED ==0){
                 p->Track =0;
+            } else{
+                spin_unlock(&slock);
+                goto returncheckpoint;
             }
         }
         spin_unlock(&slock);
@@ -127,6 +130,9 @@ static void netlink_agent(struct sk_buff *skb)
 
     if (res < 0)
         printk(KERN_ALERT "Error while sending bak to user\n");
+
+returncheckpoint:
+    return;
 }
 
 MODULE_AUTHOR("Kelvin Zou: <xuanz@cs.princeton.edu>");
