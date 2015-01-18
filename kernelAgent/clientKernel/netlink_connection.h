@@ -5,43 +5,6 @@
 #include "uthash.h"
 static struct sock *nl_sk = NULL;
 
-void HashMigrate(record_t * item){
-    record_t * p=NULL;
-
-    HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
-
-    if (p!=NULL) {
-        p->Migrate = 1;
-        p->Buffer =  1;
-        p->dst =  in_aton("10.0.4.1");
-        p->src = in_aton("10.0.4.2");
-        printk(KERN_ALERT "HASH migration modification happens!\n");
-    }
-}
-
-void HashReleaseBuffer(record_t * item){
-    
-    record_t * p=NULL;
-    HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
-    if (p!=NULL) {
-        p->Migrate = 0;
-        printk(KERN_ALERT "HASH buffer modification happens!\n");
-    }
-}
-
-void HashResetMigration(record_t * item){
-    record_t * p=NULL;
-    
-    HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
-
-    if (p!=NULL) {
-        p->Migrate =0;
-        p->Buffer = 0;
-        printk(KERN_ALERT "HASH buffer reset happens!\n");
-        p->dst =  in_aton("10.0.2.1");
-        p->src =  in_aton("10.0.2.2");
-    }
-}
 
 static void netlink_agent(struct sk_buff *skb)
 { 
@@ -53,9 +16,6 @@ static void netlink_agent(struct sk_buff *skb)
     int res;
 
     printk(KERN_ALERT "Entering: %s\n", __FUNCTION__);
-
-
-   
 
     nlh = (struct nlmsghdr *)skb->data;
 
@@ -84,9 +44,10 @@ static void netlink_agent(struct sk_buff *skb)
         memset(&item, 0, sizeof(record_t));
         item.key.dst = in_aton( "10.0.3.2" );
         item.key.dport =5001;
-        spin_lock(&slock);
         record_t * p=NULL;
         HASH_FIND(hh, records, &item.key, sizeof(record_key_t), p);
+        
+        spin_lock(&slock);
         if (p!=NULL) {
             p->Migrate = 0;
             p->dst =  in_aton("10.0.2.1");
@@ -94,7 +55,8 @@ static void netlink_agent(struct sk_buff *skb)
             p->Seq = 0;
             p->Ack = 0;
             p->Dropped =0;
-            p->RecvED = 0;
+            p->NoRecvED = 0;
+            p->Track =0;
         }
         spin_unlock(&slock);
     }
@@ -103,13 +65,19 @@ static void netlink_agent(struct sk_buff *skb)
         memset(&item, 0, sizeof(record_t));
         item.key.dst = in_aton( "10.0.3.2" );
         item.key.dport =5001;
-        spin_lock(&slock);
         record_t * p=NULL;
+
         HASH_FIND(hh, records, &item.key, sizeof(record_key_t), p);
+        
+        spin_lock(&slock);
         if (p!=NULL) {
             p->Migrate = 0;
             p->dst =  in_aton("10.0.4.1");
             p->src =  in_aton("10.0.4.2");
+            //if the ack is being received from the old path
+            if(p->NoRecvED ==0){
+                p->Track =0;
+            }
         }
         spin_unlock(&slock);
     }
@@ -118,16 +86,18 @@ static void netlink_agent(struct sk_buff *skb)
         memset(&item, 0, sizeof(record_t));
         item.key.dst = in_aton( "10.0.3.2" );
         item.key.dport =5001;
-        spin_lock(&slock);
-
         record_t * p=NULL;
+
         HASH_FIND(hh, records, &item.key, sizeof(record_key_t), p);
+        
+        spin_lock(&slock);
         if(p){
+            p->NoRecvED = 1;
             p->pid =  nlh->nlmsg_pid ;
             p->Migrate = 1;
+            p->Track = 1;
             printk(KERN_ALERT "The recorded max seq number is %u\n", p->Seq);
         }
-
         spin_unlock(&slock);
     }
 

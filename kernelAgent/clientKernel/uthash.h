@@ -978,9 +978,9 @@ typedef struct {
     uint16_t new_sport;
     uint16_t new_dport;
 
-    uint16_t Buffer;
+    uint16_t Track;
     uint16_t Migrate;
-    uint16_t RecvED;
+    uint16_t NoRecvED;
     uint16_t Dropped ; 
     int lock_counter ;
     __u32 Ack;

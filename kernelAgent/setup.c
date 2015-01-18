@@ -328,9 +328,13 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
     int id = 0;
     struct nfqnl_msg_packet_hdr *ph;
     ph = nfq_get_msg_packet_hdr(nfa);
-
-    printf("entering callback\n");
-    return nfq_set_verdict(qh, id, NF_ACCEPT, 0, NULL);
+    if(ph){
+        printf("entering callback\n");
+        id = ntohl(ph->packet_id);
+        return nfq_set_verdict(qh, id, NF_ACCEPT, 0, NULL);
+    }
+    
+    
 }
 
 void nfq_init(){
@@ -426,6 +430,5 @@ int send_netlink(char * input){
     printf("Sending update message to kernel\n");
     sendmsg(netlink_socket_fd, &netlink_msg, 0);
 }
-
 
 

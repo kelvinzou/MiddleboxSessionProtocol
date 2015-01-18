@@ -73,21 +73,28 @@ static unsigned int outgoing_begin (unsigned int hooknum,
             memset(&l, 0, sizeof( record_t) );
             l.key.dst =iph->daddr ;
             l.key.dport = ntohs( tcph->dest );
-            //spin_lock(&slock);
             HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p) ;
-            //spin_unlock(&slock);
 
             if(p){
-                if(p->Migrate ==1) {
+                if(p->Migrate ==1 || p->NoRecvED ==1 ) {
+                	printk( KERN_ALERT "\nThe hash value seq number is %u and the ack number is %u\n", p->Seq,p->Ack );
+                	if(p->Migrate ==1 && p->NoRecvED ==1){
+                		printk( KERN_ALERT "This starts the migration, neither ACK or FIN is received!\n");
+                	}
+                	else if(p->Migrate ==1 ){
+                		printk( KERN_ALERT "This means we have not received SYNACK yet\n");
+                	}
+                	else{
+                		printk( KERN_ALERT "This means we have not received  SEQ ACK yet\n");
+                	}
                 	/*
                 	//introduce the reordering here
                 	if(p->Dropped == 0){
                         	p->Dropped =1;
                         	return NF_DROP;
                     }*/
-                    printk("\nThe seq number is %u and the ack number is %u\n", seqNumber,ackSeq );
-                    if (p->Seq >= seqNumber){
-                       printk("The packets are lower than seq so transmit\n");
+                    if (p->Seq >= seqNumber || p->Seq >= (seqNumber+0xffff4000)){
+                       printk( KERN_ALERT "The packets are lower than seq so transmit\n");
                         __be32 oldIP = iph->daddr;
                         iph->daddr = p->dst;
                         __be32 newIP = iph->daddr;
@@ -105,9 +112,9 @@ static unsigned int outgoing_begin (unsigned int hooknum,
                         ip_route_me_harder(skb, RTN_UNSPEC);
                         return NF_ACCEPT; 
                         }
+
                     else{
-                        
-                        printk("queue packets for higher seq number! and the seq and ack number is %u and %u\n",p->Seq, p->Ack);
+                        printk( KERN_ALERT "The packets are higher than seq so queue it\n");
                         __be32 oldIP = iph->daddr;
                         iph->daddr = p->new_dst;
                         __be32 newIP = iph->daddr;
@@ -126,15 +133,21 @@ static unsigned int outgoing_begin (unsigned int hooknum,
 
                         return NF_QUEUE;
                     } 
-                } else{
-                //	printk("\nThe seq number is %u and the ack number is %u\n", seqNumber,ackSeq );
+                } 
 
 
+                //otherwise we just send the traffic directly
+
+                else{
+                	//printk(KERN_ALERT "\nThe seq number is %u and the ack number is %u\n", seqNumber,ackSeq );
+                	//printk( KERN_ALERT "The hash value seq number is %u and the ack number is %u\n", p->Seq,p->Ack );
+
+                	//continuously update seq number
                     if(p->Seq ==0){
                     	p->Seq =  seqNumber;
                     	//this is to initialize the seq number
                     } 
-                    else if(p->Seq < seqNumber || p->Seq < (seqNumber+0xffff0000)){
+                    else if(p->Seq < seqNumber || p->Seq < (seqNumber+0xffff4000)){
                         //the second half condition is to avoid seq number wrap up
                          p->Seq =  seqNumber;
                     }
@@ -145,8 +158,6 @@ static unsigned int outgoing_begin (unsigned int hooknum,
                     
                     inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
                     csum_replace4(&iph->check, oldIP, newIP);
-                    
-                    //it has to change its source ip address if it goes through a different interface
                     
                     oldIP = iph->saddr;
                     iph->saddr = p->src;

@@ -46,6 +46,8 @@ static unsigned int incoming_begin(unsigned int hooknum,
 ******************************************************************************************
 ******************************************************************************************
 */
+        
+
         else if( iph->protocol ==IPPROTO_TCP){
             struct tcphdr *tcph ;
             
@@ -65,9 +67,8 @@ static unsigned int incoming_begin(unsigned int hooknum,
             HASH_FIND(hh, records, &l.key, sizeof( record_key_t ), p) ;
             if(p)
             {
-            //    printk(  "Input: found source key %pI4 and value is %pI4  \n", &iph->saddr , &p->src ) ;
-            //   printk(  "Input: found dest key %pI4 and value is %pI4  \n", & iph->daddr , &p->dst ) ;
-              //  printk("The acked number is %u\n", ackSeq);
+                
+               // printk("Received acked number is %u\n", ackSeq);
                
                 iph->saddr = p->src ;
                 iph->daddr = p->dst ;
@@ -76,26 +77,37 @@ static unsigned int incoming_begin(unsigned int hooknum,
                 memset(&l, 0, sizeof(record_t));
                 l.key.dst =iph->saddr ;
                 l.key.dport = ntohs(tcph->source) ;
+                
+                spin_lock(&slock);
                 HASH_FIND(hh, records, &l.key, sizeof( record_key_t ), p2) ;
+                spin_unlock(&slock);
+
                 if(p2){
                     if(p2->Ack ==0){
                         p2->Ack =  ackSeq;
                         //this is to initialize the seq number
                     } 
-                    else if(p2->Ack < ackSeq || p2->Ack < (ackSeq+0xffff0000)){
-                        //the second half condition is to avoid seq number wrap up
+                    else if(p2->Ack < ackSeq || p2->Ack < (ackSeq+0xfff00000)){
                         p2->Ack =  ackSeq;
-
                     } 
-                    if (p2->Ack  >= p2->Seq){
-                        p2->Migrate = 0;
-                        p2->RecvED  = 1;
+                    if(p2->Track ==1){
+                        if ( (p2->Ack  >= p2->Seq ||p2->Ack  >= (p2->Seq + 0xffff4000) )){
+                        printk(KERN_ALERT "update the ack as acked\n");
+                        p2->NoRecvED  = 0;
+                        //if the ack is being received
+                        if(p2->Migrate ==0 ){
+                            p2->Track =0 ;
+                        }
                     }
+                    }
+
+                    
                 }
-                   
             } 
             return NF_ACCEPT;
         }
+
+
 
 /*
 *******************************************************************************************

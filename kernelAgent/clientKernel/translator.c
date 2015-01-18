@@ -144,7 +144,6 @@ static int __init pkt_mangle_init(void)
     
     r->new_dst =  in_aton("10.0.4.1");
     r->new_src =  in_aton("10.0.4.2");
-    
     //r->dport = 5001;
     //this is the new configure for the new path
     /*
