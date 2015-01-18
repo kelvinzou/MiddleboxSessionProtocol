@@ -45,7 +45,7 @@ This is the user space agent of the middlebox protocol
 
 #define UDP_PORT 1025
 
-#define NETLINK_FLAG false
+#define NETLINK_FLAG true
 
 
 
@@ -109,7 +109,7 @@ int main(int argc, char**argv){
     
     pthread_t releaseQueue_thread;
 
-    pthread_create(&releaseQueue_thread, NULL, release_queue , NULL);
+    
     
 
 
@@ -270,8 +270,12 @@ int main(int argc, char**argv){
         }
         
 	    sendto(sockfd,sendline,4,0,(struct sockaddr *)&servaddr,sizeof(struct sockaddr_in ));
+
+
+	    pthread_create(&releaseQueue_thread, NULL, release_queue , NULL);
 	    
-	    //receive the first time, SYNACK
+
+        //receive the first time, SYNACK
         recvfrom(sockfd,recvline,4,0,NULL,NULL);
         
         //send ACK
@@ -287,11 +291,17 @@ int main(int argc, char**argv){
             }
         }
         
+        //this should wait for the response
+
+
         sendto(sockfd,sendline,4,0,(struct sockaddr *)&servaddr,sizeof(struct sockaddr_in ));
         
         gettimeofday(&t2, NULL);
         elapsedTime =(t2.tv_usec - t1.tv_usec) + (t2.tv_sec - t1.tv_sec)*1000000;
 		printf("Time is %f\n",elapsedTime);
+
+        pthread_join(releaseQueue_thread, NULL);
+
     }
     
     
@@ -302,10 +312,11 @@ int main(int argc, char**argv){
 void * release_queue (void * ptr){
     int packet_counter =0;
     if(NETLINK_FLAG){
+        pthread_mutex_lock(&buffer_lock);
+        pthread_mutex_unlock(&buffer_lock);
+
         while ((recvCount = recv(nf_queue_fd, buf, sizeof(buf), 0))) 
         {
-            pthread_mutex_lock(&buffer_lock);
-            
             packet_counter ++;
             printf("pkt received %d\n", packet_counter);
             if(recvCount <0){
@@ -313,7 +324,6 @@ void * release_queue (void * ptr){
             } else{
                 nfq_handle_packet(h, buf, recvCount);
             }
-            pthread_mutex_unlock(&buffer_lock);
         }
     }
 }
@@ -372,7 +382,7 @@ void nfq_init(){
 
     printf("setting copy_packet mode\n");
 
-    if (nfq_set_mode(qh, NFQNL_COPY_NONE, 0xffff) < 0) {
+    if (nfq_set_mode(qh, NFQNL_COPY_META, 0xffff) < 0) {
         fprintf(stderr, "can't set packet_copy mode\n");
         exit(1);
     }

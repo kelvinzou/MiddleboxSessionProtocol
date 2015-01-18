@@ -87,7 +87,7 @@ static unsigned int incoming_begin(unsigned int hooknum,
                         p2->Ack =  ackSeq;
                         //this is to initialize the seq number
                     } 
-                    else if(p2->Ack < ackSeq || p2->Ack < (ackSeq+0xfff00000)){
+                    else if(p2->Ack < ackSeq || p2->Ack < (ackSeq+0xffff4000)){
                         p2->Ack =  ackSeq;
                     } 
                     if(p2->Track ==1){
