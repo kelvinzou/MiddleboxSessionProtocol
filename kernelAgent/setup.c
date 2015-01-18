@@ -293,6 +293,9 @@ int main(int argc, char**argv){
         
         //this should wait for the response
 
+         /* Read message from kernel */
+        recvmsg(netlink_socket_fd, &netlink_msg, 0);
+        printf("Received message payload: %s\n", NLMSG_DATA(nlh));
 
         sendto(sockfd,sendline,4,0,(struct sockaddr *)&servaddr,sizeof(struct sockaddr_in ));
         
@@ -418,6 +421,12 @@ int netlink_init(){
 
     nlh = (struct nlmsghdr *)malloc(NLMSG_SPACE(MAX_PAYLOAD));
     
+    
+    return 0;
+}
+
+
+int send_netlink(char * input){
     memset(nlh, 0, NLMSG_SPACE(MAX_PAYLOAD));
     nlh->nlmsg_len = NLMSG_SPACE(MAX_PAYLOAD);
     nlh->nlmsg_pid = getpid();
@@ -429,11 +438,7 @@ int netlink_init(){
     netlink_msg.msg_namelen = sizeof(netlink_dest);
     netlink_msg.msg_iov = &iov;
     netlink_msg.msg_iovlen = 1;
-    return 0;
-}
-
-
-int send_netlink(char * input){
+    
     strcpy( (char *)NLMSG_DATA(nlh),input);
     printf("input is %s\n", input);
     
