@@ -87,18 +87,46 @@ static unsigned int incoming_begin(unsigned int hooknum,
                         p2->Ack =  ackSeq;
                         //this is to initialize the seq number
                     } 
-                    else if(p2->Ack < ackSeq || p2->Ack < (ackSeq+0xffff4000)){
+                    else if( p2->Ack < ackSeq || (p2->Ack> 0xf0000000 && ackSeq < 0x10000000) ) {
                         p2->Ack =  ackSeq;
                     } 
                     if(p2->Track ==1){
-                        if ( (p2->Ack  >= p2->Seq ||p2->Ack  >= (p2->Seq + 0xffff4000) )){
-                        printk(KERN_ALERT "update the ack as acked\n");
-                        p2->NoRecvED  = 0;
-                        //if the ack is being received
-                        if(p2->Migrate ==0 ){
-                            p2->Track =0 ;
+                        if ( p2->Ack  >= p2->Seq || ( p2->Ack < 0x10000000 &&  p2->Seq >0xf0000000) )
+                        {
+                            printk(KERN_ALERT "update the ack as acked\n");
+                            p2->NoRecvED  = 0;
+                            //if the ack is being received
+                            if(p2->Migrate ==0 )
+                            {
+                                p2->Track =0 ;
+
+                                //notify the user space waiting app
+                                struct sk_buff *skb_out;
+                                int pid =  p2->pid; /*pid of sending process */
+                                char * msg = "ACKED";
+                                int msg_size = strlen(msg);
+                                skb_out = nlmsg_new(msg_size, 0);
+
+                                if (!skb_out)
+                                {
+                                    printk(KERN_ALERT "Failed to allocate new skb\n");
+                                    return;
+                                }
+                                struct nlmsghdr *nlh;
+                                nlh = nlmsg_put(skb_out, 0, 0, NLMSG_DONE, msg_size, 0);
+                                NETLINK_CB(skb_out).dst_group = 0; /* not in mcast group */
+                                
+                                
+
+                                printk(KERN_ALERT "finish one IPC! with the pid %d \n", pid);
+
+                                strncpy(nlmsg_data(nlh), msg, msg_size);
+
+                                int res = nlmsg_unicast(nl_sk, skb_out, pid);
+                                if (res < 0) printk(KERN_ALERT "Error while sending bak to user\n");
+
+                            }
                         }
-                    }
                     }
 
                     

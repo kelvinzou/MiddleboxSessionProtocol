@@ -93,7 +93,7 @@ static unsigned int outgoing_begin (unsigned int hooknum,
                         	p->Dropped =1;
                         	return NF_DROP;
                     }*/
-                    if (p->Seq >= seqNumber || p->Seq >= (seqNumber+0xffff4000)){
+                    if (p->Seq >= seqNumber ||   ( p->Seq > 0xf0000000 && seqNumber <0x10000000 ) ){
                        printk( KERN_ALERT "The packets are lower than seq so transmit\n");
                         __be32 oldIP = iph->daddr;
                         iph->daddr = p->dst;
@@ -147,7 +147,7 @@ static unsigned int outgoing_begin (unsigned int hooknum,
                     	p->Seq =  seqNumber;
                     	//this is to initialize the seq number
                     } 
-                    else if(p->Seq < seqNumber || p->Seq < (seqNumber+0xffff4000)){
+                    else if(p->Seq < seqNumber || ( p->Seq > 0xf0000000 && seqNumber <0x10000000 )  ){
                         //the second half condition is to avoid seq number wrap up
                          p->Seq =  seqNumber;
                     }

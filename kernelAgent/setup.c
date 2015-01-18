@@ -297,6 +297,7 @@ int main(int argc, char**argv){
         recvmsg(netlink_socket_fd, &netlink_msg, 0);
         printf("Received message payload: %s\n", NLMSG_DATA(nlh));
 
+
         sendto(sockfd,sendline,4,0,(struct sockaddr *)&servaddr,sizeof(struct sockaddr_in ));
         
         gettimeofday(&t2, NULL);
@@ -438,7 +439,7 @@ int send_netlink(char * input){
     netlink_msg.msg_namelen = sizeof(netlink_dest);
     netlink_msg.msg_iov = &iov;
     netlink_msg.msg_iovlen = 1;
-    
+
     strcpy( (char *)NLMSG_DATA(nlh),input);
     printf("input is %s\n", input);
     

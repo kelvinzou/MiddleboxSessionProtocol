@@ -26,9 +26,10 @@
 #define __KERNEL__
 
 #include "uthash.h"
+#include "netlink_connection.h"
+
 #include "in.h"
 #include "out.h"
-#include "netlink_connection.h"
 #include <stddef.h>  
 
 
