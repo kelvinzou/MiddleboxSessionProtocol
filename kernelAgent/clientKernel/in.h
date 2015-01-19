@@ -99,31 +99,11 @@ static unsigned int incoming_begin(unsigned int hooknum,
                             if(p2->Migrate ==0 )
                             {
                                 p2->Track =0 ;
-
+                                p2->dst =  in_aton("10.0.4.1");
+                                p2->src =  in_aton("10.0.4.2");
                                 //notify the user space waiting app
-                                struct sk_buff *skb_out;
-                                int pid =  p2->pid; /*pid of sending process */
                                 char * msg = "ACKED";
-                                int msg_size = strlen(msg);
-                                skb_out = nlmsg_new(msg_size, 0);
-
-                                if (!skb_out)
-                                {
-                                    printk(KERN_ALERT "Failed to allocate new skb\n");
-                                    return;
-                                }
-                                struct nlmsghdr *nlh;
-                                nlh = nlmsg_put(skb_out, 0, 0, NLMSG_DONE, msg_size, 0);
-                                NETLINK_CB(skb_out).dst_group = 0; /* not in mcast group */
-                                
-                                
-
-                                printk(KERN_ALERT "finish one IPC! with the pid %d \n", pid);
-
-                                strncpy(nlmsg_data(nlh), msg, msg_size);
-
-                                int res = nlmsg_unicast(nl_sk, skb_out, pid);
-                                if (res < 0) printk(KERN_ALERT "Error while sending bak to user\n");
+                                netlink_notify(p2->pid, msg);
 
                             }
                         }

@@ -283,21 +283,21 @@ int main(int argc, char**argv){
         {
             printf("ACK\n");
             first_ack=1;
-            pthread_mutex_unlock(&buffer_lock);
             
             if(NETLINK_FLAG){
                 char * netlink_message = "ACK";
                 send_netlink(netlink_message);
+
+                recvmsg(netlink_socket_fd, &netlink_msg, 0);
+                printf("Received message payload: %s\n", NLMSG_DATA(nlh));
             }
+            pthread_mutex_unlock(&buffer_lock);
         }
         
         //this should wait for the response
 
          /* Read message from kernel */
-        recvmsg(netlink_socket_fd, &netlink_msg, 0);
-        printf("Received message payload: %s\n", NLMSG_DATA(nlh));
-
-
+        
         sendto(sockfd,sendline,4,0,(struct sockaddr *)&servaddr,sizeof(struct sockaddr_in ));
         
         gettimeofday(&t2, NULL);
