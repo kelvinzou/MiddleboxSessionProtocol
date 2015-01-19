@@ -45,7 +45,7 @@ This is the user space agent of the middlebox protocol
 
 #define UDP_PORT 1025
 
-#define NETLINK_FLAG true
+#define NETLINK_FLAG false
 
 
 
@@ -343,7 +343,6 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
     struct nfqnl_msg_packet_hdr *ph;
     ph = nfq_get_msg_packet_hdr(nfa);
     if(ph){
-        printf("entering callback\n");
         id = ntohl(ph->packet_id);
         return nfq_set_verdict(qh, id, NF_ACCEPT, 0, NULL);
     }
