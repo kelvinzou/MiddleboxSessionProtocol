@@ -138,7 +138,7 @@ static int __init pkt_mangle_init(void)
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
 	memset(r, 0, sizeof(record_t));
     // this is middlebox copy
-	r->key.dst = in_aton("10.0.2.2");
+	r->key.dst = in_aton("10.0.6.2");
 	r->key.sport =5001;
 	//this is for old configure with old path
 	
@@ -153,34 +153,7 @@ static int __init pkt_mangle_init(void)
 	HASH_ADD(hh, records, key, sizeof(record_key_t), r);
 	write_unlock(&my_rwlock);
     
-    r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
-    memset(r, 0, sizeof(record_t));
 
-    r->key.src = in_aton("10.0.3.1");
-    r->key.dport =5001;
-    r->src =  in_aton("10.0.2.2");
-    r->dst =  in_aton("10.0.3.2");
-    //r->dport = 5001;
-    
-	write_lock(&my_rwlock);
-    HASH_ADD(hh, records, key, sizeof(record_key_t), r);
-    write_unlock(&my_rwlock);
-
-    r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
-    memset(r, 0, sizeof(record_t));
-
-    r->key.src = in_aton("10.0.1.1");
-    r->key.dport =5001;
-    r->src =  in_aton("10.0.2.2");
-    r->dst =  in_aton("10.0.3.2");
-    //r->dport = 5001;
-    
-	write_lock(&my_rwlock);
-    HASH_ADD(hh, records, key, sizeof(record_key_t), r);
-    write_unlock(&my_rwlock);
-
-    //getnstimeofday(&ts_end);
-    //test_of_time = timespec_sub(ts_end,ts_start);
     return 0;
 
 }

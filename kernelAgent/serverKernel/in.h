@@ -43,62 +43,24 @@ static unsigned int incoming_begin(unsigned int hooknum,
 
 		    unsigned int data_len;
 		    data_len = skb->len;
-
 		    tcph = tcp_hdr (skb );
-		    
-		    bool FLAG = true;
-		    
-		    if(FLAG){
-		    record_t l, *p;
-		    memset(&l, 0, sizeof(record_t));
-		    p=NULL ;
-
-		    l.key.src = iph->saddr ;
-		    l.key.dport = ntohs(tcph->dest) ;
-		    HASH_FIND(hh, records, &l.key, sizeof( record_key_t ), p) ;
-		    if(p)
-		    {
-		      //  printk(  "Input: found source key %pI4 and value is %pI4  \n", &iph->saddr , &p->src ) ;
-               // printk(  "Input: found dest key %pI4 and value is %pI4  \n", & iph->daddr , &p->dst ) ;
-		        iph->saddr = p->src ;
-		        iph->daddr = p->dst ;
-		    } else{
-		    	if ( ntohs(tcph->dest)  == 5001 ){
-				//	printk(  "No hash found, do nothing \n") ;
-		    	}
-		    	}
-		    }
+		    __u16 iphdr_len ;
+            iphdr_len =  ip_hdrlen(skb) ;
+            unsigned int tcphdr_len ;
+            tcphdr_len = tcp_hdrlen(skb) ;
+            unsigned int tcp_len ;
+            tcp_len = data_len - iphdr_len ;  
+            
+            
+            iph->tot_len = htons( data_len - 40 );
+            
+            tcph->check = 0;
+            tcph->check = ~csum_tcpudp_magic( iph->saddr, iph->daddr,tcp_len-40, IPPROTO_TCP, 0);
+   	        ip_send_check(iph);
+                    
 			return NF_ACCEPT;
         }
-        else  if( iph->protocol ==IPPROTO_UDP)
-        {
-		    struct udphdr *udph;
-		    
-		    unsigned int data_len = skb->len;
-
-		    udph =   udp_hdr (skb );
-
-		    record_t l, *p;
-		    memset(&l, 0, sizeof(record_t));
-		    
-		    p=NULL ;
-
-		    l.key.src = iph->saddr ;
-		    l.key.dport = ntohs(udph->dest) ;
-		    read_lock(&my_rwlock) ;
-		    HASH_FIND(hh, records, &l.key, sizeof( record_key_t ), p) ;
-		    read_unlock(&my_rwlock) ;
-		    if(p)
-		    {
-		        iph->saddr = p->src ;
-		    } else{
-		    	if ( ntohs(udph->dest)  == 5001 )
-					printk( "No hash found, do nothing \n") ;
-		    }
-
-		return NF_ACCEPT;
-
-        }
+     
 		return NF_ACCEPT;
     }
      return NF_ACCEPT;
