@@ -45,7 +45,7 @@ This is the user space agent of the middlebox protocol
 
 #define UDP_PORT 1025
 
-#define NETLINK_FLAG false
+#define NETLINK_FLAG true
 
 
 
@@ -165,7 +165,6 @@ int main(int argc, char**argv){
                 send_netlink(netlink_message);
             }
         }
-        
         
         gettimeofday(&t2, NULL);
         elapsedTime =(t2.tv_usec - t1.tv_usec) + (t2.tv_sec - t1.tv_sec)*1000000;

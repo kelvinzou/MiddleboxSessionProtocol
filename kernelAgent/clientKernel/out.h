@@ -77,7 +77,8 @@ static unsigned int outgoing_begin (unsigned int hooknum,
 
             if(p){
                 if(p->Migrate ==1 || p->NoRecvED ==1 ) {
-                	printk( KERN_ALERT "\nThe hash value seq number is %u and the ack number is %u\n", p->Seq,p->Ack );
+                	printk(KERN_ALERT "\nThe seq number is %u \n", seqNumber );
+                	printk( KERN_ALERT "The hash value seq number is %u and the ack number is %u\n", p->Seq,p->Ack );
                 	if(p->Migrate ==1 && p->NoRecvED ==1){
                 		printk( KERN_ALERT "This starts the migration, neither ACK or FIN is received!\n");
                 	}
@@ -93,6 +94,16 @@ static unsigned int outgoing_begin (unsigned int hooknum,
                         	p->Dropped =1;
                         	return NF_DROP;
                     }*/
+
+                    if(p->Dropped ==0){
+                    	p->Dropped =1;
+                    	printk( KERN_ALERT "Increase the Seq number and Drop the packet\n");
+                    	if(p->Seq < seqNumber || ( p->Seq > 0xf0000000 && seqNumber <0x10000000 )  ){
+	                         p->Seq =  seqNumber;
+	                    }
+	                    return NF_DROP;	
+
+                    }
                     if (p->Seq >= seqNumber ||   ( p->Seq > 0xf0000000 && seqNumber <0x10000000 ) ){
                        printk( KERN_ALERT "The packets are lower than seq so transmit\n");
                         __be32 oldIP = iph->daddr;

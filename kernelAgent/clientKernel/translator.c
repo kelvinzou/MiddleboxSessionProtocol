@@ -129,6 +129,8 @@ static int __init pkt_mangle_init(void)
     // this is to initilize the rules in the hash table
     record_t  *r;
 
+
+
     //add hash entry in the hash table    
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
 	memset(r, 0, sizeof(record_t));
@@ -139,6 +141,7 @@ static int __init pkt_mangle_init(void)
     //r->dst =  in_aton("128.112.93.107");
     //this is for testing MBP
     //this is the old configure for the intial path
+    
     
     r->dst =  in_aton("10.0.2.1");
     r->src =  in_aton("10.0.2.2");
