@@ -73,6 +73,7 @@ static unsigned int outgoing_begin (unsigned int hooknum,
             memset(&l, 0, sizeof( record_t) );
             l.key.dst =iph->daddr ;
             l.key.dport = ntohs( tcph->dest );
+            l.key.sport = ntohs( tcph->source );
             HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p) ;
 
             if(p){

@@ -77,7 +77,7 @@ static unsigned int incoming_begin(unsigned int hooknum,
                 memset(&l, 0, sizeof(record_t));
                 l.key.dst =iph->saddr ;
                 l.key.dport = ntohs(tcph->source) ;
-                
+                l.key.sport = ntohs(tcph->dest) ;
                 spin_lock(&slock);
                 HASH_FIND(hh, records, &l.key, sizeof( record_key_t ), p2) ;
                 spin_unlock(&slock);

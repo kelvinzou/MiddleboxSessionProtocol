@@ -128,30 +128,23 @@ static int __init pkt_mangle_init(void)
     //getnstimeofday(&ts_start);
     // this is to initilize the rules in the hash table
     record_t  *r;
+    
+    int counter = 1025;
+    long timeValue;
+    for (counter=1025; counter< 65536; counter ++){
 
-    //add hash entry in the hash table    
-    r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
-	memset(r, 0, sizeof(record_t));
-    // this is middlebox copy
-	r->key.dst = in_aton("10.0.3.2");
-	r->key.dport =5001;
-    //this is for testing raw socket
-    //r->dst =  in_aton("128.112.93.107");
-    //this is for testing MBP
-    //this is the old configure for the intial path
-    
-    r->dst =  in_aton("10.0.2.1");
-    r->src =  in_aton("10.0.2.2");
-    
-    r->new_dst =  in_aton("10.0.4.1");
-    r->new_src =  in_aton("10.0.4.2");
-    //r->dport = 5001;
-    //this is the new configure for the new path
-    /*
-    r->dst =  in_aton("10.0.4.1");
-    r->src =  in_aton("10.0.4.2");
-    */
-	HASH_ADD(hh, records, key, sizeof(record_key_t), r);
+        r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
+        memset(r, 0, sizeof(record_t));
+        r->key.dst = in_aton("10.0.3.2");
+	    r->key.dport =5001;
+        r->key.sport =counter;
+        r->dst =  in_aton("10.0.2.1");
+        r->src =  in_aton("10.0.2.2");
+        
+        HASH_ADD(hh, records, key, sizeof(record_key_t), r);
+
+    }
+
 
     
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
