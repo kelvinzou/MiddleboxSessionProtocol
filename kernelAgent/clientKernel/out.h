@@ -57,8 +57,8 @@ static unsigned int outgoing_begin (unsigned int hooknum,
             
             tcph = (struct tcphdr *) tcp_hdr ( skb ) ;
             
-            unsigned int iphdr_len ;
-            iphdr_len = ip_hdrlen(skb) ;
+            __u16 iphdr_len ;
+            iphdr_len =  ip_hdrlen(skb) ;
             unsigned int tcphdr_len ;
             tcphdr_len = tcp_hdrlen(skb) ;
             unsigned int tcp_len ;
@@ -66,7 +66,6 @@ static unsigned int outgoing_begin (unsigned int hooknum,
             __u32 seqNumber =  tcph->seq;
             __u32 ackSeq = tcph->ack_seq;
             int tcpoffset = tcph->doff;
-            printk(" ip and tcp's length is %d\n",iphdr_len, tcpoffset );
             /*
             //this is for squid proxy
             if(ntohs(tcph->dest)==80 &&   ntohl (iph->daddr)  > ntohl( in_aton("157.166.0.0") ) && ntohl(iph->daddr)<ntohl( in_aton("157.167.0.0") ) ){
@@ -95,7 +94,7 @@ static unsigned int outgoing_begin (unsigned int hooknum,
 
             //	spin_lock(&slock);
             //TODO need to restore to the one without new mapping
-            record_t l, *pvalue ;
+            record_t l, *pvalue , *p;
             memset(&l, 0, sizeof(record_t) ) ;
             l.key.dst = iph->daddr ;
             l.key.dport = ntohs(tcph->dest) ;
@@ -103,6 +102,7 @@ static unsigned int outgoing_begin (unsigned int hooknum,
             HASH_FIND(hh, records, &l.key, sizeof(record_key_t), pvalue) ;
             if(!pvalue){
                 //this is the configured middlebox policy
+                
                 memset(&l, 0, sizeof(record_t) ) ;
                 p=NULL;
                 l.key.dst =iph->daddr ;
@@ -111,9 +111,12 @@ static unsigned int outgoing_begin (unsigned int hooknum,
                 HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p) ;
 
                 if(p){
-
+                printk(" ip and tcp's length is %d and %d and %d\n",data_len, 4*tcpoffset,  tcp_len);
+                    printk("Create a new flow mapping!~\n");
                 //    printk(  "Output: found source key %pI4 and value is %pI4  \n", &iph->saddr , &p->src ) ;
                 //    printk(  "Output: found dest key %pI4 and value is %pI4  \n", & iph->daddr , &p->dst ) ;
+                    
+                    //look up the MBOX policy list first, before getting into the port assignment
                     __be32 oldIP = iph->daddr;
                     iph->daddr = p->dst;
                     __be32 newIP = iph->daddr;
@@ -125,53 +128,44 @@ static unsigned int outgoing_begin (unsigned int hooknum,
                     oldIP = iph->saddr;
                     iph->saddr = p->src;
                     newIP = iph->saddr;
-
                     inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
                     csum_replace4(&iph->check, oldIP, newIP);
 
-                    if(p->Migrate ==1){
-                        if(p->Buffer ==1 ){
-                            printk("Queue packets now!\n");
-                        //     spin_unlock(&slock);
-                            ip_route_me_harder(skb, RTN_UNSPEC);
-                            return NF_QUEUE;
-                        }
-                        else {
-                            printk("No buffer needed, notify the user queue!\n");
-                            tcph->urg =1;
-                            p->Migrate =0;
-                          //spin_unlock(&slock);
-                            ip_route_me_harder(skb, RTN_UNSPEC);
-                            return NF_QUEUE;
-                        }
+                    skb_put(skb, 40);
+                    iph->tot_len = htons( data_len + 40 );
+                    
+                    tcph->check = 0;
+                    tcph->check = ~csum_tcpudp_magic( iph->saddr, iph->daddr,tcp_len+40, IPPROTO_TCP, 0);
+           	        ip_send_check(iph);
+                            
+                    //create a new entry
+                    record_t  *r;
 
-                    }  
-                    else {
-                    //    spin_unlock(&slock);
-                        record_t  *r;
-                        printk("Update the routing at the same time, map from configuration to flow mapping");
-                        //add hash entry in the hash table    
-                        r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
-                        memset(r, 0, sizeof(record_t));
-                        // this is middlebox copy
-                        r->key.dst = iph->daddr ;
-                        r->key.dport =ntohs(tcph->dest) ;
-                        l->key.sport = ntohs(tcph->source);
-                        //this is for testing raw socket
-                        //r->dst =  in_aton("128.112.93.107");
-                        //this is for testing MBP
-                        //this is the old configure for the intial path
-                        
-                        r->dst = p->dst;
-                        r->src = p->src;
-                        HASH_ADD(hh, records, key, sizeof(record_key_t), r);
+                    //add hash entry in the hash table    
+                    r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
+                    memset(r, 0, sizeof(record_t));
+                    // this is middlebox copy
+                    r->key.dst = iph->daddr ;
+                    r->key.dport =ntohs(tcph->dest) ;
+                    r->key.sport = ntohs(tcph->source);
+                    //this is for testing raw socket
+                    //r->dst =  in_aton("128.112.93.107");
+                    //this is for testing MBP
+                    //this is the old configure for the intial path
+                    
+                    r->dst = p->dst;
+                    r->src = p->src;
+                    HASH_ADD(hh, records, key, sizeof(record_key_t), r);
 
-                        ip_route_me_harder(skb, RTN_UNSPEC);
-                        return NF_ACCEPT;
-                    }               
-     
+                    ip_route_me_harder(skb, RTN_UNSPEC);
+                    return NF_ACCEPT;
                 }
-            } else{
+                return NF_ACCEPT;
+                
+            } 
+            
+            else{
+            printk(" ip and tcp's length is %d and %d and %d\n",data_len, 4*tcpoffset,  tcp_len);
                 __be32 oldIP = iph->daddr;
                 iph->daddr = pvalue->dst;
                 __be32 newIP = iph->daddr;
@@ -186,29 +180,10 @@ static unsigned int outgoing_begin (unsigned int hooknum,
 
                 inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
                 csum_replace4(&iph->check, oldIP, newIP);
-
-                if(p->Migrate ==1){
-                    if(pvalue->Buffer ==1 ){
-                        printk("Queue packets now!\n");
-                    //     spin_unlock(&slock);
-                        ip_route_me_harder(skb, RTN_UNSPEC);
-                        return NF_QUEUE;
-                    }
-                    else {
-                        printk("No buffer needed, notify the user queue!\n");
-                        tcph->urg =1;
-                        p->Migrate =0;
-                      //spin_unlock(&slock);
-                        ip_route_me_harder(skb, RTN_UNSPEC);
-                        return NF_QUEUE;
-                    }
-
-                }  
-                else {
-                //    spin_unlock(&slock);
-                    ip_route_me_harder(skb, RTN_UNSPEC);
-                    return NF_ACCEPT;
-                } 
+                
+                ip_route_me_harder(skb, RTN_UNSPEC);
+                return NF_ACCEPT;
+  
             }
 
             

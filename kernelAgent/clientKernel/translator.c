@@ -132,15 +132,15 @@ static int __init pkt_mangle_init(void)
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
 	memset(r, 0, sizeof(record_t));
     // this is middlebox copy
-	r->key.dst = in_aton("10.0.3.2");
+	r->key.dst = in_aton("10.0.1.1");
 	r->key.dport =5001;
     //this is for testing raw socket
     //r->dst =  in_aton("128.112.93.107");
     //this is for testing MBP
     //this is the old configure for the intial path
     
-    r->dst =  in_aton("10.0.2.1");
-    r->src =  in_aton("10.0.2.2");
+    r->dst =  in_aton("10.0.3.2");
+    r->src =  in_aton("10.0.3.1");
     
     //r->dport = 5001;
     //this is the new configure for the new path
@@ -153,70 +153,14 @@ static int __init pkt_mangle_init(void)
     
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
     memset(r, 0, sizeof(record_t));
-    r->key.src = in_aton("10.0.2.1");
+    r->key.src = in_aton("10.0.3.2");
     r->key.sport =5001;
-    r->src =  in_aton("10.0.3.2");
-    r->dst =  in_aton("10.0.2.2");
+    r->src =  in_aton("10.0.1.1");
+    r->dst =  in_aton("10.0.3.1");
 
     //r->dport = 5001;
     HASH_ADD(hh, records, key, sizeof(record_key_t), r);
 
-    r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
-    memset(r, 0, sizeof(record_t));
-    r->key.src = in_aton("10.0.4.1");
-    r->key.sport =5001;
-    r->src =  in_aton("10.0.3.2");
-    r->dst =  in_aton("10.0.2.2");
-    
-    //r->dport = 5001;
-    HASH_ADD(hh, records, key, sizeof(record_key_t), r);
-    
-    int counter = 0;
-    long timeValue;
-    for (counter=0; counter< 100000; counter ++){
-        if(counter %100 ==0){
-            if(counter>0){
-                getnstimeofday(&ts_end);  
-                test_of_time = timespec_sub(ts_end,ts_start); 
-                 printk(KERN_ALERT "Insertion takes time %lu\n", test_of_time.tv_nsec);
-            }
-            getnstimeofday(&ts_start);
-        } 
-        
-        r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
-        memset(r, 0, sizeof(record_t));
-        r->key.src = counter;
-        r->key.dst = counter;
-        r->key.sport =12345;
-        r->src =  counter;
-        r->dst =  counter;
-        
-        HASH_ADD(hh, records, key, sizeof(record_key_t), r);
-
-    }
-    /*
-    record_t l, *p ;
-    for (counter = 0; counter < 100000; counter ++){
-        if(counter %100 ==0){
-            if(counter>0){
-                getnstimeofday(&ts_end);  
-                test_of_time = timespec_sub(ts_end,ts_start); 
-                 printk(KERN_ALERT "Search takes time %lu\n", test_of_time.tv_nsec);
-            }
-            getnstimeofday(&ts_start);
-        } 
-        memset(&l, 0, sizeof(record_t) ) ;
-        p=NULL;
-        l.key.dst =counter ;
-        l.key.src = counter; 
-        
-        l.key.sport = 12345 ;
-        HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p) ;
-        
-    }
-    */ 
-
-    
     //getnstimeofday(&ts_end);
     //test_of_time = timespec_sub(ts_end,ts_start);
     return 0;
