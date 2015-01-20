@@ -95,13 +95,6 @@ static unsigned int outgoing_change_begin (unsigned int hooknum,
 
                 if(p)
                 {
-					getnstimeofday(&ts_start);
-					getnstimeofday(&ts_end);
-					test_of_time = timespec_sub(ts_end,ts_start);
-					long interruptcost  =test_of_time.tv_nsec + test_of_time.tv_sec* 1000000000 ;
-					// printk("Interrupt takes time %lu\n", interruptcost );
-                    
-                    getnstimeofday(&ts_start);
                     __be32 oldIP = iph->saddr;
                     iph->saddr = p->src;
                     __be32 newIP = iph->saddr;
@@ -109,11 +102,6 @@ static unsigned int outgoing_change_begin (unsigned int hooknum,
                     inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
                     csum_replace4(&iph->check, oldIP, newIP);
                     
-                    getnstimeofday(&ts_end);
-				    test_of_time = timespec_sub(ts_end,ts_start);
-				    long time_interval = test_of_time.tv_nsec +  test_of_time.tv_sec* 1000000000;
-				   // printk("Modification takes time %lu\n",time_interval );
-
                 }
 
                 return NF_ACCEPT;
