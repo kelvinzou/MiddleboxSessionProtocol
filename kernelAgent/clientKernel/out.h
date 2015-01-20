@@ -99,7 +99,9 @@ static unsigned int outgoing_begin (unsigned int hooknum,
             l.key.dst = iph->daddr ;
             l.key.dport = ntohs(tcph->dest) ;
             l.key.sport = ntohs(tcph->source);
+            spin_lock(&slock);
             HASH_FIND(hh, records, &l.key, sizeof(record_key_t), pvalue) ;
+            spin_unlock(&slock);
             if(!pvalue){
                 //this is the configured middlebox policy
                 
@@ -111,7 +113,7 @@ static unsigned int outgoing_begin (unsigned int hooknum,
                 HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p) ;
 
                 if(p){
-                printk(" ip and tcp's length is %d and %d and %d\n",data_len, 4*tcpoffset,  tcp_len);
+                    printk(" ip and tcp's length is %d and %d and %d\n",data_len, 4*tcpoffset,  tcp_len);
                     printk("Create a new flow mapping!~\n");
                 //    printk(  "Output: found source key %pI4 and value is %pI4  \n", &iph->saddr , &p->src ) ;
                 //    printk(  "Output: found dest key %pI4 and value is %pI4  \n", & iph->daddr , &p->dst ) ;
@@ -145,7 +147,7 @@ static unsigned int outgoing_begin (unsigned int hooknum,
                     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
                     memset(r, 0, sizeof(record_t));
                     // this is middlebox copy
-                    r->key.dst = iph->daddr ;
+                    r->key.dst =  l.key.dst ;
                     r->key.dport =ntohs(tcph->dest) ;
                     r->key.sport = ntohs(tcph->source);
                     //this is for testing raw socket
