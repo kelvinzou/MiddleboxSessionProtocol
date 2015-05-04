@@ -77,16 +77,9 @@ static void netlink_agent(struct sk_buff *skb)
 
         HASH_FIND(hh, records, &item.key, sizeof(record_key_t), p);
         
-        if (p!=NULL) {
-            p->dst =  in_aton("10.0.1.1");
-            p->src =  in_aton("10.0.2.2");
+        if (p!=NULL) {            
             p->Migrate = 0;
-
-            char * msg = "ACKED";
-            pid = nlh->nlmsg_pid;
-            netlink_notify(pid, msg);
         }
-
     }
 
     if(strcmp((char*)nlmsg_data(nlh), "SYN")==0){
@@ -98,7 +91,8 @@ static void netlink_agent(struct sk_buff *skb)
         HASH_FIND(hh, records, &item.key, sizeof(record_key_t), p);
         
         if(p){
-            p->pid =  nlh->nlmsg_pid ;
+            p->dst =  in_aton("10.0.1.1");
+            p->src =  in_aton("10.0.2.2");
             p->Migrate = 1;
             printk(KERN_ALERT "The recorded max seq number is %u\n", p->Seq);
         }

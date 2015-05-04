@@ -90,30 +90,13 @@ static unsigned int outgoing_begin (unsigned int hooknum,
 
 
 		        if(p->Migrate ==1){
-		        	if(p->Buffer ==1) {
 		        		printk("Buffering packets now and the length is %u and %d\n", total_len, data_len);
-		        		//update the outgoing device
+
 		        		ip_route_me_harder(skb, RTN_UNSPEC);
 		        		return NF_QUEUE;
 		        	} 
-		        	else{
-		        		printk("No buffer is needed, release and reset migrate flag, we also change some urgent flag\n");
-		        		
-		        		//just mark one special packet, and this is the end of the buffering
-		        		// need to change both migrate and buffer flags to false.
-		        		//this basically set the urgent flag. 
-		                tcph->urg =1;
-					    p->Migrate =0;
-		        		//update the outgoing device
-					    ip_route_me_harder(skb, RTN_UNSPEC);
-					    return NF_QUEUE;
-				       }
-		        } 
 		        else{
-		        	//read_lock(&release_lock);
-		        	
-			    	//printk("Not buffer packets now and the length is %u and %d\n", total_len, data_len);
-			    	//read_unlock(&release_lock);
+
 			    	ip_route_me_harder(skb, RTN_UNSPEC);
             		return NF_ACCEPT;
 		        }

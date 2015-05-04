@@ -8,51 +8,36 @@ static struct sock *nl_sk = NULL;
 void HashMigrate(record_t * item){
     
     record_t * p=NULL;
-
-    write_lock(&my_rwlock);
     
     HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
-
     if (p!=NULL) {
         p->Migrate = 1;
-        p->Buffer =  1;
         p->src =  in_aton("10.0.1.2");
         p->dst =  in_aton("10.0.1.1");
-    
         printk(KERN_ALERT "HASH migration modification happens!\n");
     }
-    write_unlock(&my_rwlock);
 }
 
 
 void HashReleaseBuffer(record_t * item){
-    
     record_t * p=NULL;
-    
-
-    write_lock(&my_rwlock);
     HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
     if (p!=NULL) {
-        p->Buffer = 0;
+        p->Migrate = 1;
         printk(KERN_ALERT "HASH buffer modification happens!\n");
     }
-    write_unlock(&my_rwlock);
 }
 
 void HashResetMigration(record_t * item){
     record_t * p=NULL;
     
-    write_lock(&my_rwlock);
     HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
-
     if (p!=NULL) {
         p->Migrate =0;
-        p->Buffer = 0;
         printk(KERN_ALERT "HASH buffer reset happens!\n");
         p->dst =  in_aton("10.0.3.1");
         p->src =  in_aton("10.0.3.2");
     }
-    write_unlock(&my_rwlock);
 }
 
 static void hello_nl_recv_msg(struct sk_buff *skb)
@@ -81,7 +66,7 @@ static void hello_nl_recv_msg(struct sk_buff *skb)
         memset(&item, 0, sizeof(record_t));
         item.key.dst = in_aton( "10.0.2.2" );
         item.key.sport =5001;
-
+            
         HashMigrate(&item);
     }
     if (strcmp((char*)nlmsg_data(nlh), "LOCK")==0){
