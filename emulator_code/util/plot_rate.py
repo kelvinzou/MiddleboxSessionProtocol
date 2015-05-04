@@ -147,33 +147,33 @@ for f in args.files:
                 if pat_iface.match(k):
                     print k
                     plt.plot(rate[k], label=k)
-
+'''
 plt.title("TX rates")
 if args.rx:
     plt.title("RX rates")
-
+'''
 if args.ylabel:
-    plt.ylabel(args.ylabel)
+    plt.ylabel(args.ylabel, size = 22)
 elif args.normalise:
     plt.ylabel("Normalized BW")
 else:
-    plt.ylabel("Mbps")
+    plt.ylabel("Mbps",size = 22)
 
 plt.grid()
-plt.legend()
-plt.ylim((int(args.miny), int(args.maxy)))
-plt.xlim((0, 170))
+#plt.legend()
+plt.ylim((750,  1000 ))
+plt.xlim((0, 150))
 if args.summarise:
     plt.boxplot(to_plot)
-    plt.xticks(range(1, 1+len(args.files)), args.labels)
+    plt.xticks(range(1, 1+len(args.files)), args.labels )
 
 if not args.summarise:
     if args.xlabel:
-        plt.xlabel(args.xlabel)
+        plt.xlabel(args.xlabel, size = 22)
     else:
-        plt.xlabel("Time")
+        plt.xlabel("Time", size = 22)
     if args.legend:
-        plt.legend(args.legend)
+        plt.legend(args.legend,prop={'size':20})
 
 if args.out:
     plt.savefig(args.out)
