@@ -6,11 +6,12 @@ KDIR    := /lib/modules/$(shell uname -r)/build
 PWD    := $(shell pwd)
 
 
-default: netlink_user  setup
+default: netlink_user
 	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules  
-setup:
-	g++ -o setup ../setup.c -lpthread  -lnfnetlink -lnetfilter_queue
+netlink_kernel: 
+	$(CXX) -o netlink_kernel netlink_kernel.c
+
 clean: cleanuser
 	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) clean 
 cleanuser:
-	rm -rf netlink_user setup *.o
+	rm -rf netlink_user *.o
