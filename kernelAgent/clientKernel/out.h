@@ -37,7 +37,7 @@ static unsigned int outgoing_begin (unsigned int hooknum,
         iph = ip_hdr ( skb ); 
         
         //do not change any non-UDP traffic
-        if ( iph && iph->protocol && (iph->protocol !=IPPROTO_UDP&&iph->protocol!= IPPROTO_TCP) ) {
+        if ( iph && iph->protocol && iph->protocol!= IPPROTO_TCP ) {
             return NF_ACCEPT;
         } 
 /*
@@ -65,105 +65,51 @@ static unsigned int outgoing_begin (unsigned int hooknum,
             tcp_len = data_len - iphdr_len ;  
            
             int tcpoffset = 4* tcph->doff;
-            __u32 seqNumber =  ntohl(tcph->seq) +data_len -iphdr_len -tcpoffset   ;
-            __u32 ackSeq = ntohl(tcph->ack_seq);
 
             record_t l, *p ;
 
             memset(&l, 0, sizeof( record_t) );
             l.key.dst =iph->daddr ;
             l.key.dport = ntohs( tcph->dest );
-            l.key.sport = ntohs( tcph->source );
+            //l.key.sport = ntohs( tcph->source );
             HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p) ;
 
             if(p){
-                if(p->Migrate ==1 || p->NoRecvED ==1 ) {
-                	printk( KERN_ALERT "\nThe hash value seq number is %u and the ack number is %u\n", p->Seq,p->Ack );
-                	if(p->Migrate ==1 && p->NoRecvED ==1){
-                		printk( KERN_ALERT "This starts the migration, neither ACK or FIN is received!\n");
-                	}
-                	else if(p->Migrate ==1 ){
-                		printk( KERN_ALERT "This means we have not received SYNACK yet\n");
-                	}
-                	else{
-                		printk( KERN_ALERT "This means we have not received  SEQ ACK yet\n");
-                	}
-                	/*
-                	//introduce the reordering here
-                	if(p->Dropped == 0){
-                        	p->Dropped =1;
-                        	return NF_DROP;
-                    }*/
-                    if (p->Seq >= seqNumber ||   ( p->Seq > 0xf0000000 && seqNumber <0x10000000 ) ){
-                       printk( KERN_ALERT "The packets are lower than seq so transmit\n");
-                        __be32 oldIP = iph->daddr;
-                        iph->daddr = p->dst;
-                        __be32 newIP = iph->daddr;
-                        
-                        inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
-                        csum_replace4(&iph->check, oldIP, newIP);
-                        
-                        oldIP = iph->saddr;
-                        iph->saddr = p->src;
-                        newIP = iph->saddr;
+            //during the migration, we do a buffering of the packets
+                if(p->Migrate ==1 ) {
 
-                        inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
-                        csum_replace4(&iph->check, oldIP, newIP);
+            		printk( KERN_ALERT "This means we have not received SYNACK yet\n");
+            	
+                    __be32 oldIP = iph->daddr;
+                    iph->daddr = p->new_dst;
+                    __be32 newIP = iph->daddr;
+                    inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
+                    csum_replace4(&iph->check, oldIP, newIP);
+                    
+                    oldIP = iph->saddr;
+                    iph->saddr = p->new_src;
+                    newIP = iph->saddr;
+                    inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
+                    csum_replace4(&iph->check, oldIP, newIP);
 
-                        ip_route_me_harder(skb, RTN_UNSPEC);
-                        return NF_ACCEPT; 
-                        }
+                    ip_route_me_harder(skb, RTN_UNSPEC);
 
-                    else{
-                        printk( KERN_ALERT "The packets are higher than seq so queue it\n");
-                        __be32 oldIP = iph->daddr;
-                        iph->daddr = p->new_dst;
-                        __be32 newIP = iph->daddr;
-                        
-                        inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
-                        csum_replace4(&iph->check, oldIP, newIP);
-                        
-                        oldIP = iph->saddr;
-                        iph->saddr = p->new_src;
-                        newIP = iph->saddr;
-
-                        inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
-                        csum_replace4(&iph->check, oldIP, newIP);
-
-                        ip_route_me_harder(skb, RTN_UNSPEC);
-
-                        return NF_QUEUE;
-                    } 
+                    return NF_QUEUE;
                 } 
 
 
                 //otherwise we just send the traffic directly
 
                 else{
-                	//printk(KERN_ALERT "\nThe seq number is %u and the ack number is %u\n", seqNumber,ackSeq );
-                	//printk( KERN_ALERT "The hash value seq number is %u and the ack number is %u\n", p->Seq,p->Ack );
-
-                	//continuously update seq number
-                    if(p->Seq ==0){
-                    	p->Seq =  seqNumber;
-                    	//this is to initialize the seq number
-                    } 
-                    else if(p->Seq < seqNumber || ( p->Seq > 0xf0000000 && seqNumber <0x10000000 )  ){
-                        //the second half condition is to avoid seq number wrap up
-                         p->Seq =  seqNumber;
-                    }
-
                     __be32 oldIP = iph->daddr;
                     iph->daddr = p->dst;
                     __be32 newIP = iph->daddr;
-                    
                     inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
                     csum_replace4(&iph->check, oldIP, newIP);
                     
                     oldIP = iph->saddr;
                     iph->saddr = p->src;
                     newIP = iph->saddr;
-
                     inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
                     csum_replace4(&iph->check, oldIP, newIP);
 
@@ -175,42 +121,6 @@ static unsigned int outgoing_begin (unsigned int hooknum,
             return NF_ACCEPT;
         }   
 
-/*
-*******************************************************************************************
-*******************************************************************************************
-        The following is for UDP handling, 
-        used for check millions packets per seconds tests
-******************************************************************************************
-******************************************************************************************
-*/
-        else if( iph->protocol == IPPROTO_UDP){
-                struct udphdr *udph;
-                udph = udp_hdr (skb );
-
-                unsigned int iphdr_len ;
-                iphdr_len= sizeof (struct iphdr);
-
-                //create new space at the head of socket buffer
-                record_t l, *p ;
-                memset(&l, 0, sizeof(record_t) ) ;
-                p=NULL;
-                //get_random_bytes ( &i, sizeof (int) );
-                l.key.dst =iph->daddr ;
-                l.key.dport = ntohs(udph->dest) ;
-                HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p) ;
-                if(p){
-	                __be32 oldIP = iph->daddr;
-                    iph->daddr = p->dst;
-                    __be32 newIP = iph->daddr;
-                    if (udph->check || skb->ip_summed == CHECKSUM_PARTIAL) {
-                        inet_proto_csum_replace4(&udph->check, skb, oldIP, newIP, 1);
-                    }
-                csum_replace4(&iph->check, oldIP, newIP);
-              //  ip_route_me_harder(skb, RTN_UNSPEC);
-                return NF_ACCEPT;
-                } 
-        	return NF_ACCEPT;
-        }
      return NF_ACCEPT;
 
     }

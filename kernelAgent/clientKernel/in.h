@@ -73,7 +73,7 @@ static unsigned int incoming_begin(unsigned int hooknum,
                 iph->saddr = p->src ;
                 iph->daddr = p->dst ;
                 
-
+                /*
                 memset(&l, 0, sizeof(record_t));
                 l.key.dst =iph->saddr ;
                 l.key.dport = ntohs(tcph->source) ;
@@ -111,6 +111,7 @@ static unsigned int incoming_begin(unsigned int hooknum,
 
                     
                 }
+                */
             } 
             return NF_ACCEPT;
         }
