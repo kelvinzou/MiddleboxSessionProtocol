@@ -5,17 +5,20 @@
 dir='./'
 maxy=1200
 filename="$1"
+filename2="$1"
 suffix=".png"
 picname=$1$suffix
 # --rx \
 #--maxy $maxy \
 #       -i "eth1" \
+#
+#--legend   "No Migration Delay" \
 python util/plot_rate.py \
-       -f $dir/$filename  ./drop_buffer \
-       --legend "5 ms migration latency" "100 ms migration latency" \
+       -f $dir/$filename    \
        --xlabel 'Time (100ms)' \
        --ylabel 'Rate (Mbps)' \
        --maxy $maxy \
+       --rx  \
        -i "total" \
        --total \
        -o $dir/$picname

@@ -179,6 +179,9 @@ int main(int argc, char *argv[])
 
 
     double elapsedTime;
+
+
+//this is for making UDP socket! 
     gettimeofday(&t1, NULL);
 
     sockfd=socket(AF_INET,SOCK_DGRAM,0);
