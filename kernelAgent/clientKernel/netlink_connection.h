@@ -83,7 +83,7 @@ static void netlink_agent(struct sk_buff *skb)
         
         if(p){
             p->dst =  in_aton("10.0.4.1");
-            p->src =  in_aton("10.0.2.2");
+            p->src =  in_aton("10.0.4.2");
             p->Migrate = 1;
             printk(KERN_ALERT "The recorded max seq number is %u\n" );
         }
