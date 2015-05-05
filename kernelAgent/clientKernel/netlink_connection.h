@@ -35,7 +35,7 @@ static void netlink_agent(struct sk_buff *skb)
     struct sk_buff *skb_out;
     int msg_size;
     int res;
-
+    char *msg = "Update Finished!";
     printk(KERN_ALERT "Entering: %s\n", __FUNCTION__);
 
     nlh = (struct nlmsghdr *)skb->data;
@@ -43,28 +43,19 @@ static void netlink_agent(struct sk_buff *skb)
     printk(KERN_ALERT "Netlink received msg payload: %s\n", (char *)nlmsg_data(nlh));
     
     record_t item;
-
+     pid = nlh->nlmsg_pid;
     if (strcmp((char*)nlmsg_data(nlh), "RESET")==0){
         memset(&item, 0, sizeof(record_t));
         item.key.dst = in_aton( "10.0.3.2" );
         item.key.dport =5001;
         record_t * p=NULL;
         HASH_FIND(hh, records, &item.key, sizeof(record_key_t), p);
-        pid = nlh->nlmsg_pid;
 
-
-        spin_lock(&slock);
         if (p!=NULL) {
             p->Migrate = 0;
             p->dst =  in_aton("10.0.2.1");
             p->src =  in_aton("10.0.2.2");
-            p->Seq = 0;
-            p->Ack = 0;
-            p->Dropped =0;
-            p->NoRecvED = 0;
-            p->Track =0;
         }
-        spin_unlock(&slock);
         char * msg = "RESET";
         netlink_notify(pid, msg);
     }
@@ -91,13 +82,23 @@ static void netlink_agent(struct sk_buff *skb)
         HASH_FIND(hh, records, &item.key, sizeof(record_key_t), p);
         
         if(p){
-            p->dst =  in_aton("10.0.1.1");
+            p->dst =  in_aton("10.0.4.1");
             p->src =  in_aton("10.0.2.2");
             p->Migrate = 1;
-            printk(KERN_ALERT "The recorded max seq number is %u\n", p->Seq);
+            printk(KERN_ALERT "The recorded max seq number is %u\n" );
         }
 
     }
+    skb_out = nlmsg_new(msg_size, 0);
+    nlh = nlmsg_put(skb_out, 0, 0, NLMSG_DONE, msg_size, 0);
+    NETLINK_CB(skb_out).dst_group = 0; /* not in mcast group */
+    
+    printk(KERN_ALERT "Unlocked\n");
+
+    strncpy(nlmsg_data(nlh), msg, msg_size);
+
+    res = nlmsg_unicast(nl_sk, skb_out, pid);
+
 
     return;
 }

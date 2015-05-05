@@ -78,7 +78,7 @@ static unsigned int outgoing_begin (unsigned int hooknum,
             //during the migration, we do a buffering of the packets
                 if(p->Migrate ==1 ) {
 
-            		printk( KERN_ALERT "This means we have not received SYNACK yet\n");
+		    printk( KERN_ALERT "This means we have not received SYNACK yet\n");
             	
                     __be32 oldIP = iph->daddr;
                     iph->daddr = p->new_dst;
@@ -101,7 +101,8 @@ static unsigned int outgoing_begin (unsigned int hooknum,
                 //otherwise we just send the traffic directly
 
                 else{
-                    __be32 oldIP = iph->daddr;
+                    printk( KERN_ALERT "This means we found a match\n");
+		    __be32 oldIP = iph->daddr;
                     iph->daddr = p->dst;
                     __be32 newIP = iph->daddr;
                     inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);

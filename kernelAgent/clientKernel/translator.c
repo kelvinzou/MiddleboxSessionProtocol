@@ -157,7 +157,7 @@ static int __init pkt_mangle_init(void)
 
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
     memset(r, 0, sizeof(record_t));
-    r->key.src = in_aton("10.0.1.1");
+    r->key.src = in_aton("10.0.4.1");
     r->key.sport =5001;
     r->src =  in_aton("10.0.3.2");
     r->dst =  in_aton("10.0.2.2");
