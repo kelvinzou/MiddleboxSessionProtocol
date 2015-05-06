@@ -10,7 +10,8 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <signal.h>
-
+#include <stdio.h>
+#include <string.h>
 #include <linux/genetlink.h>
 
 #define NETLINK_USER 31
@@ -97,23 +98,22 @@ void main(int argc, char *argv[])
     //remove means remove some string, 
     //add means readd back the rules
     n =0;
-    char input2 [MAX_PAYLOAD-1];
-    n = scanf("%s", input2);
-    printf("input2 is %s\n", input2);
+    if(strcmp(input, "SYN")==0 ){
+        usleep(10000);
+        char *input2 = "ACK";
+        
+        printf("input2 is %s\n", input2);
 
-    strcpy(NLMSG_DATA(nlh),input2);
+        strcpy(NLMSG_DATA(nlh),input2);
+         printf("Sending update message to kernel\n");
+        sendmsg(sock_fd, &msg, 0);
+        printf("Waiting for message from kernel\n");
 
-    
+        /* Read message from kernel */
+        recvmsg(sock_fd, &msg, 0);
+        printf("Received message payload: %s\n", NLMSG_DATA(nlh));
 
-    printf("Sending update message to kernel\n");
-    sendmsg(sock_fd, &msg, 0);
-    printf("Waiting for message from kernel\n");
-
-    /* Read message from kernel */
-    recvmsg(sock_fd, &msg, 0);
-    printf("Received message payload: %s\n", NLMSG_DATA(nlh));
-
-
+    }
 
 
 

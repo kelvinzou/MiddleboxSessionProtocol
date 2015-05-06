@@ -65,7 +65,7 @@ static void netlink_agent(struct sk_buff *skb)
         item.key.dst = in_aton( "10.0.3.2" );
         item.key.dport =5001;
         record_t * p=NULL;
-
+         printk(KERN_ALERT "SYN is received!\n" );
         HASH_FIND(hh, records, &item.key, sizeof(record_key_t), p);
         
         if (p!=NULL) {            
@@ -85,7 +85,7 @@ static void netlink_agent(struct sk_buff *skb)
             p->dst =  in_aton("10.0.4.1");
             p->src =  in_aton("10.0.4.2");
             p->Migrate = 1;
-            printk(KERN_ALERT "The recorded max seq number is %u\n" );
+            printk(KERN_ALERT "SYN is received!\n" );
         }
 
     }
