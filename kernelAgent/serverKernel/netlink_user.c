@@ -10,7 +10,8 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <signal.h>
-
+#include <stdio.h>
+#include <string.h>
 #include <linux/genetlink.h>
 
 #define NETLINK_USER 31
@@ -79,6 +80,41 @@ void main(int argc, char *argv[])
     /* Read message from kernel */
     recvmsg(sock_fd, &msg, 0);
     printf("Received message payload: %s\n", NLMSG_DATA(nlh));
+
+
+    memset(nlh, 0, NLMSG_SPACE(MAX_PAYLOAD));
+    nlh->nlmsg_len = NLMSG_SPACE(MAX_PAYLOAD);
+    nlh->nlmsg_pid = getpid();
+    nlh->nlmsg_flags = 0;
+
+
+    iov.iov_base = (void *)nlh;
+    iov.iov_len = nlh->nlmsg_len;
+    msg.msg_name = (void *)&dest_addr;
+    msg.msg_namelen = sizeof(dest_addr);
+    msg.msg_iov = &iov;
+    msg.msg_iovlen = 1;
+
+    //remove means remove some string, 
+    //add means readd back the rules
+    n =0;
+    if(strcmp(input, "SYN")==0 ){
+        usleep(10000);
+        char *input2 = "ACK";
+        
+        printf("input2 is %s\n", input2);
+
+        strcpy(NLMSG_DATA(nlh),input2);
+         printf("Sending update message to kernel\n");
+        sendmsg(sock_fd, &msg, 0);
+        printf("Waiting for message from kernel\n");
+
+        /* Read message from kernel */
+        recvmsg(sock_fd, &msg, 0);
+        printf("Received message payload: %s\n", NLMSG_DATA(nlh));
+
+    }
+
 
 
     close(sock_fd);

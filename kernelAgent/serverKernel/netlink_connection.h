@@ -23,7 +23,7 @@ void HashReleaseBuffer(record_t * item){
     record_t * p=NULL;
     HASH_FIND(hh, records, &item->key, sizeof(record_key_t), p);
     if (p!=NULL) {
-        p->Migrate = 1;
+        p->Migrate =0;
         printk(KERN_ALERT "HASH buffer modification happens!\n");
     }
 }
