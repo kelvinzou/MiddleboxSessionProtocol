@@ -380,10 +380,7 @@ int main(int argc, char *argv[])
                 if(first_ack ==0){
                     printf("ACK\n");
                     first_ack=1;
-                    if(middlePoint!=1){
-                    
-                        pthread_mutex_unlock(&buffer_lock);
-                    }
+                    pthread_mutex_unlock(&buffer_lock);
                     char * netlink_message = "ACK";
                     send_netlink(netlink_message);
                 }
@@ -416,11 +413,15 @@ int main(int argc, char *argv[])
 //This is the netfilter queue management thread
 
 void * sendback_packet(void * ptr){
+    printf("entering queue releasing thread!\n");
     int packet_counter =0;
     if(NETLINK_FLAG){
+        printf("entering queue releasing before while loop!\n");
         while ((recvCount = recv(nf_queue_fd, buf, sizeof(buf), 0))) 
         {
             pthread_mutex_lock(&buffer_lock);
+            
+            pthread_mutex_unlock(&buffer_lock);
             
             packet_counter ++;
             printf("pkt received %d\n", packet_counter);
@@ -429,7 +430,7 @@ void * sendback_packet(void * ptr){
             } else{
                 nfq_handle_packet(h, buf, recvCount);
             }
-            pthread_mutex_unlock(&buffer_lock);
+            
         }
     }
 }
