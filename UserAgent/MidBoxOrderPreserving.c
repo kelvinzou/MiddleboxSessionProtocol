@@ -193,7 +193,7 @@ int main(int argc, char *argv[])
     pthread_t thread[THREAD_NUM];
     pthread_t releaseQueue_thread;
 
-    pthread_create(&releaseQueue_thread, NULL, sendback_packet, NULL);
+    
 
     char * mesg;
     struct sockaddr_in * clientAddressPtr;
@@ -225,6 +225,7 @@ int main(int argc, char *argv[])
                     send_netlink(netlink_message);
                     }
                     printf("SYN\n");
+                    pthread_create(&releaseQueue_thread, NULL, sendback_packet, NULL);
                 }
                 
 
@@ -380,12 +381,10 @@ int main(int argc, char *argv[])
                 if(first_ack ==0){
                     printf("ACK\n");
                     first_ack=1;
-                    pthread_mutex_unlock(&buffer_lock);
                     char * netlink_message = "ACK";
                     send_netlink(netlink_message);
+                    pthread_mutex_unlock(&buffer_lock);
                 }
-
-
                 pthread_mutex_lock(&lock);
                 update_ack = 1; 
                 pthread_mutex_unlock(&lock);
@@ -417,13 +416,10 @@ void * sendback_packet(void * ptr){
     int packet_counter =0;
     if(NETLINK_FLAG){
         printf("entering queue releasing before while loop!\n");
+        pthread_mutex_lock(&buffer_lock);
+        printf("entering queue releasing after mutex lock\n");
         while ((recvCount = recv(nf_queue_fd, buf, sizeof(buf), 0))) 
         {
-            printf("entering queue releasing before mutex lock\n");
-            pthread_mutex_lock(&buffer_lock);
-            
-            pthread_mutex_unlock(&buffer_lock);
-            
             packet_counter ++;
             printf("pkt received %d\n", packet_counter);
             if(recvCount <0){
@@ -433,6 +429,8 @@ void * sendback_packet(void * ptr){
             }
             
         }
+        pthread_mutex_unlock(&buffer_lock);
+            
     }
 }
 
@@ -442,12 +440,7 @@ void * sendback_packet(void * ptr){
 static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
               struct nfq_data *nfa, void *data)
 {
-    //u_int32_t id = print_pkt(nfa);
-    unsigned char * full_packet_ptr;
     int id = 0;
-    struct nfqnl_msg_packet_hdr *ph;
-    ph = nfq_get_msg_packet_hdr(nfa);
-
     printf("entering callback\n");
     return nfq_set_verdict(qh, id, NF_ACCEPT, 0, NULL);
 }
@@ -491,10 +484,7 @@ void nfq_init(){
         fprintf(stderr, "can't set packet_copy mode\n");
         exit(1);
     }
-    if(nfq_set_queue_maxlen(qh, 2048) <0){
-        fprintf(stderr, "can't set queue length \n");
-        exit(1);
-    }
+
     nh = nfq_nfnlh(h);
     nf_queue_fd = nfnl_fd(nh);
 }

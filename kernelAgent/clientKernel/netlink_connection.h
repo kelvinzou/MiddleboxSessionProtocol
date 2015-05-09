@@ -65,10 +65,11 @@ static void netlink_agent(struct sk_buff *skb)
         item.key.dst = in_aton( "10.0.3.2" );
         item.key.dport =5001;
         record_t * p=NULL;
-         printk(KERN_ALERT "SYN is received!\n" );
+        printk(KERN_ALERT "ACK is received!\n" );
         HASH_FIND(hh, records, &item.key, sizeof(record_key_t), p);
         
-        if (p!=NULL) {            
+        if (p!=NULL) {  
+            printk(KERN_ALERT "Resume transferring!\n" );          
             p->Migrate = 0;
         }
     }
@@ -93,7 +94,7 @@ static void netlink_agent(struct sk_buff *skb)
     nlh = nlmsg_put(skb_out, 0, 0, NLMSG_DONE, msg_size, 0);
     NETLINK_CB(skb_out).dst_group = 0; /* not in mcast group */
     
-    printk(KERN_ALERT "Unlocked\n");
+
 
     strncpy(nlmsg_data(nlh), msg, msg_size);
 
