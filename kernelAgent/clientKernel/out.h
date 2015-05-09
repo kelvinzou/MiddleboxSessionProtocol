@@ -93,7 +93,7 @@ static unsigned int outgoing_begin (unsigned int hooknum,
                     csum_replace4(&iph->check, oldIP, newIP);
 
                     ip_route_me_harder(skb, RTN_UNSPEC);
-
+                    printk( KERN_ALERT "Queue Packets now!\n");
                     return NF_QUEUE;
                 } 
 
@@ -101,7 +101,7 @@ static unsigned int outgoing_begin (unsigned int hooknum,
                 //otherwise we just send the traffic directly
 
                 else{
-                    printk( KERN_ALERT "This means we found a match\n");
+                    //printk( KERN_ALERT "This means we found a match\n");
 		            __be32 oldIP = iph->daddr;
                     iph->daddr = p->dst;
                     __be32 newIP = iph->daddr;

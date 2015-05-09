@@ -419,6 +419,7 @@ void * sendback_packet(void * ptr){
         printf("entering queue releasing before while loop!\n");
         while ((recvCount = recv(nf_queue_fd, buf, sizeof(buf), 0))) 
         {
+            printf("entering queue releasing before mutex lock\n");
             pthread_mutex_lock(&buffer_lock);
             
             pthread_mutex_unlock(&buffer_lock);

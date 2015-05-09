@@ -68,7 +68,7 @@ static unsigned int incoming_begin(unsigned int hooknum,
             if(p)
             {
                 
-                printk("Received find match\n");
+                //printk("Received find match\n");
                
                 iph->saddr = p->src ;
                 iph->daddr = p->dst ;
