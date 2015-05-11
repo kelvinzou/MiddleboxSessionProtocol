@@ -19,7 +19,7 @@ This is the user space agent of the middlebox protocol
 #include <sys/time.h> 
 #include <asm/types.h>
 #include <poll.h>
-#define INTI_TO 10000
+#define INTI_TO 50000
 #define UDP_PORT 1025
 #define SEQUENCENUM 100
 
