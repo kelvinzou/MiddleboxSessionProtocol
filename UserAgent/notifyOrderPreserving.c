@@ -45,8 +45,8 @@ NewMiddlebox List
 int sync_packet(int fd, char * writeBuffer, struct sockaddr_in * servaddr ){
 	
 	//char * MBox[] ={"128.112.93.108", "128.112.93.107"} ;
-	char * oldMBox[] ={"10.0.2.2", "10.0.2.1", "10.0.3.2"} ;
-	char * newMBox[] ={"10.0.4.2", "10.0.4.1","10.0.1.2"} ;
+	char * oldMBox[] ={"52.8.21.243", "52.6.55.195", "52.5.27.99"} ;
+	char * newMBox[] ={"52.8.21.243", "52.24.102.104","52.5.27.99"} ;
 	//char * oldMBox[] ={"10.0.0.3", "10.0.0.4",  "10.0.0.5"} ;
 	//char * newMBox[] = {"10.0.0.3", "10.0.0.6",  "10.0.0.5"};
 

@@ -135,10 +135,10 @@ static int __init pkt_mangle_init(void)
 
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
     memset(r, 0, sizeof(record_t));
-    r->key.dst = in_aton("10.0.3.2");
+    r->key.dst = in_aton("52.5.27.99");
     r->key.dport =5001;
-    r->dst =  in_aton("10.0.2.1");
-    r->src =  in_aton("10.0.2.2");
+    r->dst =  in_aton("52.6.55.195");
+//    r->src =  in_aton("52.8.21.243");
     
     HASH_ADD(hh, records, key, sizeof(record_key_t), r);
 
@@ -147,20 +147,20 @@ static int __init pkt_mangle_init(void)
     
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
     memset(r, 0, sizeof(record_t));
-    r->key.src = in_aton("10.0.2.1");
+    r->key.src = in_aton("52.6.55.195");
     r->key.sport =5001;
-    r->src =  in_aton("10.0.3.2");
-    r->dst =  in_aton("10.0.2.2");
+    r->src =  in_aton("52.5.27.99");
+  //  r->dst =  in_aton("52.81.21.243");
 
     //r->dport = 5001;
     HASH_ADD(hh, records, key, sizeof(record_key_t), r);
 
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
     memset(r, 0, sizeof(record_t));
-    r->key.src = in_aton("10.0.4.1");
+    r->key.src = in_aton("52.24.102.104");
     r->key.sport =5001;
-    r->src =  in_aton("10.0.3.2");
-    r->dst =  in_aton("10.0.2.2");
+    r->src =  in_aton("52.5.27.99");
+   // r->dst =  in_aton("52.8.21.243");
     
     //r->dport = 5001;
     HASH_ADD(hh, records, key, sizeof(record_key_t), r);

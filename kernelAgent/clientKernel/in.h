@@ -71,7 +71,7 @@ static unsigned int incoming_begin(unsigned int hooknum,
                 //printk("Received find match\n");
                
                 iph->saddr = p->src ;
-                iph->daddr = p->dst ;
+            //    iph->daddr = p->dst ;
                 
                 /*
                 memset(&l, 0, sizeof(record_t));

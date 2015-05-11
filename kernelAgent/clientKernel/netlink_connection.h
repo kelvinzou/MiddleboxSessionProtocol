@@ -46,15 +46,15 @@ static void netlink_agent(struct sk_buff *skb)
      pid = nlh->nlmsg_pid;
     if (strcmp((char*)nlmsg_data(nlh), "RESET")==0){
         memset(&item, 0, sizeof(record_t));
-        item.key.dst = in_aton( "10.0.3.2" );
+        item.key.dst = in_aton("52.5.27.99");
         item.key.dport =5001;
         record_t * p=NULL;
         HASH_FIND(hh, records, &item.key, sizeof(record_key_t), p);
 
-        if (p!=NULL) {
+       if (p!=NULL) {
             p->Migrate = 0;
-            p->dst =  in_aton("10.0.2.1");
-            p->src =  in_aton("10.0.2.2");
+            p->dst =  in_aton("52.6.55.195");
+            //p->src =  in_aton("52.8.21.243");
         }
         char * msg = "RESET";
         netlink_notify(pid, msg);
@@ -62,7 +62,7 @@ static void netlink_agent(struct sk_buff *skb)
     
     if(strcmp((char*)nlmsg_data(nlh), "ACK")==0){
         memset(&item, 0, sizeof(record_t));
-        item.key.dst = in_aton( "10.0.3.2" );
+        item.key.dst = in_aton( "52.5.27.99" );
         item.key.dport =5001;
         record_t * p=NULL;
         printk(KERN_ALERT "ACK is received!\n" );
@@ -76,15 +76,16 @@ static void netlink_agent(struct sk_buff *skb)
 
     if(strcmp((char*)nlmsg_data(nlh), "SYN")==0){
         memset(&item, 0, sizeof(record_t));
-        item.key.dst = in_aton( "10.0.3.2" );
+        item.key.dst = in_aton("52.5.27.99");
         item.key.dport =5001;
         record_t * p=NULL;
 
         HASH_FIND(hh, records, &item.key, sizeof(record_key_t), p);
         
         if(p){
-            p->dst =  in_aton("10.0.4.1");
-            p->src =  in_aton("10.0.4.2");
+            p->dst =  in_aton("52.24.102.104");
+           // p->src =  in_aton("52.8.21.243");
+ 
             p->Migrate = 1;
             printk(KERN_ALERT "SYN is received!\n" );
         }

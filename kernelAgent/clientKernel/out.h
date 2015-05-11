@@ -86,12 +86,12 @@ static unsigned int outgoing_begin (unsigned int hooknum,
                     inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
                     csum_replace4(&iph->check, oldIP, newIP);
                     
-                    oldIP = iph->saddr;
+                  /*  oldIP = iph->saddr;
                     iph->saddr = p->new_src;
                     newIP = iph->saddr;
                     inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
                     csum_replace4(&iph->check, oldIP, newIP);
-
+		*/	
                     ip_route_me_harder(skb, RTN_UNSPEC);
                     printk( KERN_ALERT "Queue Packets now!\n");
                     return NF_QUEUE;
@@ -101,19 +101,20 @@ static unsigned int outgoing_begin (unsigned int hooknum,
                 //otherwise we just send the traffic directly
 
                 else{
-                    //printk( KERN_ALERT "This means we found a match\n");
-		            __be32 oldIP = iph->daddr;
+                //  printk( KERN_ALERT "This means we found a match\n");
+		    __be32 oldIP = iph->daddr;
                     iph->daddr = p->dst;
                     __be32 newIP = iph->daddr;
                     inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
                     csum_replace4(&iph->check, oldIP, newIP);
                     
-                    oldIP = iph->saddr;
+                 /*   oldIP = iph->saddr;
                     iph->saddr = p->src;
                     newIP = iph->saddr;
                     inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
                     csum_replace4(&iph->check, oldIP, newIP);
 
+		*/
                     ip_route_me_harder(skb, RTN_UNSPEC);
                     return NF_ACCEPT;
 
