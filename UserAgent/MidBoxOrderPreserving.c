@@ -616,6 +616,7 @@ void relayMsg(char * request, int n, int * port_num, struct sockaddr_in * cliAdd
     poll_fd[0].events = POLLIN|POLLPRI;
    
     i =0;
+/*
     while(1){
         //printf("Before entering session!\n");
         i = poll(poll_fd, 1, RETRANSMIT_TIMER/1000);
@@ -633,7 +634,12 @@ void relayMsg(char * request, int n, int * port_num, struct sockaddr_in * cliAdd
             usleep(RETRANSMIT_TIMER);
         }
     }
-    while(1){
+*/  
+ 	gettimeofday(&t2, NULL);
+ 	double interval_time = (t2.tv_usec - t1.tv_usec) + (t2.tv_sec - t1.tv_sec) * 1000000;
+	 printf("Receive SYN-ACK, we can exit the first SYN loop now %g\n", interval_time);
+                  
+	while(1){
         m = recvfrom(SendSockfd,recvsendmsg,1400,0,NULL,NULL);
         int action = RecvHeaderPointer->action;
         int sequenceNumber = RecvHeaderPointer->sequenceNum;
