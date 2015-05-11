@@ -123,9 +123,11 @@ int main(int argc, char**argv)
 	gettimeofday(&t1, NULL);
 	struct pollfd poll_fd[1] ;
 	poll_fd[0].fd = sockfd;
-    poll_fd[0].events = POLLIN|POLLPRI;
+    	poll_fd[0].events = POLLIN|POLLPRI;
 	printf("Before ACK \n");
+	n=recvfrom(sockfd,recvline,1400,0,NULL,NULL);
 
+/*
     while(1)
     {
     	int i = poll(poll_fd, 1, 1);
@@ -134,12 +136,12 @@ int main(int argc, char**argv)
     		n=recvfrom(sockfd,recvline,1400,0,NULL,NULL);
     		break;
     	} else{
-    		usleep(1000);
-			sync_packet(sockfd, sendline, &servaddr);
+    		usleep(50000);
+		sync_packet(sockfd, sendline, &servaddr);
     	}
     }
 			//fputs(recvline,stdout);
-
+*/
 	int ack = *(int *) recvline;
 	int seq = *(int *) (recvline +4);
 	int end = *(int *) (recvline+20);

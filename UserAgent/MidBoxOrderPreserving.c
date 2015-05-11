@@ -182,8 +182,7 @@ int main(int argc, char *argv[])
     gettimeofday(&t1, NULL);
 
     sockfd=socket(AF_INET,SOCK_DGRAM,0);
-
-    bzero(&servaddr,sizeof(servaddr));
+   bzero(&servaddr,sizeof(servaddr));
     servaddr.sin_family = AF_INET;
     servaddr.sin_addr.s_addr=htonl(INADDR_ANY);
     servaddr.sin_port=htons(UDP_PORT);
@@ -278,7 +277,12 @@ int main(int argc, char *argv[])
                 else if (msgheader->oldMboxLength >1 && msgheader->newMboxLength >1 ) {
                     // it is the beginning of split, at the first hop
                     sequenceNumber = sequenceNum;
-                    printf("This is for split\n");
+
+		    gettimeofday(&t2, NULL);
+		    double interval_time = (t2.tv_usec - t1.tv_usec) + (t2.tv_sec - t1.tv_sec) * 1000000;
+			
+                    printf("This is for split %g\n", interval_time );
+
                     int oldMesgLen = sizeof(header) + 4*msgheader->oldMboxLength +4 ;
                     int newMesgLen = sizeof(header) + 4*msgheader->newMboxLength +4 ;
                     
@@ -379,7 +383,11 @@ int main(int argc, char *argv[])
           else if(msgheader->action  == 6){
             if( sequenceNumber == sequenceNum){
                 if(first_ack ==0){
-                    printf("ACK\n");
+		gettimeofday(&t1, NULL);
+ 		double interval_time = (t1.tv_usec - t2.tv_usec) + (t1.tv_sec - t2.tv_sec) * 1000000;
+ 
+
+                    printf("ACK %g\n", interval_time);
                     first_ack=1;
                     char * netlink_message = "ACK";
                     send_netlink(netlink_message);
@@ -390,8 +398,6 @@ int main(int argc, char *argv[])
                 pthread_mutex_unlock(&lock);
             } 
         }
-        gettimeofday(&t2, NULL);
-        elapsedTime =(t2.tv_sec - t1.tv_sec);
         if(elapsedTime>60)
         {
             break;
@@ -413,11 +419,16 @@ int main(int argc, char *argv[])
 
 void * sendback_packet(void * ptr){
     printf("entering queue releasing thread!\n");
-    int packet_counter =0;
+    	gettimeofday(&t2, NULL);
+ 	double interval_time = (t2.tv_usec - t1.tv_usec) + (t2.tv_sec - t1.tv_sec) * 1000000;
+ 
+
+	int packet_counter =0;
     if(NETLINK_FLAG){
-        printf("entering queue releasing before while loop!\n");
+        printf("entering queue releasing before while loop! %g\n", interval_time);
         pthread_mutex_lock(&buffer_lock);
-        printf("entering queue releasing after mutex lock\n");
+        //pthread_mutex_unlock(&buffer_lock);
+	printf("entering queue releasing after mutex lock\n");
         while ((recvCount = recv(nf_queue_fd, buf, sizeof(buf), 0))) 
         {
             packet_counter ++;
@@ -429,7 +440,6 @@ void * sendback_packet(void * ptr){
             }
             
         }
-        pthread_mutex_unlock(&buffer_lock);
             
     }
 }
@@ -613,9 +623,10 @@ void relayMsg(char * request, int n, int * port_num, struct sockaddr_in * cliAdd
 
         if(i==1){   
             //see a syn-ack and then stop retransmitting the syn packet 
-            printf("Receive SYN-ACK, we can exit the first SYN loop now\n");
-            
-            break;
+           	gettimeofday(&t2, NULL);
+ 		double interval_time = (t2.tv_usec - t1.tv_usec) + (t2.tv_sec - t1.tv_sec) * 1000000;
+		 printf("Receive SYN-ACK, we can exit the first SYN loop now %g\n", interval_time);
+                       break;
         }
         else{
             sendto(SendSockfd,sendmsg,n-4,0,(struct sockaddr *)&SendServaddr,sizeof(struct sockaddr_in ));
@@ -698,7 +709,11 @@ void * handleACK(void * ptr){
 }
 
 void * handleUpdate(void * ptr){
-    printf("Debug, get in HandleUpdate?\n");
+    gettimeofday(&t1, NULL);
+     double interval_time = (t1.tv_usec - t2.tv_usec) + (t1.tv_sec - t2.tv_sec) * 1000000;
+
+    printf("Debug, get in HandleUpdate?%g \n", interval_time);
+
     parameter * passingparameter = (parameter *) ptr;
     char * request = passingparameter->request;
     struct sockaddr_in * cliAddr = passingparameter->cliAddr;
