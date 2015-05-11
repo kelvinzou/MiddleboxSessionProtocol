@@ -92,7 +92,7 @@ int sequenceNumber = 0;
 int thread_iterator = 0;
 int sockfd;
 struct sockaddr_in servaddr;
-struct timeval t1, t2;
+struct timeval t1, t2 , t0, t3;
 struct sockaddr_in * replyAddr[2];
 
 
@@ -216,6 +216,7 @@ int main(int argc, char *argv[])
             } else{
                 gettimeofday(&t1, NULL);
                 
+   		gettimeofday(&t0,NULL);
                 if (first_syn==0){
                     first_syn=1;
                     pthread_mutex_lock(&buffer_lock);
@@ -347,7 +348,7 @@ int main(int argc, char *argv[])
                     printf("This is for merge\n");
                     
                     if(msgheader->oldMboxLength == 1){
-                        old_syn = 1;
+                        old_syn = 1;	
                         if(new_syn ==1){
                             sequenceNumber = sequenceNum;
                             replyAddr[0] = clientAddressPtr;
@@ -635,16 +636,23 @@ void relayMsg(char * request, int n, int * port_num, struct sockaddr_in * cliAdd
         }
     }
 */  
- 	gettimeofday(&t2, NULL);
- 	double interval_time = (t2.tv_usec - t1.tv_usec) + (t2.tv_sec - t1.tv_sec) * 1000000;
-	 printf("Receive SYN-ACK, we can exit the first SYN loop now %g\n", interval_time);
-                  
+       
 	while(1){
         m = recvfrom(SendSockfd,recvsendmsg,1400,0,NULL,NULL);
-        int action = RecvHeaderPointer->action;
+        
+	gettimeofday(&t2, NULL);
+ 	double interval_time = (t2.tv_usec - t1.tv_usec) + (t2.tv_sec - t1.tv_sec) * 1000000;
+	 printf("Receive SYN-ACK, we can exit the first SYN loop now %g\n", interval_time);
+        
+ 	interval_time = (t2.tv_usec - t0.tv_usec) + (t2.tv_sec - t0.tv_sec) * 1000000;
+	 printf("Receive SYN-ACK, we can exit the first SYN loop now %g\n", interval_time);
+          
+      
+	int action = RecvHeaderPointer->action;
         int sequenceNumber = RecvHeaderPointer->sequenceNum;
-        printf("Action is and sequence number is %d and %d and ack value is %d \n", action, sequenceNumber, update_ack);
-        pthread_mutex_lock(&lock);
+        
+	printf("Action is and sequence number is %d and %d and ack value is %d \n", action, sequenceNumber, update_ack);
+        //pthread_mutex_lock(&lock);
         if(update_ack !=1){
             if(sendmsgHeader->oldMboxLength >0 ){
                 //it is the old path message and we have to make sure the new path is also set up
@@ -670,9 +678,9 @@ void relayMsg(char * request, int n, int * port_num, struct sockaddr_in * cliAdd
             printf("Packet is been acked, so we can exit syn-ack loop now!\n");
             break;
         }
-        pthread_mutex_unlock(&lock);
+        //pthread_mutex_unlock(&lock);
     }
-    pthread_mutex_unlock(&lock);
+    //pthread_mutex_unlock(&lock);
     while(1){
         //free(cliAddr);
         //the point here is to block everything and retransmit the ACK if we see an SYN-ACK
