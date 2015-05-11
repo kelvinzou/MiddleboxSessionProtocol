@@ -390,10 +390,13 @@ int main(int argc, char *argv[])
 
                     printf("ACK %g\n", interval_time);
                     first_ack=1;
-                    char * netlink_message = "ACK";
+                    if(NETLINK_FLAG){
+		    char * netlink_message = "ACK";
                     send_netlink(netlink_message);
+		    
                     pthread_mutex_unlock(&buffer_lock);
-                }
+                    }	
+		}
                 pthread_mutex_lock(&lock);
                 update_ack = 1; 
                 pthread_mutex_unlock(&lock);
