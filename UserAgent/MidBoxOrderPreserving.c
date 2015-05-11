@@ -52,7 +52,7 @@ This is the user space agent of the middlebox protocol
 
 #define NETLINK_FLAG false
 
-#define RETRANSMIT_TIMER 1000 //minimum is 1000 since poll only supports down to 1 ms
+#define RETRANSMIT_TIMER 100000 //minimum is 1000 since poll only supports down to 1 ms
 
 using namespace std;
 
