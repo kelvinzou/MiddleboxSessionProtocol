@@ -52,7 +52,7 @@ This is the user space agent of the middlebox protocol
 
 #define NETLINK_FLAG true
 
-#define RETRANSMIT_TIMER 50000 //minimum is 1000 since poll only supports down to 1 ms
+#define RETRANSMIT_TIMER 1000 //minimum is 1000 since poll only supports down to 1 ms
 
 using namespace std;
 
@@ -665,7 +665,7 @@ void relayMsg(char * request, int n, int * port_num, struct sockaddr_in * cliAdd
                 }
                 
             } 
-            else {
+            if(sendmsgHeader->newMboxLength >0 ){
                 new_syn_ack =1;
                 if(old_syn_ack ==1){
                     sendto(sockfd,recvsendmsg,m,0,(struct sockaddr *) cliAddr,sizeof(struct sockaddr_in ));
