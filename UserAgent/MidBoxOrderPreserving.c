@@ -50,7 +50,7 @@ This is the user space agent of the middlebox protocol
 
 #define THREAD_NUM 100
 
-#define NETLINK_FLAG false
+#define NETLINK_FLAG true
 
 #define RETRANSMIT_TIMER 100000 //minimum is 1000 since poll only supports down to 1 ms
 
