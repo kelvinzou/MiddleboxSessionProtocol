@@ -131,41 +131,41 @@ static int __init pkt_mangle_init(void)
     
     int counter = 1025;
     long timeValue;
-
-
-    r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
-    memset(r, 0, sizeof(record_t));
-    r->key.dst = in_aton("10.0.3.2");
-    r->key.dport =5001;
-    r->dst =  in_aton("10.0.2.1");
-    r->src =  in_aton("10.0.2.2");
     
-    HASH_ADD(hh, records, key, sizeof(record_key_t), r);
+    int portNum = 5000;
+    for (portNum = 5000; portNum<5500; portNum++){
 
-
+    	r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
+    	memset(r, 0, sizeof(record_t));
+    	r->key.dst = in_aton("10.0.3.2");
+    	r->key.dport =portNum;
+    	r->dst =  in_aton("10.0.2.1");
+    	r->src =  in_aton("10.0.2.2");
+    
+   	 HASH_ADD(hh, records, key, sizeof(record_key_t), r);
 
     
-    r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
-    memset(r, 0, sizeof(record_t));
-    r->key.src = in_aton("10.0.2.1");
-    r->key.sport =5001;
-    r->src =  in_aton("10.0.3.2");
-    r->dst =  in_aton("10.0.2.2");
+    	r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
+    	memset(r, 0, sizeof(record_t));
+    	r->key.src = in_aton("10.0.2.1");
+    	r->key.sport =portNum;
+    	r->src =  in_aton("10.0.3.2");
+    	r->dst =  in_aton("10.0.2.2");
 
     //r->dport = 5001;
-    HASH_ADD(hh, records, key, sizeof(record_key_t), r);
+    	HASH_ADD(hh, records, key, sizeof(record_key_t), r);
 
-    r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
-    memset(r, 0, sizeof(record_t));
-    r->key.src = in_aton("10.0.4.1");
-    r->key.sport =5001;
-    r->src =  in_aton("10.0.3.2");
-    r->dst =  in_aton("10.0.2.2");
+    	r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
+    	memset(r, 0, sizeof(record_t));
+    	r->key.src = in_aton("10.0.4.1");
+    	r->key.sport =5001;
+    	r->src =  in_aton("10.0.3.2");
+    	r->dst =  in_aton("10.0.2.2");
     
     //r->dport = 5001;
-    HASH_ADD(hh, records, key, sizeof(record_key_t), r);
+    	HASH_ADD(hh, records, key, sizeof(record_key_t), r);
     
-   
+   }
     
     //getnstimeofday(&ts_end);
     //test_of_time = timespec_sub(ts_end,ts_start);
