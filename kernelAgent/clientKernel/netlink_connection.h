@@ -69,7 +69,8 @@ static void netlink_agent(struct sk_buff *skb)
         HASH_FIND(hh, records, &item.key, sizeof(record_key_t), p);
         
         if (p!=NULL) {  
-            printk(KERN_ALERT "Resume transferring!\n" );          
+             p->dst =  in_aton("52.24.102.104");
+           printk(KERN_ALERT "Resume transferring!\n" );          
             p->Migrate = 0;
         }
     }
@@ -83,8 +84,8 @@ static void netlink_agent(struct sk_buff *skb)
         HASH_FIND(hh, records, &item.key, sizeof(record_key_t), p);
         
         if(p){
-            p->dst =  in_aton("52.24.102.104");
-           // p->src =  in_aton("52.8.21.243");
+             p->dst =  in_aton("52.24.102.104");
+          // p->src =  in_aton("52.8.21.243");
  
             p->Migrate = 1;
             printk(KERN_ALERT "SYN is received!\n" );

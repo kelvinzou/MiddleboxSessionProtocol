@@ -49,7 +49,7 @@ This is the user space agent of the middlebox protocol
 #define UDP_PORT 1025
 
 #define THREAD_NUM 100
-
+#define NETLINK_LOSSFREE true
 #define NETLINK_FLAG true
 
 #define RETRANSMIT_TIMER 100000 //minimum is 1000 since poll only supports down to 1 ms
@@ -220,7 +220,7 @@ int main(int argc, char *argv[])
                 if (first_syn==0){
                     first_syn=1;
                     pthread_mutex_lock(&buffer_lock);
-                    if(NETLINK_FLAG){
+                    if(NETLINK_FLAG && !NETLINK_LOSSFREE ){
                     char * netlink_message = "SYN";
                     send_netlink(netlink_message);
                     }
