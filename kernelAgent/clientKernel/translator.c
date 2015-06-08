@@ -82,7 +82,7 @@ static unsigned int local_buffer(unsigned int hooknum,
 static int __init pkt_mangle_init(void)
 {   
     time_counter=0;
-	spin_lock_init(&slock);
+    spin_lock_init(&slock);
     
     printk(KERN_ALERT "\npkt_mangle output module started ...\n");
     //pre_routing
@@ -96,10 +96,9 @@ static int __init pkt_mangle_init(void)
     post_routing.priority = NF_IP_PRI_LAST;
     post_routing.hooknum = NF_IP_POST_ROUTING;
     post_routing.hook = local_buffer;
-   // nf_register_hook(&  post_routing);
+    // nf_register_hook(&  post_routing);
 
     //out put does to localout and mangle the hdr
-
     local_out.pf = NFPROTO_IPV4;
     local_out.priority =  NF_IP_PRI_FIRST;
     local_out.hooknum = NF_IP_LOCAL_OUT;
@@ -110,19 +109,17 @@ static int __init pkt_mangle_init(void)
     //net link also initilizaed here
     printk(KERN_ALERT "Entering: %s\n", __FUNCTION__);
     struct netlink_kernel_cfg cfg = {
-                .groups = 1,
-                .input = netlink_agent,
-        };
+	.groups = 1,
+	.input = netlink_agent,
+    };
     nl_sk = netlink_kernel_create(&init_net, NETLINK_USER, &cfg);
 
-    if (!nl_sk)
-    {
+    if (!nl_sk) {
         printk(KERN_ALERT "Error creating socket.\n");
         return -10;
-
     }
-
-	struct timespec ts_start,ts_end,test_of_time;
+    
+    struct timespec ts_start,ts_end,test_of_time;
 
     //create a hash table
     //getnstimeofday(&ts_start);
@@ -133,18 +130,15 @@ static int __init pkt_mangle_init(void)
     long timeValue;
     
     int portNum = 5000;
-    for (portNum = 5000; portNum<5500; portNum++){
-
+    for (portNum = 5000; portNum<5500; portNum++) {
     	r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
     	memset(r, 0, sizeof(record_t));
     	r->key.dst = in_aton("10.0.3.2");
     	r->key.dport =portNum;
     	r->dst =  in_aton("10.0.2.1");
     	r->src =  in_aton("10.0.2.2");
-    
-   	 HASH_ADD(hh, records, key, sizeof(record_key_t), r);
+	HASH_ADD(hh, records, key, sizeof(record_key_t), r);
 
-    
     	r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
     	memset(r, 0, sizeof(record_t));
     	r->key.src = in_aton("10.0.2.1");
@@ -152,7 +146,7 @@ static int __init pkt_mangle_init(void)
     	r->src =  in_aton("10.0.3.2");
     	r->dst =  in_aton("10.0.2.2");
 
-    //r->dport = 5001;
+	//r->dport = 5001;
     	HASH_ADD(hh, records, key, sizeof(record_key_t), r);
 
     	r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
@@ -162,47 +156,44 @@ static int __init pkt_mangle_init(void)
     	r->src =  in_aton("10.0.3.2");
     	r->dst =  in_aton("10.0.2.2");
     
-    //r->dport = 5001;
+	//r->dport = 5001;
     	HASH_ADD(hh, records, key, sizeof(record_key_t), r);
-    
-   }
+	
+    }
     
     //getnstimeofday(&ts_end);
     //test_of_time = timespec_sub(ts_end,ts_start);
     return 0;
-
 }
 
 static void __exit pkt_mangle_exit(void)
 {
     nf_unregister_hook(&local_out);
     nf_unregister_hook(&pre_routing);
-   // nf_unregister_hook(&post_routing);
-
+    // nf_unregister_hook(&post_routing);
+    
     netlink_kernel_release(nl_sk);
-
     
     //this is hash table 
     struct timespec ts_start,ts_end,test_of_time;
     getnstimeofday(&ts_start);
-     record_t  *p;
-     record_t *tmp;
-     int counter;
-     counter = 0;
-     
-     HASH_ITER(hh, records, p, tmp) {
-     printk("The tracked max seq number is %u and %u\n", p->Seq, p->Ack);
-     HASH_DEL(records, p);
-     counter ++;
-      kfree(p);
+    record_t  *p;
+    record_t *tmp;
+    int counter;
+    counter = 0;
+    
+    HASH_ITER(hh, records, p, tmp) {
+	printk("The tracked max seq number is %u and %u\n", p->Seq, p->Ack);
+	HASH_DEL(records, p);
+	counter ++;
+	kfree(p);
     }
     getnstimeofday(&ts_end);
     test_of_time = timespec_sub(ts_end,ts_start);
     printk(KERN_ALERT "Deletion takes time %lu", test_of_time.tv_nsec);
-
+    
     printk(KERN_ALERT "\n delete %d \n", counter);
     printk(KERN_ALERT "\npkt_mangle output module stopped ...\n");
-
 } 
 
 
