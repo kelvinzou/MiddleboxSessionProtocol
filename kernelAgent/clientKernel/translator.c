@@ -190,7 +190,7 @@ static int __init pkt_mangle_init(void)
     r->key.dst = in_aton(SE_ADDR);
     r->key.dport = 5003;
     r->dst =  in_aton(M2_ADDR);
-    //    r->src =  in_aton("52.8.21.243");
+    r->src =  in_aton("10.0.4.2");
     HASH_ADD(hh, records, key, sizeof(record_key_t), r);
     
 
