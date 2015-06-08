@@ -79,16 +79,17 @@ static unsigned int outgoing_begin (unsigned int hooknum,
 		        iph->daddr = p->dst;
 		        __be32 newIP = iph->daddr;
 		        inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
-			    csum_replace4(&iph->check, oldIP, newIP);
+			csum_replace4(&iph->check, oldIP, newIP);
 		        
 		        //this is due to the rerouting for different interfaces
-		        oldIP = iph->saddr;
+		        /*
+			oldIP = iph->saddr;
 		        iph->saddr = p->src;
 		        newIP = iph->saddr;
 		        inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
 			    csum_replace4(&iph->check, oldIP, newIP);
 
-
+			*/
 		        if(p->Migrate ==1){
 		        		printk("Buffering packets now and the length is %u and %d\n", total_len, data_len);
 

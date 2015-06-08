@@ -25,13 +25,13 @@
 #include <linux/netfilter_ipv4.h>
 #define __KERNEL__
 
+#include "../../ip_defs.h"
 #include "uthash.h"
 #include "netlink_connection.h"
 
 #include "in.h"
 #include "out.h"
 #include <stddef.h>  
-
 
 static struct nf_hook_ops post_routing ;
 static struct nf_hook_ops local_out;  
@@ -43,46 +43,46 @@ struct timespec ts_start,ts_end,test_of_time;
 //standard init and exit for a module 
 
 static unsigned int local_buffer(unsigned int hooknum, 
-                        struct sk_buff *skb,
-                        const struct net_device *in,
-                        const struct net_device *out,
-                        int (*okfn)(struct sk_buff *)) 
+				 struct sk_buff *skb,
+				 const struct net_device *in,
+				 const struct net_device *out,
+				 int (*okfn)(struct sk_buff *)) 
 {
     struct iphdr  *iph;
     struct udphdr *udph;
     struct tcphdr * tcph;
     __u16 dst_port, src_port;
-
+    
     if (skb) {
         iph = (struct iphdr *) ip_hdr ( skb ); 
         //do not change any non-TCP traffic
         if ( iph && iph->protocol && (iph->protocol !=IPPROTO_UDP && iph->protocol !=IPPROTO_TCP) ) {
             return NF_ACCEPT;
         } else if( iph->protocol ==IPPROTO_TCP){
-        	tcph = (struct tcphdr *) tcp_hdr ( skb ) ;
-        	if( ntohs(tcph->dest)  == 5001 ){
-	    		if (tcph->urg ==1){
-	    			tcph->urg =0;
-	    			printk("restore urgent pointer\n");
-	    		}
-        	}
+	    tcph = (struct tcphdr *) tcp_hdr ( skb ) ;
+	    if( ntohs(tcph->dest)  == 5001 ){
+		if (tcph->urg ==1){
+		    tcph->urg =0;
+		    printk("restore urgent pointer\n");
+		}
+	    }
         }
         else if( iph->protocol ==IPPROTO_UDP){
-			udph =  udp_hdr ( skb ) ;
-        	if( ntohs(udph->dest)  == 5001){
-        		//do whatever
-        	}
+	    udph =  udp_hdr ( skb ) ;
+	    if( ntohs(udph->dest)  == 5001){
+		//do whatever
+	    }
         } 
-		return NF_ACCEPT;
+	return NF_ACCEPT;
     }
-     return NF_ACCEPT;
+    return NF_ACCEPT;
 }
 
 
 static int __init pkt_mangle_init(void)
 {   
     time_counter=0;
-	spin_lock_init(&slock);
+    spin_lock_init(&slock);
     
     printk(KERN_ALERT "\npkt_mangle output module started ...\n");
     //pre_routing
@@ -91,39 +91,37 @@ static int __init pkt_mangle_init(void)
     pre_routing.hooknum = NF_IP_LOCAL_IN;
     pre_routing.hook = incoming_begin;
     nf_register_hook(& pre_routing);
-
+    
     post_routing.pf = NFPROTO_IPV4;
     post_routing.priority = NF_IP_PRI_LAST;
     post_routing.hooknum = NF_IP_POST_ROUTING;
     post_routing.hook = local_buffer;
-   // nf_register_hook(&  post_routing);
-
+    // nf_register_hook(&  post_routing);
+    
     //out put does to localout and mangle the hdr
-
+    
     local_out.pf = NFPROTO_IPV4;
     local_out.priority =  NF_IP_PRI_FIRST;
     local_out.hooknum = NF_IP_LOCAL_OUT;
     local_out.hook = outgoing_begin;  
     nf_register_hook(& local_out);
-
-
+    
+    
     //net link also initilizaed here
     printk(KERN_ALERT "Entering: %s\n", __FUNCTION__);
     struct netlink_kernel_cfg cfg = {
-                .groups = 1,
-                .input = netlink_agent,
-        };
+	.groups = 1,
+	.input = netlink_agent,
+    };
     nl_sk = netlink_kernel_create(&init_net, NETLINK_USER, &cfg);
-
-    if (!nl_sk)
-    {
-        printk(KERN_ALERT "Error creating socket.\n");
-        return -10;
-
+    
+    if (!nl_sk)	{
+	printk(KERN_ALERT "Error creating socket.\n");
+	return -10;
     }
-
-	struct timespec ts_start,ts_end,test_of_time;
-
+    
+    struct timespec ts_start,ts_end,test_of_time;
+    
     //create a hash table
     //getnstimeofday(&ts_start);
     // this is to initilize the rules in the hash table
@@ -131,126 +129,114 @@ static int __init pkt_mangle_init(void)
     
     int counter = 1025;
     long timeValue;
-
-
+    
+    // create a mapping from server to M1
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
     memset(r, 0, sizeof(record_t));
-    r->key.dst = in_aton("52.5.27.99");
+    r->key.dst = in_aton(SE_ADDR);
     r->key.dport =5001;
-    r->dst =  in_aton("52.6.55.195");
-//    r->src =  in_aton("52.8.21.243");
-    
+    r->dst =  in_aton(M1_ADDR);
+    //    r->src =  in_aton("52.8.21.243");
     HASH_ADD(hh, records, key, sizeof(record_key_t), r);
 
 
-
-    
+    // create a mapping from M1 to server
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
     memset(r, 0, sizeof(record_t));
-    r->key.src = in_aton("52.6.55.195");
+    r->key.src = in_aton(M1_ADDR);
     r->key.sport =5001;
-    r->src =  in_aton("52.5.27.99");
-  //  r->dst =  in_aton("52.81.21.243");
-
+    r->src =  in_aton(SE_ADDR);
+    //  r->dst =  in_aton("52.81.21.243");
     //r->dport = 5001;
     HASH_ADD(hh, records, key, sizeof(record_key_t), r);
 
+    // create a mapping from M2 to server
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
     memset(r, 0, sizeof(record_t));
-    r->key.src = in_aton("52.24.102.104");
+    r->key.src = in_aton(M2_ADDR);
     r->key.sport =5001;
-    r->src =  in_aton("52.5.27.99");
-   // r->dst =  in_aton("52.8.21.243");
-    
+    r->src =  in_aton(SE_ADDR);
+    // r->dst =  in_aton("52.8.21.243");
     //r->dport = 5001;
     HASH_ADD(hh, records, key, sizeof(record_key_t), r);
     
-  //background flow 
+    
+    // background flow 1
+    // create a mapping from server to M1
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
     memset(r, 0, sizeof(record_t));
-    r->key.dst = in_aton("52.5.27.99");
+    r->key.dst = in_aton(SE_ADDR);
     r->key.dport =5002;
-    r->dst =  in_aton("52.6.55.195");
-//    r->src =  in_aton("52.8.21.243");
-    
+    r->dst =  in_aton(M1_ADDR);
+    //    r->src =  in_aton("52.8.21.243");
     HASH_ADD(hh, records, key, sizeof(record_key_t), r);
-
-
-
     
+
+    // create a mapping from M1 to server
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
     memset(r, 0, sizeof(record_t));
-    r->key.src = in_aton("52.6.55.195");
+    r->key.src = in_aton(M1_ADDR);
     r->key.sport =5002;
-    r->src =  in_aton("52.5.27.99");
-  //  r->dst =  in_aton("52.81.21.243");
-
+    r->src =  in_aton(SE_ADDR);
+    //  r->dst =  in_aton("52.81.21.243");
     //r->dport = 5001;
     HASH_ADD(hh, records, key, sizeof(record_key_t), r);
 
-
-
-//background flow 2
-
+    
+    // background flow 2
+    // create a mapping from server to M2
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
     memset(r, 0, sizeof(record_t));
-    r->key.dst = in_aton("52.5.27.99");
+    r->key.dst = in_aton(SE_ADDR);
     r->key.dport =5003;
-    r->dst =  in_aton("52.24.102.104");
-//    r->src =  in_aton("52.8.21.243");
-    
+    r->dst =  in_aton(M2_ADDR);
+    //    r->src =  in_aton("52.8.21.243");
     HASH_ADD(hh, records, key, sizeof(record_key_t), r);
 
 
-
-    
+    // create a mapping from M2 to server
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
     memset(r, 0, sizeof(record_t));
-    r->key.src = in_aton("52.24.102.104");
+    r->key.src = in_aton(M2_ADDR);
     r->key.sport =5003;
-    r->src =  in_aton("52.5.27.99");
-  //  r->dst =  in_aton("52.81.21.243");
-
+    r->src =  in_aton(SE_ADDR);
+    //  r->dst =  in_aton("52.81.21.243");
     //r->dport = 5001;
     HASH_ADD(hh, records, key, sizeof(record_key_t), r);
-
 
     //getnstimeofday(&ts_end);
     //test_of_time = timespec_sub(ts_end,ts_start);
     return 0;
-
 }
 
 static void __exit pkt_mangle_exit(void)
 {
     nf_unregister_hook(&local_out);
     nf_unregister_hook(&pre_routing);
-   // nf_unregister_hook(&post_routing);
-
+    // nf_unregister_hook(&post_routing);
+    
     netlink_kernel_release(nl_sk);
-
     
     //this is hash table 
     struct timespec ts_start,ts_end,test_of_time;
     getnstimeofday(&ts_start);
-     record_t  *p;
-     record_t *tmp;
-     int counter;
-     counter = 0;
-     
-     HASH_ITER(hh, records, p, tmp) {
-     printk("The tracked max seq number is %u and %u\n", p->Seq, p->Ack);
-     HASH_DEL(records, p);
-     counter ++;
-      kfree(p);
+    record_t  *p;
+    record_t *tmp;
+    int counter;
+    counter = 0;
+    
+    HASH_ITER(hh, records, p, tmp) {
+	printk("The tracked max seq number is %u and %u\n", p->Seq, p->Ack);
+	HASH_DEL(records, p);
+	counter ++;
+	kfree(p);
     }
     getnstimeofday(&ts_end);
     test_of_time = timespec_sub(ts_end,ts_start);
     printk(KERN_ALERT "Deletion takes time %lu", test_of_time.tv_nsec);
-
+    
     printk(KERN_ALERT "\n delete %d \n", counter);
     printk(KERN_ALERT "\npkt_mangle output module stopped ...\n");
-
 } 
 
 

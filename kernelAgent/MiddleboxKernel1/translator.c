@@ -24,6 +24,7 @@
 #include <linux/netfilter_ipv4.h>
 #define __KERNEL__
 
+#include "../../ip_defs.h"
 #include "uthash.h"
 #include "in.h"
 #include "out.h"
@@ -177,10 +178,10 @@ static int __init pkt_mangle_init(void)
         
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
     memset(r, 0, sizeof(record_t));
-    r->key.src = in_aton("52.8.21.243");
+    r->key.src = in_aton(CL_ADDR);
     r->key.dport =5001;
-    r->src = in_aton("172.31.3.163");
-    r->dst = in_aton("172.31.12.243");
+    r->src = in_aton(M1_ADDR); // for ec2 has to be "172.31.3.163");
+    r->dst = in_aton(SE_ADDR); // for ec2 has to be "172.31.12.243");
     //r->dport = 5001;
 
     HASH_ADD(hh, records, key, sizeof(record_key_t), r);
@@ -188,10 +189,10 @@ static int __init pkt_mangle_init(void)
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
     memset(r, 0, sizeof(record_t));
 
-    r->key.src = in_aton("172.31.12.243");
+    r->key.src = in_aton(SE_ADDR); // for ec2 has to be "172.31.12.243");
     r->key.sport =5001;
-    r->src = in_aton("172.31.3.163");
-    r->dst = in_aton("52.8.21.243");
+    r->src = in_aton(M1_ADDR); // for ec2 has to be "172.31.3.163");
+    r->dst = in_aton(CL_ADDR);
 	
     HASH_ADD(hh, records, key, sizeof(record_key_t), r);
 
