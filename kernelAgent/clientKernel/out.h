@@ -26,21 +26,21 @@
 
 
 static unsigned int outgoing_begin (unsigned int hooknum,
-                        struct sk_buff *skb,
-                        const struct net_device *in,
-                        const struct net_device *out,
-                        int (*okfn)(struct sk_buff *))
+				    struct sk_buff *skb,
+				    const struct net_device *in,
+				    const struct net_device *out,
+				    int (*okfn)(struct sk_buff *))
 { 
     struct iphdr *iph;
     if (skb) {
-
+	
         iph = ip_hdr ( skb ); 
         
         //do not change any non-UDP traffic
         if ( iph && iph->protocol && iph->protocol!= IPPROTO_TCP ) {
             return NF_ACCEPT;
         } 
-/*
+	/*
 *******************************************************************************************
 *******************************************************************************************
         The following is for TCP handling, 
@@ -48,10 +48,9 @@ static unsigned int outgoing_begin (unsigned int hooknum,
 ******************************************************************************************
 ******************************************************************************************
 */
-        else if (iph->protocol ==IPPROTO_TCP)
-        {
+        else if (iph->protocol ==IPPROTO_TCP) {
             struct tcphdr * tcph ;
-
+	    
             unsigned int data_len ;
             data_len = skb->len ;
             
@@ -63,70 +62,66 @@ static unsigned int outgoing_begin (unsigned int hooknum,
             tcphdr_len = tcp_hdrlen(skb) ;
             unsigned int tcp_len ;
             tcp_len = data_len - iphdr_len ;  
-           
+	    
             int tcpoffset = 4* tcph->doff;
-
+	    
             record_t l, *p ;
-
+	    
             memset(&l, 0, sizeof( record_t) );
             l.key.dst =iph->daddr ;
             l.key.dport = ntohs( tcph->dest );
             //l.key.sport = ntohs( tcph->source );
             HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p) ;
-
-            if(p){
-            //during the migration, we do a buffering of the packets
+	    
+            if(p) {
+		//during the migration, we do a buffering of the packets
                 if(p->Migrate ==1 ) {
-
-		            printk( KERN_ALERT "This means we have not received SYNACK yet\n");
-            	
+		    
+		    printk( KERN_ALERT "This means we have not received SYNACK yet\n");
+		    
                     __be32 oldIP = iph->daddr;
                     iph->daddr = p->new_dst;
                     __be32 newIP = iph->daddr;
                     inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
                     csum_replace4(&iph->check, oldIP, newIP);
                     
-                  /*  oldIP = iph->saddr;
-                    iph->saddr = p->new_src;
-                    newIP = iph->saddr;
-                    inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
-                    csum_replace4(&iph->check, oldIP, newIP);
-		*/	
+		    /*  oldIP = iph->saddr;
+			iph->saddr = p->new_src;
+			newIP = iph->saddr;
+			inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
+			csum_replace4(&iph->check, oldIP, newIP);
+		    */	
                     ip_route_me_harder(skb, RTN_UNSPEC);
                     printk( KERN_ALERT "Queue Packets now!\n");
                     return NF_QUEUE;
                 } 
-
-
+		
+		
                 //otherwise we just send the traffic directly
-
                 else{
-                //  printk( KERN_ALERT "This means we found a match\n");
+		    //  printk( KERN_ALERT "This means we found a match\n");
 		    __be32 oldIP = iph->daddr;
                     iph->daddr = p->dst;
                     __be32 newIP = iph->daddr;
                     inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
                     csum_replace4(&iph->check, oldIP, newIP);
                     
-                 /*   oldIP = iph->saddr;
-                    iph->saddr = p->src;
-                    newIP = iph->saddr;
-                    inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
-                    csum_replace4(&iph->check, oldIP, newIP);
-
-		*/
+		    /*   oldIP = iph->saddr;
+			 iph->saddr = p->src;
+			 newIP = iph->saddr;
+			 inet_proto_csum_replace4(&tcph->check, skb, oldIP, newIP, 1);
+			 csum_replace4(&iph->check, oldIP, newIP);
+		    */
                     ip_route_me_harder(skb, RTN_UNSPEC);
                     return NF_ACCEPT;
-
-                    }
+		}
             }
             return NF_ACCEPT;
         }   
-
-     return NF_ACCEPT;
-
+	
+	return NF_ACCEPT;
     }
-     return NF_ACCEPT;
+    return NF_ACCEPT;
 }
 
 #endif
