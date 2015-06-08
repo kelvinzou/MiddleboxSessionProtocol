@@ -52,31 +52,31 @@ static unsigned int local_buffer(unsigned int hooknum,
     struct udphdr *udph;
     struct tcphdr * tcph;
     __u16 dst_port, src_port;
-
+    
     if (skb) {
         iph = (struct iphdr *) ip_hdr ( skb ); 
         //do not change any non-TCP traffic
         if ( iph && iph->protocol && (iph->protocol !=IPPROTO_UDP && iph->protocol !=IPPROTO_TCP) ) {
             return NF_ACCEPT;
         } else if( iph->protocol ==IPPROTO_TCP){
-        	tcph = (struct tcphdr *) tcp_hdr ( skb ) ;
-        	if( ntohs(tcph->dest)  == 5001 ){
-	    		if (tcph->urg ==1){
-	    			tcph->urg =0;
-	    			printk("restore urgent pointer\n");
-	    		}
-        	}
+	    tcph = (struct tcphdr *) tcp_hdr ( skb ) ;
+	    if( ntohs(tcph->dest)  == 5001 ){
+		if (tcph->urg ==1){
+		    tcph->urg =0;
+		    printk("restore urgent pointer\n");
+		}
+	    }
         }
         else if( iph->protocol ==IPPROTO_UDP){
-			udph =  udp_hdr ( skb ) ;
-        	if( ntohs(udph->dest)  == 5001){
-        		//do whatever
-        	}
+	    udph =  udp_hdr ( skb ) ;
+	    if( ntohs(udph->dest)  == 5001){
+		//do whatever
+	    }
         } 
-		return NF_ACCEPT;
+	return NF_ACCEPT;
     }
-     return NF_ACCEPT;
-}
+    return NF_ACCEPT;
+} // reformated - raf
 
 
 static int __init pkt_mangle_init(void)
