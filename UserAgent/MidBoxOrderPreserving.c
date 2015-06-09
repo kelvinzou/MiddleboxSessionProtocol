@@ -49,7 +49,7 @@ This is the user space agent of the middlebox protocol
 #define UDP_PORT 1025
 
 #define THREAD_NUM 100
-#define NETLINK_LOSSFREE true
+#define NETLINK_LOSSFREE false 
 #define NETLINK_FLAG true
 
 #define RETRANSMIT_TIMER 100000 //minimum is 1000 since poll only supports down to 1 ms
