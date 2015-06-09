@@ -182,7 +182,7 @@ int main(int argc, char *argv[])
     gettimeofday(&t1, NULL);
 
     sockfd=socket(AF_INET,SOCK_DGRAM,0);
-   bzero(&servaddr,sizeof(servaddr));
+    bzero(&servaddr,sizeof(servaddr));
     servaddr.sin_family = AF_INET;
     servaddr.sin_addr.s_addr=htonl(INADDR_ANY);
     servaddr.sin_port=htons(UDP_PORT);

@@ -9,13 +9,12 @@ This is the python mininet start script, and it generates the network and xtermi
 """
 
 """
-          h3(M2)
-          | 
+        
       /---s2-------\
-h1--s1      |       s3----h5
-      \	    MContr  /
+h1--s1              s3----h4
+      \	            /
        \           /
-	h2 M1     (h4) M3
+	h2 M1     (h3) M3
 """
 
 
@@ -49,23 +48,18 @@ class TestTopo( Topo ):
         # Add hosts and switches
         Host1 = self.addHost( 'h1' )
         MBox1 = self.addHost('h2')
-        MBox2 = self.addHost( 'h3' )
-    	MBox3 = self.addHost('h4')
-    	Host2 = self.addHost('h5')
-    	MControler= self.addHost('h6')
-
+    	MBox2 = self.addHost('h3')
+    	Host2 = self.addHost('h4')
         leftSwitch = self.addSwitch( 's1' )
         rightSwitch = self.addSwitch( 's3' )
         midSwitch = self.addSwitch('s2')
 
 
-        # Add links
-        self.addLink( Host1, leftSwitch,bw=100, delay='25ms' )
+        # Add links , bw=100, delay='5ms'
+        self.addLink( Host1, leftSwitch )
         self.addLink( Host2, rightSwitch )
         self.addLink( MBox1, leftSwitch )
-        self.addLink( MBox3 , rightSwitch )
         self.addLink( MBox2, midSwitch)	
-        self.addLink (MControler, midSwitch)
 
         self.addLink( leftSwitch, midSwitch )
         self.addLink( rightSwitch, midSwitch )
