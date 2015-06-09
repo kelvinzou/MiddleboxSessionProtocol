@@ -49,6 +49,11 @@ This is the user space agent of the middlebox protocol
 
 #define RETRANSMIT_TIMER 100000 //minimum is 1000 since poll only supports down to 1 ms
 
+#define SERVER_IP "10.0.0.4"
+#define NEW_MID "10.0.0.2"
+#define OLD_MID "10.0.0.3"
+
+
 using namespace std;
 
 struct timeval t1, t2;
@@ -91,7 +96,7 @@ int main(int argc, char**argv)
 	if (atoi(argv[1])==1 ){
 		printf("Left Anchor!\n");
 		
-		char * NewMBox[] = { "10.0.0.2",  "10.0.0.4"};
+		char * NewMBox[] = { NEW_MID, SERVER_IP};
 
 		char sendline[MAX_PAYLOAD], recvline[MAX_PAYLOAD];
 		memset(sendline, 0, MAX_PAYLOAD);
@@ -140,7 +145,7 @@ int main(int argc, char**argv)
 		servaddr_oldpath.sin_port=htons(UDP_PORT);
 
 
-		char * OldMBox[] = { "10.0.0.3",  "10.0.0.4"};
+		char * OldMBox[] = {OLD_MID,  SERVER_IP};
 
 		headersize = set_packet(sendline, OldMBox,( sizeof (OldMBox) / sizeof(char *) ));
 		hdr_ptr = (header*) sendline;	
@@ -346,7 +351,7 @@ int main(int argc, char**argv)
 			/**********************************************
 			This is another place you need to configure where the new Middlebox instance IP is 
 			************************************************/
-			SendServaddr.sin_addr.s_addr=inet_addr("10.0.0.2"); 
+			SendServaddr.sin_addr.s_addr=inet_addr(NEW_MID); 
 			sendto(RelaySockfd, sendline, 8, 0, (struct sockaddr *)&SendServaddr, sizeof(struct sockaddr_in));
 			recvfrom(RelaySockfd,recvline,8,0,NULL,NULL);
 			hdr_ptr = (header*) recvline;
