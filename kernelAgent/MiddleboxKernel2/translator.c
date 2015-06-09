@@ -24,6 +24,7 @@
 #include <linux/netfilter_ipv4.h>
 #define __KERNEL__
 
+#include "../../ip_defs.h"
 #include "uthash.h"
 #include "in.h"
 #include "out.h"
@@ -49,62 +50,73 @@ static int __init pkt_mangle_init(void)
     pre_routing.hooknum = NF_IP_PRE_ROUTING;
     pre_routing.hook = incoming_change_begin;
     nf_register_hook(& pre_routing);
-
+    
 
     //out put does to localout and mangle the hdr
-
+    
     post_routing.pf = NFPROTO_IPV4;
     post_routing.priority = NF_IP_PRI_NAT_DST;
     post_routing.hooknum = NF_IP_POST_ROUTING;
     post_routing.hook =  outgoing_change_begin;
     nf_register_hook(&  post_routing);
-
+    
 
     //net link also initilizaed here
     printk(KERN_ALERT "Entering: %s\n", __FUNCTION__);
     struct netlink_kernel_cfg cfg = {
-                .groups = 1,
-                .input = hello_nl_recv_msg,
-        };
+	.groups = 1,
+	.input = hello_nl_recv_msg,
+    };
     nl_sk = netlink_kernel_create(&init_net, NETLINK_USER, &cfg);
-
-    if (!nl_sk)
-    {
-
+    
+    if (!nl_sk)	{
         printk(KERN_ALERT "Error creating socket.\n");
         return -10;
-
     }
-
-	struct timespec ts_start,ts_end,test_of_time;
-
+    
+    struct timespec ts_start,ts_end,test_of_time;
+    
     //create a hash table
     //getnstimeofday(&ts_start);
     record_t l, *p, *r;
-
+    
 
     //add hash entry in the hash table
-        
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
-	memset(r, 0, sizeof(record_t));
-	r->key.src = in_aton("10.0.4.2");
-	r->key.dport =5001;
+    memset(r, 0, sizeof(record_t));
+    r->key.src = in_aton("10.0.4.2");
+    r->key.dport =5001;
     r->src = in_aton("10.0.1.1");
     r->dst = in_aton("10.0.1.2");
     //r->dport = 5001;
-
     HASH_ADD(hh, records, key, sizeof(record_key_t), r);
 
     r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
     memset(r, 0, sizeof(record_t));
-
     r->key.src = in_aton("10.0.1.2");
     r->key.sport =5001;
     r->src = in_aton("10.0.4.1");
     r->dst = in_aton("10.0.4.2");
-	
     HASH_ADD(hh, records, key, sizeof(record_key_t), r);
 
+    // Background flow
+    r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
+    memset(r, 0, sizeof(record_t));
+    r->key.src = in_aton("10.0.4.2");
+    r->key.dport = 5003;
+    r->src = in_aton("10.0.1.1");
+    r->dst = in_aton("10.0.1.2");
+    //r->dport = 5001;
+    HASH_ADD(hh, records, key, sizeof(record_key_t), r);
+
+    r = (record_t*)kmalloc( sizeof(record_t) , GFP_KERNEL);
+    memset(r, 0, sizeof(record_t));
+    r->key.src = in_aton("10.0.1.2");
+    r->key.sport =5003;
+    r->src = in_aton("10.0.4.1");
+    r->dst = in_aton("10.0.4.2");
+    HASH_ADD(hh, records, key, sizeof(record_key_t), r);
+    
     return 0;
 
 }
